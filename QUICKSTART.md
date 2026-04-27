@@ -1,222 +1,106 @@
-# Quick Start Guide
+# Life Admin App - Quick Start Guide
 
-Get the backend running in 5 minutes!
+## 🚀 Get Running in 2 Minutes
 
-## Prerequisites Check
+### Prerequisites
+- Node.js 20+
+- PostgreSQL 15+
 
+### Step 1: Clone and Setup
 ```bash
-# Check Node.js version (need 20+)
-node --version
-
-# Check npm
-npm --version
+cd /Users/anna/.openclaw/workspace/life-admin-app
 ```
 
-If Node.js is not installed or version is too old:
-- macOS: `brew install node@20`
-- Windows: Download from https://nodejs.org/
-- Ubuntu: `curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs`
-
----
-
-## 3-Step Setup (Docker)
-
-### 1. Start PostgreSQL
-
-```bash
-docker run --name postgres-lifeadmin \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=lifeadmin \
-  -p 5432:5432 \
-  -d postgres:15
-
-# Verify it's running
-docker ps
-```
-
-### 2. Setup Backend
-
+### Step 2: Backend Setup
 ```bash
 cd server
 npm install
+cp .env.example .env
+# Edit .env with your database credentials
 npm run prisma:generate
 npm run prisma:migrate
-npm run seed
+npm run seed  # Optional: Creates test user
+npm run dev   # Runs on http://localhost:3001
 ```
 
-### 3. Start Server
-
+### Step 3: Frontend Setup (New Terminal)
 ```bash
-npm run dev
+cd client
+npm install
+npm run dev   # Runs on http://localhost:3000
 ```
 
-**Done!** Server running on http://localhost:3001
+### Step 4: Test the App
+1. Open http://localhost:3000
+2. Register a new account
+3. Add your first subscription
+4. View the dashboard
 
----
+## Test User (if seeded)
+- Email: test@example.com
+- Password: testpass123
 
-## Test It Works
-
-```bash
-# Health check
-curl http://localhost:3001/health
-
-# Login with test user
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -c cookies.txt \
-  -d '{"email":"test@example.com","password":"testpass123"}'
-
-# Get subscriptions
-curl http://localhost:3001/api/subscriptions -b cookies.txt
+## Project Structure
+```
+life-admin-app/
+├── server/          # Express + Prisma backend (port 3001)
+├── client/          # React + Vite frontend (port 3000)
+├── FRONTEND-COMPLETE.md    # Detailed frontend docs
+└── QUICKSTART.md           # This file
 ```
 
-You should see 8 sample subscriptions!
+## Key Features
+- ✅ User authentication (JWT cookies)
+- ✅ Subscription CRUD
+- ✅ Dashboard with spending insights
+- ✅ Category breakdown chart
+- ✅ Upcoming renewal reminders
+- ✅ Search & filter
+- ✅ Mobile responsive
 
----
+## Tech Stack
+**Backend:** Node.js + Express + TypeScript + Prisma + PostgreSQL
+**Frontend:** React + TypeScript + Vite + TailwindCSS + shadcn/ui
 
-## Alternative: No Docker?
+## API Docs
+See `server/README.md` for full API documentation.
 
-### Install PostgreSQL Locally
+## Deployment
+**Backend:** Railway (with PostgreSQL)
+**Frontend:** Vercel
 
-**macOS:**
-```bash
-brew install postgresql@15
-brew services start postgresql@15
-createdb lifeadmin
-```
-
-**Ubuntu:**
-```bash
-sudo apt-get install postgresql-15
-sudo systemctl start postgresql
-sudo -u postgres createdb lifeadmin
-```
-
-**Windows:**
-1. Download PostgreSQL from https://www.postgresql.org/download/windows/
-2. Install and start the service
-3. Create database using pgAdmin or command line
-
-Then follow steps 2-3 from above.
-
----
-
-## Alternative: Cloud Database (Railway)
-
-1. Go to https://railway.app/
-2. Sign up (free tier)
-3. New Project → Add PostgreSQL
-4. Copy DATABASE_URL
-5. Edit `server/.env` and paste the URL
-6. Continue from step 2 above
-
----
-
-## What's Running?
-
-```
-📡 API Server:  http://localhost:3001
-📊 Health Check: http://localhost:3001/health
-📝 API Docs:     server/README.md
-
-Test User:
-  📧 Email:    test@example.com
-  🔑 Password: testpass123
-```
-
----
-
-## Prisma Studio (Database GUI)
-
-View and edit data visually:
-
-```bash
-cd server
-npm run prisma:studio
-```
-
-Opens at http://localhost:5555
-
----
-
-## Stop Everything
-
-```bash
-# Stop server: Ctrl+C in the terminal
-
-# Stop Docker database
-docker stop postgres-lifeadmin
-
-# Remove Docker database (if you want to start fresh)
-docker rm postgres-lifeadmin
-```
-
----
+See technical spec for detailed deployment instructions.
 
 ## Troubleshooting
 
-### "Port 3001 already in use"
+**Backend won't start:**
+- Check PostgreSQL is running
+- Verify DATABASE_URL in .env
+- Run `npm run prisma:generate`
 
-```bash
-lsof -ti:3001 | xargs kill -9
-```
+**Frontend won't start:**
+- Check Node.js version (20+)
+- Delete node_modules and npm install again
+- Check if port 3000 is available
 
-### "Can't reach database server"
-
-```bash
-# Check Docker is running
-docker ps
-
-# Check database logs
-docker logs postgres-lifeadmin
-
-# Restart database
-docker restart postgres-lifeadmin
-```
-
-### "Prisma Client not generated"
-
-```bash
-cd server
-npm run prisma:generate
-```
-
-### Start Fresh
-
-```bash
-cd server
-npx prisma migrate reset
-npm run seed
-```
-
----
+**API errors:**
+- Ensure backend is running on port 3001
+- Check browser console for errors
+- Verify CORS is configured correctly
 
 ## Next Steps
+1. Add more subscriptions
+2. Explore the dashboard
+3. Test on mobile devices
+4. Deploy to production
 
-1. ✅ Backend running
-2. ⬜ Push to GitHub (see GITHUB_SETUP.md)
-3. ⬜ Build frontend (React + Vite)
-4. ⬜ Deploy to production (Railway + Vercel)
-
----
-
-## Full Documentation
-
-- **API Endpoints:** `server/README.md`
-- **Detailed Setup:** `SETUP.md`
-- **GitHub Setup:** `GITHUB_SETUP.md`
-- **What Was Built:** `DELIVERABLES.md`
+## Documentation
+- Backend: `server/README.md`
+- Frontend: `client/README.md`
+- Complete report: `FRONTEND-COMPLETE.md`
+- Technical spec: `life-admin-app-technical-spec.md`
+- Design spec: `life-admin-app-design-spec.md`
 
 ---
 
-**Need Help?**
-
-Check the troubleshooting sections in `SETUP.md` or open a GitHub issue.
-
----
-
-**Quick Start Complete!** 🚀
-
-Now you have a fully functional subscription tracker API running locally.
-
-Test the endpoints with curl, Postman, or start building the frontend!
+**Status:** ✅ MVP Complete - Ready for production deployment
