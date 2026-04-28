@@ -74,7 +74,9 @@ export const getSubscriptions = async (
       return;
     }
 
-    const { category, sort = 'renewalDate', order = 'asc' } = req.query;
+    const category = typeof req.query.category === 'string' ? req.query.category : undefined;
+    const sort = typeof req.query.sort === 'string' ? req.query.sort : 'renewalDate';
+    const order = typeof req.query.order === 'string' ? req.query.order : 'asc';
 
     const where: any = {
       userId: req.user.userId,
@@ -123,10 +125,11 @@ export const getSubscriptionById = async (
     }
 
     const { id } = req.params;
+    const subscriptionId = typeof id === 'string' ? id : id[0];
 
     const subscription = await prisma.subscription.findFirst({
       where: {
-        id,
+        id: subscriptionId,
         userId: req.user.userId,
       },
     });
@@ -181,13 +184,14 @@ export const updateSubscription = async (
     }
 
     const { id } = req.params;
+    const subscriptionId = typeof id === 'string' ? id : id[0];
     const { name, cost, currency, billingCycle, renewalDate, category, notes } =
       req.body;
 
     // Check if subscription exists and belongs to user
     const existingSubscription = await prisma.subscription.findFirst({
       where: {
-        id,
+        id: subscriptionId,
         userId: req.user.userId,
       },
     });
@@ -213,7 +217,7 @@ export const updateSubscription = async (
     if (notes !== undefined) data.notes = notes;
 
     const subscription = await prisma.subscription.update({
-      where: { id },
+      where: { id: subscriptionId },
       data,
     });
 
@@ -245,11 +249,12 @@ export const deleteSubscription = async (
     }
 
     const { id } = req.params;
+    const subscriptionId = typeof id === 'string' ? id : id[0];
 
     // Check if subscription exists and belongs to user
     const existingSubscription = await prisma.subscription.findFirst({
       where: {
-        id,
+        id: subscriptionId,
         userId: req.user.userId,
       },
     });
@@ -266,7 +271,7 @@ export const deleteSubscription = async (
 
     // Soft delete by setting isActive to false
     await prisma.subscription.update({
-      where: { id },
+      where: { id: subscriptionId },
       data: { isActive: false },
     });
 
