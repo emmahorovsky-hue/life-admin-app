@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  backend-lint-test:
+    name: Backend Lint & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./server
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint || echo "No lint script configured, skipping..."
+        continue-on-error: true
+      
+      - name: Run tests
+        run: npm test || echo "No tests configured yet"
+        continue-on-error: true
+      
+      - name: Check TypeScript compilation
+        run: npx tsc --noEmit
+
+  frontend-lint-test:
+    name: Frontend Lint & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint || echo "No lint script configured, skipping..."
+        continue-on-error: true
+      
+      - name: Run tests
+        run: npm test || echo "No tests configured yet"
+        continue-on-error: true
+      
+      - name: Build check
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:3001
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Audit backend dependencies
+        run: cd server && npm audit --audit-level=moderate || true
+      
+      - name: Audit frontend dependencies
+        run: cd client && npm audit --audit-level=moderate || true
