@@ -1,0 +1,72 @@
+name: Agent Workflow Automation
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [ main ]
+  pull_request_target:
+    types: [closed]
+    branches: [ main ]
+
+jobs:
+  trigger-reviewer:
+    name: Spawn Reviewer Agent
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Extract Linear ticket ID
+        id: linear
+        run: |
+          # Extract LIF-XX from PR title or branch name
+          TICKET=$(echo "${{ github.event.pull_request.title }} ${{ github.event.pull_request.head.ref }}" | grep -oE 'LIF-[0-9]+' | head -1 || echo "")
+          echo "ticket=$TICKET" >> $GITHUB_OUTPUT
+          echo "Found ticket: $TICKET"
+      
+      - name: Notify OpenClaw Gateway
+        if: steps.linear.outputs.ticket != ''
+        run: |
+          # This sends a message to the main agent to spawn a reviewer
+          # You'll need to set OPENCLAW_GATEWAY_TOKEN in GitHub secrets
+          curl -X POST "${{ secrets.OPENCLAW_GATEWAY_URL }}/api/sessions/message" \
+            -H "Authorization: Bearer ${{ secrets.OPENCLAW_GATEWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "agentId": "main",
+              "message": "PR opened: #${{ github.event.pull_request.number }} for ${{ steps.linear.outputs.ticket }}\n\nTitle: ${{ github.event.pull_request.title }}\nURL: ${{ github.event.pull_request.html_url }}\n\nSpawn reviewer agent to review this PR.",
+              "metadata": {
+                "source": "github_actions",
+                "pr_number": ${{ github.event.pull_request.number }},
+                "ticket": "${{ steps.linear.outputs.ticket }}"
+              }
+            }'
+
+  trigger-qa:
+    name: Spawn QA Agent
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Extract Linear ticket ID
+        id: linear
+        run: |
+          TICKET=$(echo "${{ github.event.pull_request.title }} ${{ github.event.pull_request.head.ref }}" | grep -oE 'LIF-[0-9]+' | head -1 || echo "")
+          echo "ticket=$TICKET" >> $GITHUB_OUTPUT
+          echo "Found ticket: $TICKET"
+      
+      - name: Notify OpenClaw Gateway
+        if: steps.linear.outputs.ticket != ''
+        run: |
+          curl -X POST "${{ secrets.OPENCLAW_GATEWAY_URL }}/api/sessions/message" \
+            -H "Authorization: Bearer ${{ secrets.OPENCLAW_GATEWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "agentId": "main",
+              "message": "PR merged: #${{ github.event.pull_request.number }} for ${{ steps.linear.outputs.ticket }}\n\nTitle: ${{ github.event.pull_request.title }}\nURL: ${{ github.event.pull_request.html_url }}\n\nSpawn QA agent to test this change.",
+              "metadata": {
+                "source": "github_actions",
+                "pr_number": ${{ github.event.pull_request.number }},
+                "ticket": "${{ steps.linear.outputs.ticket }}",
+                "merged": true
+              }
+            }'
