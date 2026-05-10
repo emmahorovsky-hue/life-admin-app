@@ -1,0 +1,13 @@
+{
+  "name": "life-admin-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Life Admin App monorepo. The deployable Node.js service lives in ./server.",
+  "scripts": {
+    "build": "cd server && npm ci && npm run prisma:generate && npm run build",
+    "start": "cd server && npm run prisma:migrate:deploy && npm start"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
