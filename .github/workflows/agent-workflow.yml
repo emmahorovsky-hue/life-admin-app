@@ -1,6 +1,8 @@
 name: Agent Workflow Automation
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     types: [opened, reopened, synchronize]
     branches: [ main ]
@@ -16,7 +18,7 @@ permissions:
 jobs:
   trigger-reviewer:
     name: Spawn Reviewer Agent
-    if: github.event.action != 'closed'
+    if: github.event_name != 'push' && github.event.action != 'closed'
     runs-on: ubuntu-latest
 
     steps:
@@ -125,6 +127,56 @@ jobs:
                 pr_number: ($pr_number | tonumber),
                 ticket: $ticket,
                 merged: true
+              }
+            }')
+
+          curl --fail --show-error --silent \
+            -X POST "$GATEWAY_URL/api/sessions/message" \
+            -H "Authorization: Bearer $GATEWAY_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$PAYLOAD"
+
+  notify-push:
+    name: Notify on Direct Push to Main
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract Linear ticket ID
+        id: linear
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          TICKET=$(echo "$COMMIT_MESSAGE" | grep -oE 'LIF-[0-9]+' | head -1 || echo "")
+          echo "ticket=$TICKET" >> "$GITHUB_OUTPUT"
+          echo "Found ticket: $TICKET"
+
+      - name: Notify OpenClaw Gateway
+        if: steps.linear.outputs.ticket != ''
+        env:
+          GATEWAY_URL: ${{ secrets.OPENCLAW_GATEWAY_URL }}
+          GATEWAY_TOKEN: ${{ secrets.OPENCLAW_GATEWAY_TOKEN }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+          TICKET: ${{ steps.linear.outputs.ticket }}
+        run: |
+          if [ -z "${GATEWAY_URL:-}" ] || [ -z "${GATEWAY_TOKEN:-}" ]; then
+            echo "Gateway URL/token not configured; skipping notification."
+            exit 0
+          fi
+
+          PAYLOAD=$(jq -n \
+            --arg agentId "main" \
+            --arg ticket "$TICKET" \
+            --arg commit_message "$COMMIT_MESSAGE" \
+            --arg commit_url "$COMMIT_URL" \
+            '{
+              agentId: $agentId,
+              message: ("Push to main for " + $ticket + "\n\nCommit: " + $commit_message + "\nURL: " + $commit_url + "\n\nSpawn QA agent to verify this change."),
+              metadata: {
+                source: "github_actions",
+                ticket: $ticket,
+                event: "push"
               }
             }')
 
