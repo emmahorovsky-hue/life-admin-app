@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://life-admin-backend.up.railway.app/api/:path*"
+      "destination": "https://loyal-magic-production.up.railway.app/api/:path*"
     },
     {
       "source": "/(.*)",
