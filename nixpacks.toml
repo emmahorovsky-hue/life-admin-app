@@ -1,0 +1,26 @@
+# Root-level Nixpacks configuration for monorepo deploys.
+#
+# The Node.js application lives in ./server. This file lets Railway/Nixpacks
+# build the project even when the service Root Directory is left at the repo
+# root, by declaring explicit phases instead of relying on auto-detection.
+#
+# Recommended (cleaner) alternative: in the Railway service settings, set
+# Root Directory = "server". When set, Railway will use server/nixpacks.toml
+# and server/railway.json instead of these root files.
+
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "openssl"]
+
+[phases.install]
+cmds = ["cd server && npm ci"]
+
+[phases.build]
+cmds = [
+  "cd server && npx prisma generate",
+  "cd server && npm run build"
+]
+
+[start]
+cmd = "cd server && npm run prisma:migrate:deploy && npm start"

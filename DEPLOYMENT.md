@@ -12,6 +12,27 @@ Every pull request automatically gets:
 - **Frontend Preview:** Vercel creates a unique preview URL
 - **Backend Preview:** Railway creates a PR environment (configure in Railway dashboard)
 
+## Railway Service Configuration (Monorepo)
+
+This repo is a monorepo: the deployable Node.js app lives in `./server`,
+and the React client lives in `./client`. Railway must be told where the
+backend service is, otherwise Nixpacks scans the repo root, fails to
+detect a Node project, and the build aborts at the "Build image" step.
+
+**Recommended setup (cleanest):**
+
+1. Railway dashboard → backend service → **Settings** → **Source**
+2. Set **Root Directory** to `server`
+3. Save. Railway will then use `server/railway.json` and
+   `server/nixpacks.toml`, and `npm ci` / `npm start` resolve naturally.
+
+**Fallback (works without changing the dashboard):**
+
+The repo also ships with a root-level `package.json`, `nixpacks.toml`,
+and `railway.json` that explicitly `cd server` for install/build/start.
+This means the deploy succeeds even if the service Root Directory is
+left at the repo root.
+
 ## Railway PR Preview Setup
 
 1. Go to Railway dashboard → Your project

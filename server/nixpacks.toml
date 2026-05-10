@@ -1,0 +1,18 @@
+# Nixpacks build configuration for the life-admin-app server.
+# This file is consumed when Railway's service Root Directory is set to "server"
+# (recommended), which scopes Nixpacks to this Node.js project.
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "openssl"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = [
+  "npx prisma generate",
+  "npm run build"
+]
+
+[start]
+cmd = "npm run prisma:migrate:deploy && npm start"
