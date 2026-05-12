@@ -45,7 +45,7 @@ JWT_SECRET="your-generated-secret-key"
 JWT_EXPIRES_IN="7d"
 PORT=3001
 NODE_ENV="development"
-CLIENT_URL="http://localhost:5173"
+CLIENT_URL="http://localhost:3000"
 ```
 
 **Generate JWT Secret:**
@@ -169,7 +169,7 @@ npm install
 npm run dev
 ```
 
-Frontend will run on http://localhost:5173
+Frontend will run on http://localhost:3000
 
 ---
 
