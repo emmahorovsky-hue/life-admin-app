@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Subscriptions from './pages/Subscriptions';
+import VerifyEmailSuccess from './pages/VerifyEmailSuccess';
+import VerifyEmailError from './pages/VerifyEmailError';
 
 function App() {
   return (
@@ -14,6 +16,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email/success" element={<VerifyEmailSuccess />} />
+          <Route path="/verify-email/error" element={<VerifyEmailError />} />
           <Route
             path="/dashboard"
             element={
