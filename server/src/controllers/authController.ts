@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
 import { generateToken } from '../utils/jwt';
+import { issueEmailVerificationToken, consumeEmailVerificationToken } from '../services/emailVerificationService';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -58,8 +59,14 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
         id: true,
         email: true,
         name: true,
+        emailVerified: true,
         createdAt: true,
       },
+    });
+
+    // Issue email verification token and send email (don't block on failure)
+    issueEmailVerificationToken(user.id, user.email).catch((err) => {
+      console.error('Failed to send verification email:', err);
     });
 
     // Generate JWT
@@ -179,6 +186,8 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         id: true,
         email: true,
         name: true,
+        emailVerified: true,
+        emailVerifiedAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -202,6 +211,70 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         message: 'Failed to fetch user',
         code: 'FETCH_USER_FAILED',
       },
+    });
+  }
+};
+
+export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { token } = req.query;
+
+    if (!token || typeof token !== 'string') {
+      res.redirect(`${process.env.CLIENT_URL}/verify-email/error?reason=invalid`);
+      return;
+    }
+
+    const result = await consumeEmailVerificationToken(token);
+
+    if (!result.ok) {
+      res.redirect(`${process.env.CLIENT_URL}/verify-email/error?reason=${result.reason}`);
+      return;
+    }
+
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.redirect(`${process.env.CLIENT_URL}/verify-email/success`);
+  } catch (error) {
+    console.error('Verify email error:', error);
+    res.redirect(`${process.env.CLIENT_URL}/verify-email/error?reason=invalid`);
+  }
+};
+
+export const resendVerification = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // Always return 200 with generic message (anti-enumeration)
+    const genericResponse = {
+      message: "If that email is registered and unverified, we've sent a verification link.",
+    };
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(200).json(genericResponse);
+      return;
+    }
+
+    const { email } = req.body;
+
+    // Look up user
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    // No-op if user not found or already verified
+    if (!user || user.emailVerified) {
+      res.status(200).json(genericResponse);
+      return;
+    }
+
+    // Issue new token and send email (don't block on failure)
+    issueEmailVerificationToken(user.id, user.email).catch((err) => {
+      console.error('Failed to resend verification email:', err);
+    });
+
+    res.status(200).json(genericResponse);
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    res.status(200).json({
+      message: "If that email is registered and unverified, we've sent a verification link.",
     });
   }
 };
