@@ -10,12 +10,16 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate"
   },
-  "keywords": ["subscription", "tracker", "express", "typescript"],
+  "keywords": [
+    "subscription",
+    "tracker",
+    "express",
+    "typescript"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -28,7 +32,8 @@
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "resend": "^6.12.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
