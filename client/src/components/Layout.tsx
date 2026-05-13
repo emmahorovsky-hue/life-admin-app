@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { UnverifiedEmailBanner } from './UnverifiedEmailBanner';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,9 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Unverified Email Banner */}
+      <UnverifiedEmailBanner />
+      
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
