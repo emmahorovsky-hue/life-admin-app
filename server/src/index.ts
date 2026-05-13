@@ -15,13 +15,37 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
+// CORS configuration to allow Vercel preview deployments
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Allow localhost for development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    // Allow any Vercel deployment
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    // Allow the configured CLIENT_URL
+    if (origin === CLIENT_URL) {
+      return callback(null, true);
+    }
+    
+    // Reject all other origins
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+};
+
 // Middleware
-app.use(
-  cors({
-    origin: CLIENT_URL,
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
