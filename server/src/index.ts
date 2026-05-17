@@ -11,6 +11,18 @@ import { errorHandler } from './middleware/errorHandler';
 // Load environment variables
 dotenv.config();
 
+// Startup validation for required environment variables (prevents silent failures in production)
+const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
+for (const varName of requiredEnvVars) {
+  if (!process.env[varName]) {
+    console.error(`FATAL ERROR: Missing required environment variable: ${varName}`);
+    console.error('Please set all required env vars in your deployment platform (e.g. Railway).');
+    process.exit(1);
+  }
+}
+
+console.log('Environment validation passed. Starting server...');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
