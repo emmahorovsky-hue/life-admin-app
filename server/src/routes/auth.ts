@@ -6,6 +6,8 @@ import {
   login,
   logout,
   getMe,
+  verifyEmail,
+  resendVerification,
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -22,6 +24,37 @@ const authLimiter = rateLimit({
     },
   },
   standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiters for resend-verification (anti-enumeration: always return 200)
+const genericResponse = {
+  message: "If that email is registered and unverified, we've sent a verification link.",
+};
+
+const resendPerEmailLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 1,
+  keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
+  handler: (req, res) => res.status(200).json(genericResponse),
+  standardHeaders: false,
+  legacyHeaders: false,
+});
+
+const resendPerEmailHourlyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
+  handler: (req, res) => res.status(200).json(genericResponse),
+  standardHeaders: false,
+  legacyHeaders: false,
+});
+
+const resendPerIpLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20,
+  handler: (req, res) => res.status(200).json(genericResponse),
+  standardHeaders: false,
   legacyHeaders: false,
 });
 
@@ -67,5 +100,20 @@ router.post('/logout', logout);
 
 // GET /api/auth/me
 router.get('/me', authenticateToken, getMe);
+
+// GET /api/auth/verify-email
+router.get('/verify-email', verifyEmail);
+
+// POST /api/auth/resend-verification
+router.post(
+  '/resend-verification',
+  resendPerEmailLimiter,
+  resendPerEmailHourlyLimiter,
+  resendPerIpLimiter,
+  [
+    body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+  ],
+  resendVerification
+);
 
 export default router;

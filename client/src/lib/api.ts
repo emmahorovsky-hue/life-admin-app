@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   withCredentials: true, // Important for httpOnly cookies
   headers: {
     'Content-Type': 'application/json',
@@ -29,6 +29,8 @@ export interface User {
   id: string;
   email: string;
   name: string | null;
+  emailVerified: boolean;
+  emailVerifiedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,3 +47,8 @@ export interface ErrorResponse {
     details?: any;
   };
 }
+
+// API methods
+export const resendVerification = async (email: string) => {
+  return api.post('/auth/resend-verification', { email });
+};
