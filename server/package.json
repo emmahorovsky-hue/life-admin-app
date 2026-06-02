@@ -36,7 +36,8 @@
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
-    "resend": "^6.12.3"
+    "resend": "^6.12.3",
+    "typescript": "^5.7.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -52,7 +53,6 @@
     "prisma": "^5.22.0",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.9",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "tsx": "^4.19.2"
   }
 }
