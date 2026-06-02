@@ -1,9 +1,15 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM = process.env.EMAIL_FROM ?? 'noreply@lifeadmin.dev';
 
 export async function sendVerificationEmail({ to, verifyUrl, expiresInHours }: { to: string; verifyUrl: string; expiresInHours: number }) {
+  // If Resend is not configured, log instead of sending
+  if (!resend) {
+    console.log('[Email Service] Resend not configured. Would send verification email to:', to);
+    console.log('[Email Service] Verification URL:', verifyUrl);
+    return { id: 'mock-email-id' };
+  }
   const subject = 'Verify your email for Life Admin App';
   const html = `
     <html>
@@ -21,7 +27,7 @@ export async function sendVerificationEmail({ to, verifyUrl, expiresInHours }: {
   `;
   const text = `Welcome! Click this link to verify your email: ${verifyUrl}\nLink expires in ${expiresInHours} hours.\nIf you didn't sign up, ignore this email.`;
 
-  const res = await resend.emails.send({ from: FROM, to, subject, html, text });
+  const res = await resend!.emails.send({ from: FROM, to, subject, html, text });
   if (res.error) throw new Error(`${res.error.name}: ${res.error.message}`);
   return res.data!;
 }

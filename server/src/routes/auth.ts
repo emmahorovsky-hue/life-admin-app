@@ -65,8 +65,13 @@ router.post(
   [
     body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
     body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters'),
+      .isStrongPassword({
+        minLength: 8,
+        minUppercase: 1,
+        minNumbers: 1,
+        minSymbols: 1,
+      })
+      .withMessage('Password must be at least 8 characters with 1 uppercase, 1 number, and 1 special character'),
     body('name').optional().trim(),
   ],
   register
@@ -78,7 +83,14 @@ router.post(
   authLimiter,
   [
     body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
-    body('password').notEmpty().withMessage('Password is required'),
+    body('password')
+      .isStrongPassword({
+        minLength: 8,
+        minUppercase: 1,
+        minNumbers: 1,
+        minSymbols: 1,
+      })
+      .withMessage('Password must be at least 8 characters with 1 uppercase, 1 number, and 1 special character'),
   ],
   login
 );
