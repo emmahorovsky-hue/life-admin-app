@@ -24,3 +24,17 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Session artifacts (never commit development session docs)
+*_REPORT.md
+*_COMPLETE.md
+*_STATUS.md
+QA_*.md
+DEVOPS_*.md
+SUBAGENT_*.md
+.copilot/
+.claude/
+
+# Temporary documentation
+docs/local/
+*.tmp.md
