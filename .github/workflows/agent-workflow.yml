@@ -67,7 +67,7 @@ jobs:
             }')
 
           # `--fail` makes curl exit non-zero on HTTP >=400 so workflow
-          # surfaces gateway errors instead of silently passes.
+          # surfaces gateway errors instead of silently passing.
           curl --fail --show-error --silent \
             -X POST "$GATEWAY_URL/api/sessions/message" \
             -H "Authorization: Bearer $GATEWAY_TOKEN" \
