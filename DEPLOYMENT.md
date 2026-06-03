@@ -85,7 +85,7 @@ Have ready:
 |----------|-------|-------|
 | `NODE_ENV` | `production` | Enables production mode |
 | `JWT_SECRET` | Generate strong secret | Use: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `CORS_ORIGIN` | Your Vercel domain | e.g., `https://life-admin.vercel.app` |
+| `CORS_ORIGIN` | Your Vercel domain | e.g., `https://client-beta-flame.vercel.app` |
 
 **Environment variables already set by Railway:**
 - `DATABASE_URL` - PostgreSQL connection string
@@ -186,25 +186,25 @@ Vercel should auto-detect, but verify:
 |----------|-------|
 | `VITE_API_URL` | Backend URL from Railway |
 
-**Example:** `https://life-admin-api.railway.app`
+**Example:** `https://loyal-magic-production.up.railway.app`
 
 ### 3.5 Deploy Frontend
 
 1. Click "Deploy"
 2. Vercel builds React app with Vite
 3. Deploys to CDN
-4. Get production URL (e.g., `https://life-admin.vercel.app`)
+4. Get production URL (e.g., `https://client-beta-flame.vercel.app`)
 
 **Expected build:**
 ```
 > Building production bundle with Vite
 > Build successful
-> Deployed to https://life-admin.vercel.app
+> Deployed to https://client-beta-flame.vercel.app
 ```
 
 ### 3.6 Test Frontend
 
-1. Open https://life-admin.vercel.app
+1. Open https://client-beta-flame.vercel.app
 2. Test login: `test@example.com` / `testpass123`
 3. Create a subscription
 4. Verify dashboard loads
@@ -216,7 +216,7 @@ Vercel should auto-detect, but verify:
 Update `CORS_ORIGIN` in Railway to match Vercel frontend domain:
 
 1. Railway project → Variables
-2. Set `CORS_ORIGIN` to `https://your-frontend.vercel.app`
+2. Set `CORS_ORIGIN` to `https://client-beta-flame.vercel.app`
 3. Redeploy backend
 
 ### 4.2 Vercel API URL
