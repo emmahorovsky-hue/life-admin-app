@@ -49,7 +49,7 @@ describe('Auth Verification Endpoints', () => {
         .post('/api/auth/register')
         .send({
           email: 'newuser@example.com',
-          password: 'password123',
+           password: 'TestPass123!',
           name: 'New User',
         });
 
@@ -68,7 +68,7 @@ describe('Auth Verification Endpoints', () => {
 
       await request(app).post('/api/auth/register').send({
         email: 'newuser@example.com',
-        password: 'password123',
+        password: 'TestPass123!',
         name: 'New User',
       });
 
@@ -285,7 +285,7 @@ describe('Auth Verification Endpoints', () => {
       // Register a user to get auth cookie
       const response = await request(app).post('/api/auth/register').send({
         email: 'me@example.com',
-        password: 'password123',
+          password: 'TestPass123!',
         name: 'Me User',
       });
 

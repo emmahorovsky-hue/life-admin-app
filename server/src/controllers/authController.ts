@@ -64,10 +64,14 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
       },
     });
 
-    // Issue email verification token and send email (don't block on failure)
-    issueEmailVerificationToken(user.id, user.email).catch((err) => {
+    // Issue email verification token and send email. Await token creation
+    // so tests and cleanup won't race with a background task. Sending the
+    // actual email is handled inside the service and can fail independently.
+    try {
+      await issueEmailVerificationToken(user.id, user.email);
+    } catch (err) {
       console.error('Failed to send verification email:', err);
-    });
+    }
 
     // Generate JWT
     const token = generateToken({ userId: user.id, email: user.email });
@@ -217,25 +221,27 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 
 export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
     const { token } = req.query;
 
     if (!token || typeof token !== 'string') {
-      res.redirect(`${process.env.CLIENT_URL}/verify-email/error?reason=invalid`);
+      res.redirect(`${clientUrl}/verify-email/error?reason=invalid`);
       return;
     }
 
     const result = await consumeEmailVerificationToken(token);
 
     if (!result.ok) {
-      res.redirect(`${process.env.CLIENT_URL}/verify-email/error?reason=${result.reason}`);
+      res.redirect(`${clientUrl}/verify-email/error?reason=${result.reason}`);
       return;
     }
 
     res.setHeader('Referrer-Policy', 'no-referrer');
-    res.redirect(`${process.env.CLIENT_URL}/verify-email/success`);
+    res.redirect(`${clientUrl}/verify-email/success`);
   } catch (error) {
     console.error('Verify email error:', error);
-    res.redirect(`${process.env.CLIENT_URL}/verify-email/error?reason=invalid`);
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    res.redirect(`${clientUrl}/verify-email/error?reason=invalid`);
   }
 };
 

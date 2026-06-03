@@ -12,11 +12,13 @@ import {
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
+const isTestEnv = process.env.NODE_ENV === 'test' || process.env.DISABLE_AUTH_RATE_LIMIT === 'true';
 
 // Rate limiter for auth endpoints (5 requests per 15 minutes)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5,
+  skip: () => isTestEnv,
   message: {
     error: {
       message: 'Too many requests, please try again later',
@@ -35,6 +37,7 @@ const genericResponse = {
 const resendPerEmailLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 1,
+  skip: () => isTestEnv,
   keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
   handler: (req, res) => res.status(200).json(genericResponse),
   standardHeaders: false,
@@ -44,6 +47,7 @@ const resendPerEmailLimiter = rateLimit({
 const resendPerEmailHourlyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
+  skip: () => isTestEnv,
   keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
   handler: (req, res) => res.status(200).json(genericResponse),
   standardHeaders: false,
@@ -53,6 +57,7 @@ const resendPerEmailHourlyLimiter = rateLimit({
 const resendPerIpLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20,
+  skip: () => isTestEnv,
   handler: (req, res) => res.status(200).json(genericResponse),
   standardHeaders: false,
   legacyHeaders: false,
@@ -83,14 +88,7 @@ router.post(
   authLimiter,
   [
     body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
-    body('password')
-      .isStrongPassword({
-        minLength: 8,
-        minUppercase: 1,
-        minNumbers: 1,
-        minSymbols: 1,
-      })
-      .withMessage('Password must be at least 8 characters with 1 uppercase, 1 number, and 1 special character'),
+    body('password').notEmpty().withMessage('Password is required'),
   ],
   login
 );

@@ -1,3 +1,9 @@
+const path = require('path');
+
+// Load test environment variables before jest starts
+process.env.NODE_ENV = 'test';
+require('dotenv').config({ path: path.join(__dirname, '.env.test') });
+
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',

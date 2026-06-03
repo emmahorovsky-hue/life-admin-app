@@ -5,17 +5,14 @@ import { test, expect } from '@playwright/test';
 
 test.describe('User Registration', () => {
   test('user can register with valid credentials', async ({ page }) => {
-    await page.goto('/');
-
-    // Click register link
-    await page.click('text=Register');
-    await expect(page).toHaveURL('/register');
+    await page.goto('/register');
 
     // Fill registration form
     const timestamp = Date.now();
-    await page.fill('input[name="email"]', `user${timestamp}@example.com`);
-    await page.fill('input[name="password"]', 'password123');
-    await page.fill('input[name="name"]', 'Test User');
+    await page.fill('#email', `user${timestamp}@example.com`);
+    await page.fill('#password', 'Password123!');
+    await page.fill('#confirmPassword', 'Password123!');
+    await page.fill('#name', 'Test User');
 
     // Submit form
     await page.click('button[type="submit"]');
@@ -30,15 +27,17 @@ test.describe('User Registration', () => {
   test('registration fails with invalid email', async ({ page }) => {
     await page.goto('/register');
 
-    await page.fill('input[name="email"]', 'notanemail');
-    await page.fill('input[name="password"]', 'password123');
-    await page.fill('input[name="name"]', 'Test User');
+    await page.fill('#email', 'notanemail');
+    await page.fill('#password', 'password123');
+    await page.fill('#confirmPassword', 'password123');
+    await page.fill('#name', 'Test User');
 
     await page.click('button[type="submit"]');
 
-    // Should show error message
-    await expect(page.locator('text=/invalid email/i')).toBeVisible({ timeout: 2000 });
-    
+    // Browser validation should reject the invalid email
+    const isEmailValid = await page.$eval('#email', (input) => (input as HTMLInputElement).checkValidity());
+    expect(isEmailValid).toBe(false);
+
     // Should stay on registration page
     await expect(page).toHaveURL('/register');
   });
@@ -47,24 +46,26 @@ test.describe('User Registration', () => {
     await page.goto('/register');
 
     const timestamp = Date.now();
-    await page.fill('input[name="email"]', `user${timestamp}@example.com`);
-    await page.fill('input[name="password"]', '123');
-    await page.fill('input[name="name"]', 'Test User');
+    await page.fill('#email', `user${timestamp}@example.com`);
+    await page.fill('#password', '123');
+    await page.fill('#confirmPassword', '123');
+    await page.fill('#name', 'Test User');
 
     await page.click('button[type="submit"]');
 
     // Should show error message
-    await expect(page.locator('text=/password.*8 characters/i')).toBeVisible({ timeout: 2000 });
+    await expect(page.locator('text=Password must be at least 8 characters')).toBeVisible({ timeout: 2000 });
   });
 
-  test('registration fails with duplicate email', async ({ page, context }) => {
+  test('registration fails with duplicate email', async ({ page }) => {
     const email = `duplicate${Date.now()}@example.com`;
 
     // First registration
     await page.goto('/register');
-    await page.fill('input[name="email"]', email);
-    await page.fill('input[name="password"]', 'password123');
-    await page.fill('input[name="name"]', 'User One');
+    await page.fill('#email', email);
+    await page.fill('#password', 'Password123!');
+    await page.fill('#confirmPassword', 'Password123!');
+    await page.fill('#name', 'User One');
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL('/dashboard');
 
@@ -73,27 +74,29 @@ test.describe('User Registration', () => {
 
     // Try to register again with same email
     await page.goto('/register');
-    await page.fill('input[name="email"]', email);
-    await page.fill('input[name="password"]', 'password456');
-    await page.fill('input[name="name"]', 'User Two');
+    await page.fill('#email', email);
+    await page.fill('#password', 'Password456!');
+    await page.fill('#confirmPassword', 'Password456!');
+    await page.fill('#name', 'User Two');
     await page.click('button[type="submit"]');
 
     // Should show error
-    await expect(page.locator('text=/already exists/i')).toBeVisible({ timeout: 2000 });
+    await expect(page.locator('text=Email already registered')).toBeVisible({ timeout: 2000 });
   });
 });
 
 test.describe('User Login', () => {
   const testEmail = `logintest${Date.now()}@example.com`;
-  const testPassword = 'password123';
+  const testPassword = 'Password123!';
 
   // Setup: Create a test user before login tests
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
     await page.goto('/register');
-    await page.fill('input[name="email"]', testEmail);
-    await page.fill('input[name="password"]', testPassword);
-    await page.fill('input[name="name"]', 'Login Test User');
+    await page.fill('#email', testEmail);
+    await page.fill('#password', testPassword);
+    await page.fill('#confirmPassword', testPassword);
+    await page.fill('#name', 'Login Test User');
     await page.click('button[type="submit"]');
     await page.close();
   });
@@ -101,8 +104,8 @@ test.describe('User Login', () => {
   test('user can login with correct credentials', async ({ page }) => {
     await page.goto('/login');
 
-    await page.fill('input[name="email"]', testEmail);
-    await page.fill('input[name="password"]', testPassword);
+    await page.fill('#email', testEmail);
+    await page.fill('#password', testPassword);
     await page.click('button[type="submit"]');
 
     // Should redirect to dashboard
@@ -113,12 +116,12 @@ test.describe('User Login', () => {
   test('login fails with wrong password', async ({ page }) => {
     await page.goto('/login');
 
-    await page.fill('input[name="email"]', testEmail);
-    await page.fill('input[name="password"]', 'wrongpassword');
+    await page.fill('#email', testEmail);
+    await page.fill('#password', 'WrongPassword123!');
     await page.click('button[type="submit"]');
 
     // Should show error
-    await expect(page.locator('text=/invalid.*credentials/i')).toBeVisible({ timeout: 2000 });
+    await expect(page.locator('text=Invalid credentials')).toBeVisible({ timeout: 2000 });
     
     // Should stay on login page
     await expect(page).toHaveURL('/login');
@@ -127,12 +130,12 @@ test.describe('User Login', () => {
   test('login fails with non-existent email', async ({ page }) => {
     await page.goto('/login');
 
-    await page.fill('input[name="email"]', 'nonexistent@example.com');
-    await page.fill('input[name="password"]', 'password123');
+    await page.fill('#email', 'nonexistent@example.com');
+    await page.fill('#password', 'password123');
     await page.click('button[type="submit"]');
 
     // Should show error
-    await expect(page.locator('text=/invalid.*credentials/i')).toBeVisible({ timeout: 2000 });
+    await expect(page.locator('text=Invalid credentials')).toBeVisible({ timeout: 2000 });
   });
 });
 
@@ -141,9 +144,10 @@ test.describe('Session Persistence', () => {
     // Register and login
     const timestamp = Date.now();
     await page.goto('/register');
-    await page.fill('input[name="email"]', `session${timestamp}@example.com`);
-    await page.fill('input[name="password"]', 'password123');
-    await page.fill('input[name="name"]', 'Session Test');
+    await page.fill('#email', `session${timestamp}@example.com`);
+    await page.fill('#password', 'Password123!');
+    await page.fill('#confirmPassword', 'Password123!');
+    await page.fill('#name', 'Session Test');
     await page.click('button[type="submit"]');
 
     // Wait for dashboard
@@ -170,9 +174,10 @@ test.describe('Logout', () => {
     // Register and login
     const timestamp = Date.now();
     await page.goto('/register');
-    await page.fill('input[name="email"]', `logout${timestamp}@example.com`);
-    await page.fill('input[name="password"]', 'password123');
-    await page.fill('input[name="name"]', 'Logout Test');
+    await page.fill('#email', `logout${timestamp}@example.com`);
+    await page.fill('#password', 'Password123!');
+    await page.fill('#confirmPassword', 'Password123!');
+    await page.fill('#name', 'Logout Test');
     await page.click('button[type="submit"]');
 
     await expect(page).toHaveURL('/dashboard');

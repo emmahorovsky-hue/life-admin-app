@@ -16,7 +16,7 @@ export interface TestUser {
  */
 export async function createAuthenticatedUser(
   email: string = 'test@example.com',
-  password: string = 'password123',
+  password: string = 'TestPass123!',
   name: string = 'Test User'
 ): Promise<TestUser> {
   // Register user
