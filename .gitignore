@@ -33,7 +33,9 @@ QA_*.md
 DEVOPS_*.md
 SUBAGENT_*.md
 .copilot/
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/launch.json
 
 # Temporary documentation
 docs/local/
