@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import AddSubscriptionDialog from '@/components/AddSubscriptionDialog';
 import EditSubscriptionDialog from '@/components/EditSubscriptionDialog';
 import { format } from 'date-fns';
+import { getApiErrorMessage } from '@/lib/utils';
 
 export default function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -25,8 +26,8 @@ export default function Subscriptions() {
       const data = await subscriptionApi.getAll();
       setSubscriptions(data);
       setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to load subscriptions');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to load subscriptions'));
     } finally {
       setLoading(false);
     }
@@ -40,8 +41,8 @@ export default function Subscriptions() {
     try {
       await subscriptionApi.delete(id);
       await loadSubscriptions();
-    } catch (err: any) {
-      alert(err.response?.data?.error?.message || 'Failed to delete subscription');
+    } catch (err) {
+      alert(getApiErrorMessage(err, 'Failed to delete subscription'));
     }
   };
 

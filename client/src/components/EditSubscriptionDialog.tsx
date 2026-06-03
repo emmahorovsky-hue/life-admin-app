@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { subscriptionApi, categories, billingCycles, Subscription, UpdateSubscriptionData } from '@/lib/subscriptions';
+import { getApiErrorMessage } from '@/lib/utils';
 
 interface EditSubscriptionDialogProps {
   open: boolean;
@@ -57,8 +58,8 @@ export default function EditSubscriptionDialog({
       await subscriptionApi.update(subscription.id, formData);
       onSuccess();
       onOpenChange(false);
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to update subscription');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to update subscription'));
     } finally {
       setLoading(false);
     }

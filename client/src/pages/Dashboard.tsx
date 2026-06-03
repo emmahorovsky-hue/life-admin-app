@@ -13,7 +13,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<{ name: string; total: number }[]>([]);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -214,7 +214,7 @@ export default function Dashboard() {
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '0.5rem',
                     }}
-                    formatter={(value: any) => [`$${value.toFixed(2)}`, 'Monthly']}
+                    formatter={(value: number) => [`$${value.toFixed(2)}`, 'Monthly']}
                   />
                   <Bar dataKey="total" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
                 </BarChart>

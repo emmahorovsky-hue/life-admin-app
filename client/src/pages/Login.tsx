@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { getApiErrorMessage } from '@/lib/utils';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -22,8 +23,8 @@ export default function Login() {
     try {
       await login(email, password);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Login failed');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Login failed'));
     } finally {
       setLoading(false);
     }
