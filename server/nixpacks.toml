@@ -5,8 +5,11 @@
 [phases.setup]
 nixPkgs = ["nodejs_20", "openssl"]
 
+# --include=dev forces devDependencies (TypeScript @types/*) to install even when
+# the Railway service sets NODE_ENV=production. tsc needs them at build time; the
+# runtime image only runs the compiled dist/, so the extra deps are harmless.
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm ci --include=dev"]
 
 [phases.build]
 cmds = [
