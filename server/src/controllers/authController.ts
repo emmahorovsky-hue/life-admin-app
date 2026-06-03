@@ -220,8 +220,8 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 };
 
 export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void> => {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
   try {
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
     const { token } = req.query;
 
     if (!token || typeof token !== 'string') {
@@ -240,7 +240,6 @@ export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void
     res.redirect(`${clientUrl}/verify-email/success`);
   } catch (error) {
     console.error('Verify email error:', error);
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
     res.redirect(`${clientUrl}/verify-email/error?reason=invalid`);
   }
 };

@@ -1,12 +1,11 @@
-import { execSync } from 'child_process';
-import path from 'path';
 import os from 'os';
 
-// Override environment variables for testing BEFORE Prisma is initialized
+// Override environment variables for testing BEFORE Prisma is initialized.
+// DATABASE_URL may already be set by globalSetup; only fall back if absent.
 process.env.NODE_ENV = 'test';
 if (!process.env.DATABASE_URL) {
   const user = os.userInfo().username;
-  // include an explicit empty password to ensure the URL contains a user
+  // Include an explicit empty password to ensure the URL contains a user.
   process.env.DATABASE_URL = `postgresql://${user}:@localhost:5432/lifeadmin_test?schema=public`;
 }
 process.env.JWT_SECRET = 'test-secret-key-for-testing-only';
@@ -22,22 +21,6 @@ jest.mock('../services/emailService', () => ({
 // NOTE: We do not mock `emailVerificationService.issueEmailVerificationToken`
 // because several tests assert that tokens are persisted and emails are sent.
 
-// Helper: Run Prisma migrations
-async function runMigrations() {
-  try {
-    console.log('🔄 Running Prisma migrations for test database...');
-    execSync('npx prisma migrate deploy --schema=prisma/schema.prisma', {
-      cwd: path.join(__dirname, '../..'),
-      stdio: 'inherit',
-      env: { ...process.env },
-    });
-    console.log('✅ Migrations completed successfully.');
-  } catch (error) {
-    console.warn('⚠️  Migration warning (tables may already exist):', (error as Error).message);
-    // Continue - tables might already exist from a previous run
-  }
-}
-
 // Helper: Clean up test data
 async function cleanupTestData() {
   try {
@@ -52,11 +35,11 @@ async function cleanupTestData() {
   }
 }
 
-// Run migrations and cleanup before all tests
+// Migrations are run once in globalSetup (jest.config.js) before the suite starts.
+// Here we only need to clean up data before each test file.
 beforeAll(async () => {
-  await runMigrations();
   await cleanupTestData();
-}, 60000); // 60 second timeout for migrations
+}, 30000);
 
 // Cleanup test data before each test file
 beforeEach(async () => {

@@ -12,6 +12,14 @@ import {
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
+
+if (process.env.DISABLE_AUTH_RATE_LIMIT === 'true') {
+  console.warn(
+    '[auth] WARNING: DISABLE_AUTH_RATE_LIMIT is set — all auth rate limiting is disabled. ' +
+    'Do NOT use this in production or staging environments.'
+  );
+}
+
 const isTestEnv = process.env.NODE_ENV === 'test' || process.env.DISABLE_AUTH_RATE_LIMIT === 'true';
 
 // Rate limiter for auth endpoints (5 requests per 15 minutes)
@@ -88,6 +96,9 @@ router.post(
   authLimiter,
   [
     body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+    // Login intentionally uses .notEmpty() rather than isStrongPassword() so that
+    // users who registered before the strong-password policy was introduced can
+    // still log in. Strength enforcement only applies at registration time.
     body('password').notEmpty().withMessage('Password is required'),
   ],
   login
