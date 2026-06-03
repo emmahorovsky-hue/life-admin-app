@@ -1,17 +1,11 @@
 name: Agent Workflow Automation
 
 on:
-  push:
-    branches:
-      - '**'
   pull_request:
-    types: [opened, reopened, synchronize]
-    branches: [ main ]
-  pull_request_target:
-    types: [closed]
+    types: [opened, reopened, synchronize, closed]
     branches: [ main ]
 
-# Minimal permissions; secrets-bearing job (trigger-qa) only runs for non-fork merges.
+# Read-only permissions — all notification jobs are fire-and-forget curl calls.
 permissions:
   contents: read
   pull-requests: read
@@ -19,7 +13,7 @@ permissions:
 jobs:
   trigger-reviewer:
     name: Spawn Reviewer Agent
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
 
     steps:
@@ -82,7 +76,7 @@ jobs:
 
   trigger-qa:
     name: Spawn QA Agent
-    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.action == 'closed' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
