@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { subscriptionApi, categories, billingCycles, CreateSubscriptionData } from '@/lib/subscriptions';
+import { getApiErrorMessage } from '@/lib/utils';
 
 interface AddSubscriptionDialogProps {
   open: boolean;
@@ -55,8 +56,8 @@ export default function AddSubscriptionDialog({
         category: 'streaming',
         notes: '',
       });
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to add subscription');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to add subscription'));
     } finally {
       setLoading(false);
     }

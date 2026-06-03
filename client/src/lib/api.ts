@@ -48,7 +48,7 @@ export interface ErrorResponse {
   error: {
     message: string;
     code: string;
-    details?: any;
+    details?: unknown;
   };
 }
 

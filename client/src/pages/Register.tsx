@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { getApiErrorMessage } from '@/lib/utils';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -41,8 +42,8 @@ export default function Register() {
     try {
       await register(email, password, name || undefined);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Registration failed');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }
