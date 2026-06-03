@@ -1,6 +1,8 @@
 name: Agent Workflow Automation
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     types: [opened, reopened, synchronize]
     branches: [ main ]
@@ -16,7 +18,7 @@ permissions:
 jobs:
   trigger-reviewer:
     name: Spawn Reviewer Agent
-    if: github.event.action != 'closed'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
 
     steps:
@@ -79,7 +81,7 @@ jobs:
 
   trigger-qa:
     name: Spawn QA Agent
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
 
     steps:
