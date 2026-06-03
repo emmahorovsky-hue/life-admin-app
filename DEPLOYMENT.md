@@ -64,6 +64,11 @@ Have ready:
 
 **Without this, build fails with "No Procfile detected"**
 
+> With Root Directory set to `server/`, Railway reads the canonical build/deploy
+> config from `server/railway.json` and `server/nixpacks.toml` (and `server/Procfile`
+> as a fallback). There are no root-level Railway config files — they were removed
+> to avoid two divergent build definitions.
+
 ### 1.4 Add PostgreSQL Service
 
 1. In Railway project
