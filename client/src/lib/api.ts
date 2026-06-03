@@ -13,8 +13,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Redirect to login if unauthorized
-      if (window.location.pathname !== '/login') {
+      const publicPaths = ['/login', '/register', '/verify-email/success', '/verify-email/error'];
+      const currentPath = window.location.pathname;
+
+      // Only redirect invalid auth requests from protected pages.
+      if (!publicPaths.includes(currentPath)) {
         window.location.href = '/login';
       }
     }

@@ -57,7 +57,7 @@ describe('POST /api/auth/register', () => {
       });
 
     expect(res.status).toBe(400);
-    expect(res.body.errors).toBeDefined();
+    expect(res.body.error).toBeDefined();
   });
 
   it('should fail with short password', async () => {
@@ -70,7 +70,7 @@ describe('POST /api/auth/register', () => {
       });
 
     expect(res.status).toBe(400);
-    expect(res.body.errors).toBeDefined();
+    expect(res.body.error).toBeDefined();
   });
 
   it('should fail with missing required fields', async () => {
@@ -82,7 +82,7 @@ describe('POST /api/auth/register', () => {
       });
 
     expect(res.status).toBe(400);
-    expect(res.body.errors).toBeDefined();
+    expect(res.body.error).toBeDefined();
   });
 });
 
@@ -146,7 +146,7 @@ describe('POST /api/auth/login', () => {
       });
 
     expect(res.status).toBe(400);
-    expect(res.body.errors).toBeDefined();
+    expect(res.body.error).toBeDefined();
   });
 });
 

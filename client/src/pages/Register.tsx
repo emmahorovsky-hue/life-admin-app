@@ -26,8 +26,13 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (
+      password.length < 8 ||
+      !/[A-Z]/.test(password) ||
+      !/[0-9]/.test(password) ||
+      !/[!@#$%^&*(),.?"':{}|<>\[\]\\/~`+=;_-]/.test(password)
+    ) {
+      setError('Password must be at least 8 characters and include an uppercase letter, number, and symbol');
       return;
     }
 
@@ -88,6 +93,9 @@ export default function Register() {
                 required
                 disabled={loading}
               />
+              <p className="text-xs text-muted-foreground">
+                Must contain at least 8 characters, including 1 uppercase letter, 1 number, and 1 symbol.
+              </p>
             </div>
 
             <div className="space-y-2">

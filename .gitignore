@@ -38,3 +38,9 @@ SUBAGENT_*.md
 # Temporary documentation
 docs/local/
 *.tmp.md
+
+# Local test/debug artifacts
+client/playwright-debug*.mjs
+client/test-results/
+server/.env.test
+server/TEST_SETUP.md
