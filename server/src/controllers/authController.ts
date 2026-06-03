@@ -6,10 +6,16 @@ import prisma from '../utils/db';
 import { generateToken } from '../utils/jwt';
 import { issueEmailVerificationToken, consumeEmailVerificationToken } from '../services/emailVerificationService';
 
+// The frontend (Vercel) and backend (Railway) are served from different sites
+// in production, so the auth cookie must be SameSite=None to be sent on the
+// cross-site fetch from the SPA. None requires Secure. In local dev everything
+// is same-site on localhost, where Lax works and Secure can't be guaranteed
+// over plain HTTP, so we fall back to lax/insecure there.
+const isProduction = process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  secure: isProduction,
+  sameSite: isProduction ? ('none' as const) : ('lax' as const),
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
@@ -166,7 +172,13 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
 };
 
 export const logout = async (req: AuthRequest, res: Response): Promise<void> => {
-  res.clearCookie('token');
+  // clearCookie must use the same attributes the cookie was set with, or the
+  // browser won't match and clear it (notably sameSite/secure cross-site).
+  res.clearCookie('token', {
+    httpOnly: COOKIE_OPTIONS.httpOnly,
+    secure: COOKIE_OPTIONS.secure,
+    sameSite: COOKIE_OPTIONS.sameSite,
+  });
   res.status(200).json({
     message: 'Logout successful',
   });
