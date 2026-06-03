@@ -15,6 +15,8 @@ module.exports = {
     '!src/__tests__/**',
     '!src/index.ts',
   ],
+  // globalSetup runs once before the entire test suite — used for DB migrations.
+  globalSetup: '<rootDir>/src/__tests__/globalSetup.ts',
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   testTimeout: 10000,
 };

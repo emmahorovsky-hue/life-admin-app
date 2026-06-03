@@ -30,7 +30,7 @@ export default function Register() {
       password.length < 8 ||
       !/[A-Z]/.test(password) ||
       !/[0-9]/.test(password) ||
-      !/[!@#$%^&*(),.?"':{}|<>\[\]\\/~`+=;_-]/.test(password)
+      !/[^a-zA-Z0-9\s]/.test(password)
     ) {
       setError('Password must be at least 8 characters and include an uppercase letter, number, and symbol');
       return;

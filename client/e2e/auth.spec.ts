@@ -86,11 +86,14 @@ test.describe('User Registration', () => {
 });
 
 test.describe('User Login', () => {
-  const testEmail = `logintest${Date.now()}@example.com`;
+  // Initialised in beforeAll so the timestamp is captured at test-run time,
+  // not at module-load time (which would be shared across process re-uses).
+  let testEmail: string;
   const testPassword = 'Password123!';
 
   // Setup: Create a test user before login tests
   test.beforeAll(async ({ browser }) => {
+    testEmail = `logintest${Date.now()}@example.com`;
     const page = await browser.newPage();
     await page.goto('/register');
     await page.fill('#email', testEmail);
@@ -98,6 +101,10 @@ test.describe('User Login', () => {
     await page.fill('#confirmPassword', testPassword);
     await page.fill('#name', 'Login Test User');
     await page.click('button[type="submit"]');
+    // Confirm registration succeeded before closing, so any subsequent login
+    // tests fail with a clear "expected /dashboard" message rather than a
+    // confusing "invalid credentials" error.
+    await expect(page).toHaveURL('/dashboard');
     await page.close();
   });
 

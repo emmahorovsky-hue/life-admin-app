@@ -13,11 +13,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      const publicPaths = ['/login', '/register', '/verify-email/success', '/verify-email/error'];
+      const publicPaths = ['/login', '/register', '/verify-email'];
       const currentPath = window.location.pathname;
 
-      // Only redirect invalid auth requests from protected pages.
-      if (!publicPaths.includes(currentPath)) {
+      // Use startsWith so that sub-paths (e.g. /verify-email/error/something)
+      // are also treated as public, preventing redirect loops.
+      if (!publicPaths.some((p) => currentPath.startsWith(p))) {
         window.location.href = '/login';
       }
     }

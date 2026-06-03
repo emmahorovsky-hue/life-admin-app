@@ -8,7 +8,6 @@ export default defineConfig({
   },
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    browserName: 'chromium',
     headless: true,
     viewport: { width: 1280, height: 720 },
     actionTimeout: 10_000,
