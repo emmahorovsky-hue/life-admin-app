@@ -2,13 +2,10 @@ name: Agent Workflow Automation
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
-    branches: [ main ]
-  pull_request_target:
-    types: [closed]
+    types: [opened, reopened, synchronize, closed]
     branches: [ main ]
 
-# Minimal permissions; secrets-bearing job (trigger-qa) only runs for non-fork merges.
+# Read-only permissions — all notification jobs are fire-and-forget curl calls.
 permissions:
   contents: read
   pull-requests: read
@@ -70,7 +67,7 @@ jobs:
             }')
 
           # `--fail` makes curl exit non-zero on HTTP >=400 so workflow
-          # surfaces gateway errors instead of silently passing.
+          # surfaces gateway errors instead of silently passes.
           curl --fail --show-error --silent \
             -X POST "$GATEWAY_URL/api/sessions/message" \
             -H "Authorization: Bearer $GATEWAY_TOKEN" \
@@ -79,7 +76,7 @@ jobs:
 
   trigger-qa:
     name: Spawn QA Agent
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.action == 'closed' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
