@@ -2,6 +2,8 @@ name: Agent Workflow Automation
 
 on:
   push:
+    branches:
+      - '**'
   pull_request:
     types: [opened, reopened, synchronize]
     branches: [ main ]
