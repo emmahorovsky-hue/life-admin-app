@@ -7,6 +7,7 @@ import subscriptionRoutes from './routes/subscriptions';
 import dashboardRoutes from './routes/dashboard';
 import categoryRoutes from './routes/categories';
 import { errorHandler } from './middleware/errorHandler';
+import { startCronJobs } from './jobs';
 
 // Load environment variables
 dotenv.config();
@@ -90,6 +91,11 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 CORS enabled for: ${CLIENT_URL}`);
+
+  // Background jobs (disable with ENABLE_CRON=false, e.g. in tests)
+  if (process.env.ENABLE_CRON !== 'false') {
+    startCronJobs();
+  }
 });
 
 export default app;

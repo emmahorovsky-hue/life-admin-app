@@ -11,12 +11,15 @@ if (!process.env.DATABASE_URL) {
 process.env.JWT_SECRET = 'test-secret-key-for-testing-only';
 process.env.API_URL = 'http://localhost:3001';
 process.env.CLIENT_URL = 'http://localhost:3000';
+// Never start the cron scheduler during tests.
+process.env.ENABLE_CRON = 'false';
 
 import prisma from '../utils/db';
 
 // Mock the email service to prevent actual emails during tests
 jest.mock('../services/emailService', () => ({
   sendVerificationEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
+  sendDeletionWarningEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
 }));
 // NOTE: We do not mock `emailVerificationService.issueEmailVerificationToken`
 // because several tests assert that tokens are persisted and emails are sent.
