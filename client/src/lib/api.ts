@@ -16,9 +16,15 @@ api.interceptors.response.use(
       const publicPaths = ['/login', '/register', '/verify-email'];
       const currentPath = window.location.pathname;
 
+      // The landing page ('/') is public; match it exactly so an anonymous
+      // visitor isn't bounced to /login when the auth check 401s.
+      const isLandingPage = currentPath === '/';
+
       // Use startsWith so that sub-paths (e.g. /verify-email/error/something)
       // are also treated as public, preventing redirect loops.
-      if (!publicPaths.some((p) => currentPath.startsWith(p))) {
+      const isPublicPath = publicPaths.some((p) => currentPath.startsWith(p));
+
+      if (!isLandingPage && !isPublicPath) {
         window.location.href = '/login';
       }
     }
