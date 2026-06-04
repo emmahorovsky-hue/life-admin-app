@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { resendVerification } from '@/lib/api';
 
+// Unverified accounts are deleted after this many days (mirrors the server's
+// GRACE_PERIOD_DAYS in accountCleanupService).
+const GRACE_PERIOD_DAYS = 7;
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 export const UnverifiedEmailBanner: React.FC = () => {
   const { user } = useAuth();
   const [resending, setResending] = useState(false);
@@ -11,6 +17,13 @@ export const UnverifiedEmailBanner: React.FC = () => {
   if (!user || user.emailVerified) {
     return null;
   }
+
+  const daysElapsed = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / MS_PER_DAY);
+  const daysLeft = Math.max(0, GRACE_PERIOD_DAYS - daysElapsed);
+  const deletionWarning =
+    daysLeft > 0
+      ? `Verify within ${daysLeft} day${daysLeft === 1 ? '' : 's'} or your account will be deleted.`
+      : 'Your account will be deleted soon — verify now to keep it.';
 
   const handleResend = async () => {
     if (resending || countdown > 0) return;
@@ -44,7 +57,7 @@ export const UnverifiedEmailBanner: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="text-yellow-800">
             📧 <strong>Verify your email.</strong> We sent a link to{' '}
-            <strong>{user.email}</strong>.
+            <strong>{user.email}</strong>. {deletionWarning}
           </span>
         </div>
         <div className="flex items-center gap-3">

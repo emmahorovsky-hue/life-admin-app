@@ -17,6 +17,7 @@ model User {
   name          String?
   emailVerified Boolean @default(false)   // NEW
   emailVerifiedAt DateTime?                   // NEW
+  deletionWarningSentAt DateTime?             // set when grace-period deletion warning email sent
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
