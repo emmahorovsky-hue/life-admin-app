@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Subscriptions from './pages/Subscriptions';
 import VerifyEmailSuccess from './pages/VerifyEmailSuccess';
 import VerifyEmailError from './pages/VerifyEmailError';
+import Landing from './pages/Landing';
 
 function App() {
   return (
@@ -38,7 +39,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Landing />} />
         </Routes>
       </Router>
     </AuthProvider>
