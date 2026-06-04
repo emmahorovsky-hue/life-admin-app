@@ -1,6 +1,7 @@
 import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { buttonVariants } from '@/components/ui/button';
+import { APP_NAME } from '@/lib/constants';
 import {
   RefreshCw,
   FileText,
@@ -61,7 +62,7 @@ export default function Landing() {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="text-xl font-bold text-primary">
-            Paypr
+            {APP_NAME}
           </Link>
           <div className="flex items-center gap-2">
             <Link
@@ -115,7 +116,7 @@ export default function Landing() {
             Everything with a deadline, in one place
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">
-            If it renews, expires, or auto-charges — Paypr tracks it.
+            If it renews, expires, or auto-charges — {APP_NAME} tracks it.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {TRACKED_ITEMS.map(({ icon: Icon, label, description }) => (
@@ -180,7 +181,9 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t py-8 px-4">
         <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">© 2026 Paypr</p>
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} {APP_NAME}
+          </p>
           <div className="flex gap-4">
             <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Sign In

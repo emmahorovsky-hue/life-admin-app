@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { UnverifiedEmailBanner } from './UnverifiedEmailBanner';
+import { APP_NAME } from '@/lib/constants';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -32,7 +33,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-8">
-              <h1 className="text-2xl font-bold">Paypr</h1>
+              <h1 className="text-2xl font-bold">{APP_NAME}</h1>
               <nav className="hidden md:flex gap-4">
                 {navItems.map((item) => (
                   <Button
