@@ -330,4 +330,47 @@ describe('Auth Verification Endpoints', () => {
       expect(response.body.user.emailVerifiedAt).not.toBeNull();
     });
   });
+
+  describe('POST /api/auth/login', () => {
+    const credentials = {
+      email: 'login@example.com',
+      password: 'TestPass123!',
+    };
+
+    beforeEach(async () => {
+      await request(app)
+        .post('/api/auth/register')
+        .send({ ...credentials, name: 'Login User' });
+    });
+
+    it('should include emailVerified in the login response', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send(credentials);
+
+      expect(response.status).toBe(200);
+      expect(response.body.user).toHaveProperty('emailVerified');
+      expect(response.body.user).toHaveProperty('emailVerifiedAt');
+      expect(response.body.user.emailVerified).toBe(false);
+      expect(response.body.user.emailVerifiedAt).toBeNull();
+    });
+
+    it('should return emailVerified=true after the user verifies', async () => {
+      const user = await prisma.user.findUnique({
+        where: { email: credentials.email },
+      });
+      await prisma.user.update({
+        where: { id: user!.id },
+        data: { emailVerified: true, emailVerifiedAt: new Date() },
+      });
+
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send(credentials);
+
+      expect(response.status).toBe(200);
+      expect(response.body.user.emailVerified).toBe(true);
+      expect(response.body.user.emailVerifiedAt).not.toBeNull();
+    });
+  });
 });

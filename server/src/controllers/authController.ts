@@ -157,7 +157,10 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
         id: user.id,
         email: user.email,
         name: user.name,
+        emailVerified: user.emailVerified,
+        emailVerifiedAt: user.emailVerifiedAt,
         createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
     });
   } catch (error) {
