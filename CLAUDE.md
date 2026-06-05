@@ -12,9 +12,10 @@ npm run build          # Compile TypeScript to dist/
 npm run test           # Run Jest tests (requires lifeadmin_test DB — see below)
 npm run test:watch     # Jest in watch mode
 npm run test:coverage  # Coverage report
-npm run prisma:migrate # Apply migrations (dev)
-npm run prisma:studio  # Open Prisma Studio GUI
-npm run seed           # Seed database with test data
+npm run prisma:migrate   # Apply migrations (dev, creates shadow DB)
+npm run prisma:generate  # Regenerate Prisma client after schema changes
+npm run prisma:studio    # Open Prisma Studio GUI
+npm run seed             # Seed database with test data
 ```
 
 ### Frontend (`client/`)
@@ -36,8 +37,10 @@ cd server && npx jest src/__tests__/auth.verification.test.ts
 
 ```bash
 createdb lifeadmin_test
-cd server && npm run prisma:migrate:deploy  # or jest globalSetup handles it automatically
+cd server && npm run prisma:migrate:deploy  # applies existing migrations (no shadow DB); jest globalSetup also runs this automatically
 ```
+
+> Note: use `prisma:migrate` (not `prisma:migrate:deploy`) for dev work — it creates a shadow DB and handles schema drift.
 
 The test DB is configured in `server/.env.test`. By default it connects to `postgresql://<OS_USER>:@localhost:5432/lifeadmin_test`.
 
@@ -59,7 +62,7 @@ Route (routes/) → Middleware (express-validator) → Controller (controllers/)
 
 - Routes define validation chains and call controllers
 - Controllers handle HTTP concerns (req/res, status codes)
-- Services contain business logic (`emailVerificationService`, `emailService`)
+- Services contain business logic (`emailVerificationService`, `emailService`, `accountCleanupService` — auto-deletes unverified accounts after a grace period)
 - `server/src/utils/db.ts` exports the singleton Prisma client
 
 ### Frontend data flow
@@ -72,14 +75,14 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 
 ### Key env vars
 
-| Var | Where used |
-|-----|-----------|
-| `DATABASE_URL` | Prisma (required, server fails to start without it) |
-| `JWT_SECRET` | Token signing (required) |
-| `API_URL` | Included in verification email links (e.g. `http://localhost:3001`) |
-| `CLIENT_URL` | CORS allowlist |
-| `RESEND_API_KEY` | Email sending via Resend SDK |
-| `VITE_API_URL` | Frontend axios baseURL (defaults to `/api` for same-origin proxy) |
+| Var             | Where used                                                           |
+|-----------------|----------------------------------------------------------------------|
+| `DATABASE_URL`  | Prisma (required, server fails to start without it)                  |
+| `JWT_SECRET`    | Token signing (required)                                             |
+| `API_URL`       | Included in verification email links (e.g. `http://localhost:3001`)  |
+| `CLIENT_URL`    | CORS allowlist                                                       |
+| `RESEND_API_KEY`| Email sending via Resend SDK                                         |
+| `VITE_API_URL`  | Frontend axios baseURL (defaults to `/api` for same-origin proxy)    |
 
 ### Database schema highlights
 
@@ -91,4 +94,4 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 
 Branch format: `{type}/{issue-number}-{description}` (e.g. `feature/LIF-42-email-reminders`)
 
-Commit format: `{type}({scope}): {subject}` — present tense, imperative, ≤50 chars subject, `Closes #N` footer.
+Commit format: `{type}({scope}): {subject}` — present tense, imperative, `Closes #N` footer.
