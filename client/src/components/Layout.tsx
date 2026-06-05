@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { UnverifiedEmailBanner } from './UnverifiedEmailBanner';
 import { APP_NAME } from '@/lib/constants';
+import { Menu, X } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,6 +14,7 @@ export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -23,59 +26,99 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/subscriptions', label: 'Subscriptions' },
   ];
 
+  const handleNav = (path: string) => {
+    navigate(path);
+    setMobileOpen(false);
+  };
+
+  const SidebarContent = () => (
+    <>
+      <div className="p-6 border-b">
+        <h1 className="text-xl font-bold">{APP_NAME}</h1>
+      </div>
+      <nav className="flex-1 p-4 flex flex-col gap-1">
+        {navItems.map((item) => (
+          <Button
+            key={item.path}
+            variant={location.pathname === item.path ? 'default' : 'ghost'}
+            className="justify-start"
+            onClick={() => handleNav(item.path)}
+          >
+            {item.label}
+          </Button>
+        ))}
+      </nav>
+      <div className="p-4 border-t">
+        <p className="text-sm text-muted-foreground mb-3 truncate">{user?.email}</p>
+        <Button variant="outline" className="w-full" onClick={handleLogout}>
+          Logout
+        </Button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Unverified Email Banner */}
+    <div className="min-h-screen bg-background flex flex-col">
       <UnverifiedEmailBanner />
-      
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-8">
-              <h1 className="text-2xl font-bold">{APP_NAME}</h1>
-              <nav className="hidden md:flex gap-4">
-                {navItems.map((item) => (
-                  <Button
-                    key={item.path}
-                    variant={location.pathname === item.path ? 'default' : 'ghost'}
-                    onClick={() => navigate(item.path)}
-                  >
-                    {item.label}
-                  </Button>
-                ))}
-              </nav>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground hidden sm:inline">
-                {user?.email}
-              </span>
-              <Button variant="outline" onClick={handleLogout}>
-                Logout
-              </Button>
-            </div>
-          </div>
+      <div className="flex flex-1">
+        {/* Desktop sidebar */}
+        <aside className="hidden md:flex flex-col w-60 border-r bg-card shrink-0 sticky top-0 h-screen">
+          <SidebarContent />
+        </aside>
 
-          {/* Mobile nav */}
-          <nav className="flex md:hidden gap-2 mt-4">
-            {navItems.map((item) => (
-              <Button
-                key={item.path}
-                variant={location.pathname === item.path ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => navigate(item.path)}
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* Mobile header */}
+          <header className="md:hidden flex items-center justify-between px-4 py-3 border-b bg-card">
+            <h1 className="text-xl font-bold">{APP_NAME}</h1>
+            <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </Button>
+          </header>
+
+          {/* Mobile sidebar overlay */}
+          {mobileOpen && (
+            <div
+              className="md:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
+              onClick={() => setMobileOpen(false)}
+            >
+              <aside
+                className="absolute left-0 top-0 bottom-0 w-60 bg-card border-r flex flex-col"
+                onClick={(e) => e.stopPropagation()}
               >
-                {item.label}
-              </Button>
-            ))}
-          </nav>
-        </div>
-      </header>
+                <div className="p-6 border-b flex items-center justify-between">
+                  <h1 className="text-xl font-bold">{APP_NAME}</h1>
+                  <Button variant="ghost" size="sm" onClick={() => setMobileOpen(false)}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+                <nav className="flex-1 p-4 flex flex-col gap-1">
+                  {navItems.map((item) => (
+                    <Button
+                      key={item.path}
+                      variant={location.pathname === item.path ? 'default' : 'ghost'}
+                      className="justify-start"
+                      onClick={() => handleNav(item.path)}
+                    >
+                      {item.label}
+                    </Button>
+                  ))}
+                </nav>
+                <div className="p-4 border-t">
+                  <p className="text-sm text-muted-foreground mb-3 truncate">{user?.email}</p>
+                  <Button variant="outline" className="w-full" onClick={handleLogout}>
+                    Logout
+                  </Button>
+                </div>
+              </aside>
+            </div>
+          )}
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {children}
-      </main>
+          {/* Main content */}
+          <main className="flex-1 p-6 md:p-8">
+            {children}
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
