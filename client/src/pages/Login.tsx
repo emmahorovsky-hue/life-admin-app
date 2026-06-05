@@ -35,7 +35,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold">{APP_NAME}</CardTitle>
+          <CardTitle className="text-3xl font-black">{APP_NAME}</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>

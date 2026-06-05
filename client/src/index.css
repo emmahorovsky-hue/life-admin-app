@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,100..900;1,100..900&family=Space+Mono:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,83 +6,88 @@
 
 @layer base {
   :root {
-    /* Base radius */
-    --radius: 0.5rem;
-    
-    /* Light mode colors */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 15%;
-    
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 15%;
-    
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 15%;
-    
-    --primary: 250 90% 55%;
-    --primary-foreground: 0 0% 98%;
-    
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 15%;
-    
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 55%;
-    
-    --accent: 190 60% 60%;
-    --accent-foreground: 0 0% 98%;
-    
-    --destructive: 27 80% 58%;
-    --destructive-foreground: 0 0% 98%;
-    
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 250 90% 55%;
-    
+    /* Base radius — 2px near-square receipt corners */
+    --radius: 0.125rem;
+
+    /* Light mode colors — Scandinavian palette */
+    --background: 60 17% 98%;   /* Snow #FAFAF8 */
+    --foreground: 0 0% 9%;      /* Black #161616 */
+
+    --card: 60 17% 98%;         /* Snow */
+    --card-foreground: 0 0% 9%;
+
+    --popover: 60 17% 98%;
+    --popover-foreground: 0 0% 9%;
+
+    --primary: 0 0% 9%;         /* Black #161616 — buttons */
+    --primary-foreground: 60 17% 98%;
+    --primary-hover: 0 0% 18%;
+    --orange: 16 100% 45%;      /* #E53D00 — accent */
+
+    --secondary: 35 26% 91%;    /* Sand #EEE9E2 */
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 35 26% 91%;        /* Sand */
+    --muted-foreground: 36 5% 50%;
+
+    --accent: 35 26% 91%;       /* Sand — ghost hover fill */
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 16 100% 45%;
+    --destructive-foreground: 60 17% 98%;
+
+    --border: 36 9% 78%;        /* Ash #CBC7C1 */
+    --input: 36 9% 78%;
+    --ring: 16 100% 45%;        /* Orange focus ring */
+
     /* Custom semantic colors */
-    --success: 145 60% 65%;
-    --warning: 70 70% 70%;
+    --success: 146 97% 38%;     /* #04F06A darkened for readability on light bg */
+    --warning: 40 90% 55%;
   }
 
   .dark {
-    --background: 0 0% 15%;
-    --foreground: 0 0% 98%;
-    
-    --card: 0 0% 18%;
-    --card-foreground: 0 0% 98%;
-    
-    --popover: 0 0% 18%;
-    --popover-foreground: 0 0% 98%;
-    
-    --primary: 250 80% 65%;
-    --primary-foreground: 0 0% 98%;
-    
-    --secondary: 0 0% 25%;
-    --secondary-foreground: 0 0% 98%;
-    
-    --muted: 0 0% 25%;
-    --muted-foreground: 0 0% 65%;
-    
-    --accent: 190 60% 70%;
-    --accent-foreground: 0 0% 98%;
-    
-    --destructive: 27 70% 65%;
-    --destructive-foreground: 0 0% 98%;
-    
-    --border: 0 0% 30%;
-    --input: 0 0% 30%;
-    --ring: 250 80% 65%;
-    
-    --success: 145 60% 70%;
-    --warning: 70 70% 75%;
+    --background: 0 0% 9%;
+    --foreground: 60 17% 98%;
+
+    --card: 0 0% 12%;
+    --card-foreground: 60 17% 98%;
+
+    --popover: 0 0% 12%;
+    --popover-foreground: 60 17% 98%;
+
+    --primary: 0 0% 18%;
+    --primary-foreground: 60 17% 98%;
+    --primary-hover: 0 0% 28%;
+    --orange: 16 100% 55%;
+
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 60 17% 98%;
+
+    --muted: 0 0% 18%;
+    --muted-foreground: 36 5% 65%;
+
+    --accent: 0 0% 18%;
+    --accent-foreground: 60 17% 98%;
+
+    --destructive: 16 100% 55%;
+    --destructive-foreground: 60 17% 98%;
+
+    --border: 0 0% 22%;
+    --input: 0 0% 22%;
+    --ring: 16 100% 55%;
+
+
+    --success: 145 60% 50%;
+    --warning: 40 90% 55%;
   }
-  
+
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-background text-foreground;
-    font-family: Inter, system-ui, -apple-system, sans-serif;
+    font-family: 'Archivo', system-ui, -apple-system, sans-serif;
   }
 }
 
@@ -90,7 +95,7 @@
   .animate-in {
     animation: fadeIn 200ms ease-out;
   }
-  
+
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -101,6 +106,10 @@
       transform: translateY(0);
     }
   }
+
+  /* Perforated receipt aesthetic — section dividers */
+  .border-perf   { border-bottom: 1.5px dashed hsl(var(--border)); }
+  .border-perf-t { border-top: 1.5px dashed hsl(var(--border)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

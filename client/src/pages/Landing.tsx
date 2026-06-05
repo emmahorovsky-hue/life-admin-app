@@ -61,7 +61,7 @@ export default function Landing() {
       {/* Navbar */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-primary">
+          <Link to="/" className="text-xl font-bold text-brand-orange">
             {APP_NAME}
           </Link>
           <div className="flex items-center gap-2">
@@ -82,11 +82,11 @@ export default function Landing() {
       </header>
 
       {/* Hero */}
-      <section className="relative py-24 md:py-36 px-4 text-center overflow-hidden bg-gradient-to-b from-primary/10 via-background to-background">
+      <section className="relative py-24 md:py-36 px-4 text-center">
         <div className="container mx-auto max-w-3xl">
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight mb-6">
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6">
             Know what's{' '}
-            <span className="text-primary">coming next.</span>
+            <span className="text-brand-orange">coming next.</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl mx-auto">
             Subscriptions, contracts, warranties, leases — everything with a deadline,
@@ -109,10 +109,12 @@ export default function Landing() {
         </div>
       </section>
 
+      <div className="border-perf-t" aria-hidden="true" />
+
       {/* What you track */}
       <section id="what-you-track" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-4xl">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-4">
             Everything with a deadline, in one place
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">
@@ -124,8 +126,8 @@ export default function Landing() {
                 key={label}
                 className="rounded-lg border bg-card p-5 space-y-3 hover:border-primary/50 transition-colors"
               >
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-primary/10">
-                  <Icon className="w-5 h-5 text-primary" />
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent">
+                  <Icon className="w-5 h-5 text-brand-orange" />
                 </div>
                 <div>
                   <p className="font-semibold text-sm">{label}</p>
@@ -140,7 +142,7 @@ export default function Landing() {
       {/* Key features */}
       <section id="features" className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-4">
             Built around what matters
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">
@@ -149,8 +151,8 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {FEATURES.map(({ icon: Icon, title, description }) => (
               <div key={title} className="rounded-lg border bg-card p-6 space-y-4">
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-primary/10">
-                  <Icon className="w-5 h-5 text-primary" />
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent">
+                  <Icon className="w-5 h-5 text-brand-orange" />
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">{title}</h3>
@@ -162,10 +164,12 @@ export default function Landing() {
         </div>
       </section>
 
+      <div className="border-perf-t" aria-hidden="true" />
+
       {/* CTA banner */}
-      <section className="relative py-20 px-4 text-center overflow-hidden bg-gradient-to-t from-primary/10 via-background to-background">
+      <section className="py-20 px-4 text-center bg-secondary">
         <div className="container mx-auto max-w-xl">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-4">
             Stop guessing. Start knowing.
           </h2>
           <p className="text-muted-foreground mb-8">Free to use. No credit card required.</p>
@@ -179,7 +183,7 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 px-4">
+      <footer className="border-perf-t py-8 px-4">
         <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} {APP_NAME}

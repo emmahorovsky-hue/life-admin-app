@@ -41,6 +41,8 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        'primary-hover': "hsl(var(--primary-hover))",
+        'brand-orange': "hsl(var(--orange))",
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
       },
@@ -50,7 +52,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        sans: ["Archivo", "system-ui", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        mono: ["Space Mono", "ui-monospace", "SFMono-Regular", "monospace"],
       },
     },
   },
