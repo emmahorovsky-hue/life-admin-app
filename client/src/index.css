@@ -22,7 +22,7 @@
     --primary: 0 0% 9%;         /* Black #161616 — buttons */
     --primary-foreground: 60 17% 98%;
     --primary-hover: 0 0% 18%;
-    --orange: 16 100% 45%;      /* #E53D00 — accent */
+    --brand-orange: 16 100% 45%;      /* #E53D00 — accent */
 
     --secondary: 35 26% 91%;    /* Sand #EEE9E2 */
     --secondary-foreground: 0 0% 9%;
@@ -58,7 +58,7 @@
     --primary: 0 0% 18%;
     --primary-foreground: 60 17% 98%;
     --primary-hover: 0 0% 28%;
-    --orange: 16 100% 55%;
+    --brand-orange: 16 100% 55%;
 
     --secondary: 0 0% 18%;
     --secondary-foreground: 60 17% 98%;
@@ -110,6 +110,9 @@
   /* Perforated receipt aesthetic — section dividers */
   .border-perf   { border-bottom: 1.5px dashed hsl(var(--border)); }
   .border-perf-t { border-top: 1.5px dashed hsl(var(--border)); }
+
+  /* Dotted leader line for receipt-style rows */
+  .leader-dots { border-bottom: 1.5px dotted hsl(var(--border)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

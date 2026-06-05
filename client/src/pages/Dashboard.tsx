@@ -109,7 +109,7 @@ export default function Dashboard() {
       {/* Summary tiles */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Featured: monthly cost */}
-        <Card style={{ backgroundColor: 'hsl(var(--orange))', borderColor: 'hsl(var(--orange))' }} className="text-white">
+        <Card style={{ backgroundColor: 'hsl(var(--brand-orange))', borderColor: 'hsl(var(--brand-orange))' }} className="text-white">
           <CardContent className="p-6">
             <p className="text-sm font-medium opacity-75 mb-4 uppercase tracking-wide">
               Charged this month
@@ -200,10 +200,7 @@ export default function Dashboard() {
                       <span className="text-xs text-muted-foreground font-mono shrink-0 ml-1">
                         {format(new Date(renewal.renewalDate), 'MMM d')}
                       </span>
-                      <div
-                        className="flex-1 mx-2 mb-0.5"
-                        style={{ borderBottom: '1.5px dotted hsl(var(--border))' }}
-                      />
+                      <div className="leader-dots flex-1 mx-2 mb-0.5" />
                       <span className="font-mono font-bold text-sm shrink-0">
                         ${parseFloat(renewal.cost).toFixed(2)}
                       </span>
@@ -218,7 +215,7 @@ export default function Dashboard() {
                 {/* Total due */}
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                    Total Due
+                    Total
                   </span>
                   <span className="font-mono font-bold text-2xl">
                     ${renewalTotal.toFixed(2)}

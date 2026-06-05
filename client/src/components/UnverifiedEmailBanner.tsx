@@ -52,7 +52,7 @@ export const UnverifiedEmailBanner: React.FC = () => {
   };
 
   return (
-    <div className="bg-accent border-b border-border px-4 py-3">
+    <div className="bg-accent border-b border-border border-l-4 border-l-brand-orange px-4 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-foreground">

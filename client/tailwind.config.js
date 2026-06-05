@@ -42,14 +42,14 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         'primary-hover': "hsl(var(--primary-hover))",
-        'brand-orange': "hsl(var(--orange))",
+        'brand-orange': "hsl(var(--brand-orange))",
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        sm: "0px",
       },
       fontFamily: {
         sans: ["Archivo", "system-ui", "-apple-system", "BlinkMacSystemFont", "sans-serif"],

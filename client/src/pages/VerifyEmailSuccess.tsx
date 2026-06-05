@@ -8,7 +8,7 @@ const VerifyEmailSuccess: React.FC = () => {
         <div className="mb-4">
           <div className="mx-auto w-16 h-16 bg-accent rounded-full flex items-center justify-center">
             <svg
-              className="w-8 h-8 text-primary"
+              className="w-8 h-8 text-success"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
