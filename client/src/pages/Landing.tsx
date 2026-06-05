@@ -367,6 +367,9 @@ export default function Landing() {
 
         {/* Paper rail — horizontal scroll */}
         <div
+          role="region"
+          aria-label={`Things ${APP_NAME} tracks`}
+          tabIndex={0}
           className="flex gap-7 overflow-x-auto snap-x snap-mandatory pt-10 pb-12
             px-8 sm:px-16 scroll-pl-8 sm:scroll-pl-16
             [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
@@ -387,7 +390,7 @@ export default function Landing() {
                   boxShadow:
                     '0 1px 2px rgba(40,33,20,0.06), 0 6px 12px rgba(40,33,20,0.08), 0 16px 32px rgba(40,33,20,0.12)',
                 }}
-                className="group relative shrink-0 snap-start w-[260px] sm:w-[280px] h-[360px] rounded-[3px]
+                className="relative shrink-0 snap-start w-[260px] sm:w-[280px] h-[360px] rounded-[3px]
                   border border-black/[0.06] overflow-hidden cursor-default"
               >
                 {/* ruled lines */}
@@ -413,12 +416,12 @@ export default function Landing() {
                   className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center"
                   style={{
                     transform: 'rotate(-7deg)',
-                    border: '2px dashed hsl(16 100% 45% / 0.45)',
+                    border: '2px dashed hsl(var(--brand-orange) / 0.45)',
                     borderRadius: 4,
-                    backgroundColor: 'hsl(16 100% 45% / 0.06)',
+                    backgroundColor: 'hsl(var(--brand-orange) / 0.06)',
                   }}
                 >
-                  <Icon className="w-5 h-5" style={{ color: 'hsl(16 100% 45% / 0.85)' }} />
+                  <Icon className="w-5 h-5" style={{ color: 'hsl(var(--brand-orange) / 0.85)' }} />
                 </motion.div>
 
                 {/* content */}
