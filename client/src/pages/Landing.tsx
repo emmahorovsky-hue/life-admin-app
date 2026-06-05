@@ -93,7 +93,10 @@ function DashboardMockup({ reduced }: { reduced: boolean }) {
       animate={reduced ? {} : { y: [0, -8, 0] }}
       transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
       className="w-[340px] max-w-[86vw] rounded-xl border bg-card overflow-hidden"
-      style={{ boxShadow: '0 30px 70px -20px rgba(73,60,74,0.45), 0 8px 24px -8px rgba(0,0,0,0.12)' }}
+      style={{
+        boxShadow: '0 30px 70px -20px rgba(73,60,74,0.45), 0 8px 24px -8px rgba(0,0,0,0.12)',
+        willChange: reduced ? undefined : 'transform',
+      }}
     >
       <div className="px-5 py-4 border-b flex items-center justify-between">
         <span className="text-sm font-bold tracking-tight">Upcoming renewals</span>
@@ -250,6 +253,11 @@ export default function Landing() {
                 maxWidth: 640, maxHeight: 640,
                 background: 'radial-gradient(circle, hsl(16 100% 45% / 0.16) 0%, transparent 68%)',
                 filter: 'blur(48px)',
+                // Promote to its own GPU layer so the expensive blur is rasterized
+                // once into a texture; the infinite x/y then only moves that layer
+                // instead of re-painting the blur every frame.
+                willChange: 'transform',
+                transform: 'translateZ(0)',
               }}
               animate={{ x: [0, 24, 0], y: [0, -18, 0] }}
               transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
@@ -262,6 +270,8 @@ export default function Landing() {
                 maxWidth: 520, maxHeight: 520,
                 background: 'radial-gradient(circle, hsl(35 26% 80% / 0.7) 0%, transparent 68%)',
                 filter: 'blur(64px)',
+                willChange: 'transform',
+                transform: 'translateZ(0)',
               }}
               animate={{ x: [0, -18, 0], y: [0, 22, 0] }}
               transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
@@ -335,6 +345,10 @@ export default function Landing() {
                 src="/hero-desk.webp"
                 alt="An illustrated desk of notebooks, papers and a planner"
                 draggable={false}
+                width={512}
+                height={512}
+                fetchPriority="high"
+                decoding="async"
                 className="absolute inset-0 w-full h-full object-cover select-none"
               />
             </div>
