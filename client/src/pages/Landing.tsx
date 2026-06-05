@@ -184,6 +184,28 @@ function CostStat({ target, reduced }: { target: number; reduced: boolean }) {
   );
 }
 
+// Small crosshair "+" mark, Vercel-style, sits where rails meet a divider.
+function Plus() {
+  return (
+    <span className="pointer-events-none relative block h-3 w-3">
+      <span className="absolute left-1/2 top-0 h-3 w-px -translate-x-1/2 bg-foreground/25" />
+      <span className="absolute left-0 top-1/2 h-px w-3 -translate-y-1/2 bg-foreground/25" />
+    </span>
+  );
+}
+
+// Divider between sections. The hairline runs full-bleed past the rails
+// (w-screen, centred on the frame), with a "+" mark where it crosses each rail.
+function Rule() {
+  return (
+    <div className="relative z-30 h-px w-full" aria-hidden="true">
+      <div className="absolute left-1/2 top-0 h-px w-screen -translate-x-1/2 bg-border" />
+      <span className="absolute -left-[6px] -top-[6px]"><Plus /></span>
+      <span className="absolute -right-[6px] -top-[6px]"><Plus /></span>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function Landing() {
@@ -239,6 +261,9 @@ export default function Landing() {
           </div>
         </div>
       </motion.header>
+
+      {/* ── Framed grid (Vercel-style rails + crosshairs) ─────────────────── */}
+      <div className="relative mx-auto w-full max-w-[1200px] border-x border-border">
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative min-h-[calc(100vh-65px)] flex items-center py-20 px-4 overflow-hidden">
@@ -354,14 +379,14 @@ export default function Landing() {
             </div>
 
             {/* Subscriptions card overlapping the panel's right edge */}
-            <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 lg:left-auto lg:right-0 lg:translate-x-12">
+            <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 lg:left-auto lg:right-0 lg:translate-x-0">
               <DashboardMockup reduced={reduced} />
             </div>
           </motion.div>
         </div>
       </section>
 
-      <div className="border-perf-t" aria-hidden="true" />
+      <Rule />
 
       {/* ── What you track ───────────────────────────────────────────────── */}
       <section id="what-you-track" className="py-20 bg-muted/30 overflow-hidden">
@@ -466,6 +491,8 @@ export default function Landing() {
         </div>
       </section>
 
+      <Rule />
+
       {/* ── Features — bento ─────────────────────────────────────────────── */}
       <section id="features" className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
@@ -533,6 +560,8 @@ export default function Landing() {
         </div>
       </section>
 
+      <Rule />
+
       {/* ── Problem stat band ────────────────────────────────────────────── */}
       {/* NOTE: the "$200+/year" figure is illustrative marketing copy, hedged
           with "can quietly add up to". Swap in a sourced statistic (and cite
@@ -576,7 +605,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <div className="border-perf-t" aria-hidden="true" />
+      <Rule />
 
       {/* ── CTA banner ───────────────────────────────────────────────────── */}
       <section
@@ -636,9 +665,11 @@ export default function Landing() {
         </div>
       </section>
 
+      <Rule />
+
       {/* Footer */}
       <motion.footer
-        className="border-perf-t py-8 px-4"
+        className="py-8 px-4"
         initial={reduced ? {} : { opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
@@ -658,6 +689,9 @@ export default function Landing() {
           </div>
         </div>
       </motion.footer>
+
+        <Rule />
+      </div>
     </div>
   );
 }
