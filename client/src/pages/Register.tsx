@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -50,94 +49,105 @@ export default function Register() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-background">
-      {/* Desk illustration background */}
-      <img
-        src="/hero-desk.webp"
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        className="pointer-events-none select-none absolute inset-0 w-full h-full object-cover"
-      />
-      <Card className="relative w-full max-w-md shadow-2xl">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-black">{APP_NAME}</CardTitle>
-          <CardDescription>Create your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="At least 8 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-              <p className="text-xs text-muted-foreground">
-                Must contain at least 8 characters, including 1 uppercase letter, 1 number, and 1 symbol.
+    <div className="grid min-h-svh lg:grid-cols-2">
+      {/* Form column */}
+      <div className="flex flex-col gap-4 p-6 md:p-10">
+        <div className="flex justify-center gap-2 md:justify-start">
+          <Link
+            to="/"
+            className="text-xl font-black transition-opacity hover:opacity-70"
+            aria-label={`${APP_NAME} home`}
+          >
+            {APP_NAME}
+          </Link>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
+            <div className="space-y-2 text-center">
+              <h1 className="text-2xl font-bold">Create your account</h1>
+              <p className="text-sm text-muted-foreground">
+                Get started in just a few seconds
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Re-enter your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Must contain at least 8 characters, including 1 uppercase letter, 1 number, and 1 symbol.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              {error && (
+                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                  {error}
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Creating account...' : 'Create Account'}
+              </Button>
             </div>
 
-            {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                {error}
-              </div>
-            )}
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create Account'}
-            </Button>
-
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">or</span>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => navigate('/login')}
-            >
-              Already have an account?
-            </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+              >
+                Sign in
+              </button>
+            </p>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* Illustration column */}
+      <div className="relative hidden bg-muted lg:block">
+        <img
+          src="/hero-desk.webp"
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className="pointer-events-none select-none absolute inset-0 h-full w-full object-cover"
+        />
+      </div>
     </div>
   );
 }
