@@ -608,35 +608,20 @@ export default function Landing() {
       <Rule />
 
       {/* ── CTA banner ───────────────────────────────────────────────────── */}
-      <section
-        className="relative py-24 px-4 text-center overflow-hidden"
-        style={{ backgroundColor: 'hsl(var(--brand-orange))' }}
-      >
-        {/* Grain texture overlay */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            opacity: 0.055,
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E")`,
-            backgroundSize: '300px 300px',
-          }}
-        />
-
+      <section className="relative py-24 px-4 text-center overflow-hidden bg-muted/30">
         <div className="container mx-auto max-w-2xl relative z-10">
           <motion.h2
-            className="text-4xl md:text-6xl font-black leading-[1.05] mb-5"
-            style={{ color: 'white' }}
+            className="text-4xl md:text-6xl font-black leading-[1.05] mb-5 text-foreground"
             initial={reduced ? {} : { opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
-            Stop guessing.<br />Start knowing.
+            Stop guessing.<br />Start <span className="text-brand-orange">knowing.</span>
           </motion.h2>
 
           <motion.p
-            className="mb-10"
-            style={{ color: 'rgba(255,255,255,0.72)' }}
+            className="mb-10 text-muted-foreground"
             initial={reduced ? {} : { opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
@@ -654,11 +639,7 @@ export default function Landing() {
             whileTap={reduced ? {} : { scale: 0.97 }}
             style={{ display: 'inline-block' }}
           >
-            <Link
-              to="/register"
-              className={buttonVariants({ size: 'lg' })}
-              style={{ backgroundColor: 'white', color: '#161616' }}
-            >
+            <Link to="/register" className={buttonVariants({ size: 'lg' })}>
               Get Started Free
             </Link>
           </motion.div>
