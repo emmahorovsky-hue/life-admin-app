@@ -125,7 +125,7 @@ export default function EditSubscriptionDialog({
               <Label htmlFor="currency">Currency</Label>
               <Select
                 id="currency"
-                value={formData.currency || 'USD'}
+                value={formData.currency || 'SGD'}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                 disabled={loading}
               >

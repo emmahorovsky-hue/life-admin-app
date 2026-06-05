@@ -39,7 +39,7 @@ export const createSubscription = async (
         userId: req.user.userId,
         name,
         cost: new Prisma.Decimal(cost),
-        currency: currency || 'USD',
+        currency: currency || 'SGD',
         billingCycle,
         renewalDate: new Date(renewalDate),
         category,
