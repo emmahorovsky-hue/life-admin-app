@@ -45,10 +45,10 @@ const FEATURES = [
 ];
 
 const RENEWAL_ITEMS = [
-  { name: 'Netflix', amount: '£15.99', days: 3 },
-  { name: 'Gym membership', amount: '£35.00', days: 12 },
-  { name: 'Domain .io', amount: '£12.00', days: 28 },
-  { name: 'Home insurance', amount: '£89.00', days: 45 },
+  { name: 'Netflix', amount: '£15.99' },
+  { name: 'Gym membership', amount: '£35.00' },
+  { name: 'Domain .io', amount: '£12.00' },
+  { name: 'Home insurance', amount: '£89.00' },
 ];
 
 const TIMELINE_ITEMS = [
@@ -332,7 +332,7 @@ export default function Landing() {
             {/* Desk illustration panel */}
             <div className="relative overflow-hidden aspect-square">
               <img
-                src="/hero-desk.svg"
+                src="/hero-desk.webp"
                 alt="An illustrated desk of notebooks, papers and a planner"
                 draggable={false}
                 className="absolute inset-0 w-full h-full object-cover select-none"
