@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Preload the hero illustration (LCP element) so it downloads in parallel
+         with the JS bundle instead of waiting for React to mount. -->
+    <link rel="preload" as="image" href="/hero-desk.webp" fetchpriority="high" />
     <title>Paypr - Never miss a renewal</title>
     <meta
       name="description"
