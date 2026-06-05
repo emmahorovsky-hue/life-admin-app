@@ -30,7 +30,7 @@ export default function AddSubscriptionDialog({
   const [formData, setFormData] = useState<CreateSubscriptionData>({
     name: '',
     cost: 0,
-    currency: 'USD',
+    currency: 'SGD',
     billingCycle: 'monthly',
     renewalDate: new Date().toISOString().split('T')[0],
     category: 'streaming',
@@ -50,7 +50,7 @@ export default function AddSubscriptionDialog({
       setFormData({
         name: '',
         cost: 0,
-        currency: 'USD',
+        currency: 'SGD',
         billingCycle: 'monthly',
         renewalDate: new Date().toISOString().split('T')[0],
         category: 'streaming',

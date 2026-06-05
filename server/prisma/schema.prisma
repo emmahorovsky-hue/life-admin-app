@@ -32,7 +32,7 @@ model Subscription {
   userId       String
   name         String   // e.g., "Netflix Premium"
   cost         Decimal  @db.Decimal(10, 2) // Supports up to $99,999,999.99
-  currency     String   @default("USD") // ISO currency code
+  currency     String   @default("SGD") // ISO currency code
   billingCycle String   // "monthly" | "annual" | "weekly" | "quarterly"
   renewalDate  DateTime // Next billing date
   category     String   // "streaming" | "fitness" | "software" | "other"

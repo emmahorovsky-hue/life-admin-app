@@ -45,10 +45,10 @@ const FEATURES = [
 ];
 
 const RENEWAL_ITEMS = [
-  { name: 'Netflix', amount: '£15.99' },
-  { name: 'Gym membership', amount: '£35.00' },
-  { name: 'Domain .io', amount: '£12.00' },
-  { name: 'Home insurance', amount: '£89.00' },
+  { name: 'Netflix', amount: '$15.99' },
+  { name: 'Gym membership', amount: '$35.00' },
+  { name: 'Domain .io', amount: '$12.00' },
+  { name: 'Home insurance', amount: '$89.00' },
 ];
 
 const TIMELINE_ITEMS = [
@@ -171,7 +171,7 @@ function AnimatedTimeline({ reduced }: { reduced: boolean }) {
   );
 }
 
-// Counts up to a target £ figure once the band scrolls into view.
+// Counts up to a target $ figure once the band scrolls into view.
 function CostStat({ target, reduced }: { target: number; reduced: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: '-60px' });
@@ -179,7 +179,7 @@ function CostStat({ target, reduced }: { target: number; reduced: boolean }) {
 
   return (
     <span ref={ref} className="tabular-nums" style={{ color: 'hsl(var(--brand-orange))' }}>
-      £{count}+
+      ${count}+
     </span>
   );
 }
@@ -534,7 +534,7 @@ export default function Landing() {
       </section>
 
       {/* ── Problem stat band ────────────────────────────────────────────── */}
-      {/* NOTE: the "£200+/year" figure is illustrative marketing copy, hedged
+      {/* NOTE: the "$200+/year" figure is illustrative marketing copy, hedged
           with "can quietly add up to". Swap in a sourced statistic (and cite
           it) before launch if you want a hard, defensible number. */}
       <section className="py-20 px-4" style={{ backgroundColor: 'hsl(var(--foreground))' }}>
