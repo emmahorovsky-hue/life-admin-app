@@ -1,7 +1,7 @@
 {
   "name": "life-admin-app-server",
   "version": "1.0.0",
-  "description": "Backend API for Life Admin App - Subscription Tracker",
+  "description": "Backend API for Paypr - Subscription Tracker",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
