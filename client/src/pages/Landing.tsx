@@ -188,8 +188,8 @@ function CostStat({ target, reduced }: { target: number; reduced: boolean }) {
 function Plus() {
   return (
     <span className="pointer-events-none relative block h-3 w-3">
-      <span className="absolute left-1/2 top-0 h-3 w-px -translate-x-1/2 bg-foreground/25" />
-      <span className="absolute left-0 top-1/2 h-px w-3 -translate-y-1/2 bg-foreground/25" />
+      <span className="absolute left-1/2 top-0 h-3 w-px -translate-x-1/2 bg-foreground/20" />
+      <span className="absolute left-0 top-1/2 h-px w-3 -translate-y-1/2 bg-foreground/20" />
     </span>
   );
 }
@@ -199,7 +199,7 @@ function Plus() {
 function Rule() {
   return (
     <div className="relative z-30 h-px w-full" aria-hidden="true">
-      <div className="absolute left-1/2 top-0 h-px w-screen -translate-x-1/2 bg-border" />
+      <div className="absolute left-1/2 top-0 h-px w-screen -translate-x-1/2 bg-border/50" />
       <span className="absolute -left-[6px] -top-[6px]"><Plus /></span>
       <span className="absolute -right-[6px] -top-[6px]"><Plus /></span>
     </div>
@@ -263,7 +263,7 @@ export default function Landing() {
       </motion.header>
 
       {/* ── Framed grid (Vercel-style rails + crosshairs) ─────────────────── */}
-      <div className="relative mx-auto w-full max-w-[1200px] border-x border-border">
+      <div className="relative mx-auto w-full max-w-[1200px] border-x border-border/50">
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative min-h-[calc(100vh-65px)] flex items-center py-20 px-4 overflow-hidden">
