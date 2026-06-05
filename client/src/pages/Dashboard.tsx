@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi, DashboardSummary } from '@/lib/dashboard';
 import { subscriptionApi, categories } from '@/lib/subscriptions';
+import { formatCurrency, dominantCurrency, DEFAULT_CURRENCY } from '@/lib/currency';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -14,6 +15,10 @@ export default function Dashboard() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [categoryData, setCategoryData] = useState<{ name: string; total: number }[]>([]);
+  // Currency the user predominantly uses, for aggregate figures, plus a per-id
+  // lookup so each renewal row can render in its own subscription's currency.
+  const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
+  const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -23,6 +28,9 @@ export default function Dashboard() {
           subscriptionApi.getAll(),
         ]);
         setSummary(summaryData);
+
+        setDisplayCurrency(dominantCurrency(allSubs.map((sub) => sub.currency)));
+        setCurrencyById(new Map(allSubs.map((sub) => [sub.id, sub.currency])));
 
         const categoryMap = new Map<string, number>();
         allSubs.forEach((sub) => {
@@ -115,7 +123,7 @@ export default function Dashboard() {
               Charged this month
             </p>
             <div className="text-4xl font-bold font-mono tracking-tight">
-              ${summary.totalMonthlySpend.toFixed(2)}
+              {formatCurrency(summary.totalMonthlySpend, displayCurrency)}
             </div>
             <p className="text-sm opacity-75 mt-3">
               {summary.activeSubscriptions} active {summary.activeSubscriptions === 1 ? 'subscription' : 'subscriptions'}
@@ -130,7 +138,7 @@ export default function Dashboard() {
               Per year
             </p>
             <div className="text-4xl font-bold font-mono tracking-tight">
-              ${summary.totalAnnualSpend.toFixed(2)}
+              {formatCurrency(summary.totalAnnualSpend, displayCurrency)}
             </div>
           </CardContent>
         </Card>
@@ -142,7 +150,7 @@ export default function Dashboard() {
               Due in 7 days
             </p>
             <div className="text-4xl font-bold font-mono tracking-tight">
-              ${dueSoonTotal.toFixed(2)}
+              {formatCurrency(dueSoonTotal, displayCurrency)}
             </div>
             {dueSoonRenewals.length > 0 && (
               <p className="text-sm text-muted-foreground mt-3">
@@ -202,7 +210,7 @@ export default function Dashboard() {
                       </span>
                       <div className="leader-dots flex-1 mx-2 mb-0.5" />
                       <span className="font-mono font-bold text-sm shrink-0">
-                        ${parseFloat(renewal.cost).toFixed(2)}
+                        {formatCurrency(parseFloat(renewal.cost), currencyById.get(renewal.id) ?? displayCurrency)}
                       </span>
                     </div>
                   ))}
@@ -218,7 +226,7 @@ export default function Dashboard() {
                     Total
                   </span>
                   <span className="font-mono font-bold text-2xl">
-                    ${renewalTotal.toFixed(2)}
+                    {formatCurrency(renewalTotal, displayCurrency)}
                   </span>
                 </div>
 
@@ -269,7 +277,7 @@ export default function Dashboard() {
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '2px',
                     }}
-                    formatter={(value: number) => [`$${value.toFixed(2)}`, 'Monthly']}
+                    formatter={(value: number) => [formatCurrency(value, displayCurrency), 'Monthly']}
                   />
                   <Bar dataKey="total" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
                 </BarChart>
