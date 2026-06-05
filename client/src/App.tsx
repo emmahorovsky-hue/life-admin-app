@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+// Landing is the marketing entry point ('/') — eager-import it so it paints on
+// the first round trip instead of waterfalling through the Suspense fallback.
+import Landing from './pages/Landing';
 
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -10,7 +13,6 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const VerifyEmailSuccess = lazy(() => import('./pages/VerifyEmailSuccess'));
 const VerifyEmailError = lazy(() => import('./pages/VerifyEmailError'));
-const Landing = lazy(() => import('./pages/Landing'));
 
 function PageFallback() {
   return (
