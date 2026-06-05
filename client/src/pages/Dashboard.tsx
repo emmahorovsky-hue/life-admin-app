@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi, DashboardSummary } from '@/lib/dashboard';
 import { subscriptionApi, categories } from '@/lib/subscriptions';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
@@ -24,7 +24,6 @@ export default function Dashboard() {
         ]);
         setSummary(summaryData);
 
-        // Calculate category breakdown
         const categoryMap = new Map<string, number>();
         allSubs.forEach((sub) => {
           const cost = parseFloat(sub.cost);
@@ -32,7 +31,7 @@ export default function Dashboard() {
                              sub.billingCycle === 'annual' || sub.billingCycle === 'yearly' ? cost / 12 :
                              sub.billingCycle === 'weekly' ? cost * 4.33 :
                              sub.billingCycle === 'quarterly' ? cost / 3 : cost;
-          
+
           const current = categoryMap.get(sub.category) || 0;
           categoryMap.set(sub.category, current + monthlyCost);
         });
@@ -43,7 +42,7 @@ export default function Dashboard() {
             total: Math.round(total * 100) / 100,
           }))
           .sort((a, b) => b.total - a.total);
-        
+
         setCategoryData(chartData);
       } catch (err) {
         console.error('Failed to load dashboard:', err);
@@ -87,6 +86,15 @@ export default function Dashboard() {
     );
   }
 
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  const dueSoonRenewals = summary.upcomingRenewals.filter(
+    r => new Date(r.renewalDate).getTime() - Date.now() <= sevenDaysMs
+  );
+  const dueSoonTotal = dueSoonRenewals.reduce((sum, r) => sum + parseFloat(r.cost), 0);
+
+  const shownRenewals = summary.upcomingRenewals.slice(0, 5);
+  const renewalTotal = shownRenewals.reduce((sum, r) => sum + parseFloat(r.cost), 0);
+
   return (
     <div className="space-y-6">
       <div>
@@ -98,86 +106,133 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Summary cards */}
+      {/* Summary tiles */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Subscriptions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{summary.activeSubscriptions}</div>
+        {/* Featured: monthly cost */}
+        <Card style={{ backgroundColor: 'hsl(var(--brand-orange))', borderColor: 'hsl(var(--brand-orange))' }} className="text-white">
+          <CardContent className="p-6">
+            <p className="text-sm font-medium opacity-75 mb-4 uppercase tracking-wide">
+              Charged this month
+            </p>
+            <div className="text-4xl font-bold font-mono tracking-tight">
+              ${summary.totalMonthlySpend.toFixed(2)}
+            </div>
+            <p className="text-sm opacity-75 mt-3">
+              {summary.activeSubscriptions} active {summary.activeSubscriptions === 1 ? 'subscription' : 'subscriptions'}
+            </p>
           </CardContent>
         </Card>
 
+        {/* Annual cost */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Monthly Cost
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">${summary.totalMonthlySpend.toFixed(2)}</div>
+          <CardContent className="p-6">
+            <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">
+              Per year
+            </p>
+            <div className="text-4xl font-bold font-mono tracking-tight">
+              ${summary.totalAnnualSpend.toFixed(2)}
+            </div>
           </CardContent>
         </Card>
 
+        {/* Due soon */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Annual Cost
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">${summary.totalAnnualSpend.toFixed(2)}</div>
+          <CardContent className="p-6">
+            <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">
+              Due in 7 days
+            </p>
+            <div className="text-4xl font-bold font-mono tracking-tight">
+              ${dueSoonTotal.toFixed(2)}
+            </div>
+            {dueSoonRenewals.length > 0 && (
+              <p className="text-sm text-muted-foreground mt-3">
+                {dueSoonRenewals.length} {dueSoonRenewals.length === 1 ? 'renewal' : 'renewals'} upcoming
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Two columns: Upcoming renewals and category chart */}
+      {/* Two columns: receipt table + category chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming renewals */}
+        {/* Upcoming renewals — receipt style */}
         <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Renewals</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             {summary.upcomingRenewals.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4">
                 No renewals in the next 30 days
               </p>
             ) : (
-              <div className="space-y-3">
-                {summary.upcomingRenewals.slice(0, 5).map((renewal) => (
-                  <div
-                    key={renewal.id}
-                    className="flex justify-between items-center p-3 rounded-md border hover:bg-muted/50 transition-colors"
-                  >
-                    <div>
-                      <div className="font-medium">{renewal.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(renewal.renewalDate), { addSuffix: true })}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold">${parseFloat(renewal.cost).toFixed(2)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(new Date(renewal.renewalDate), 'MMM d')}
-                      </div>
-                    </div>
+              <>
+                {/* Column headers */}
+                <div className="flex items-center justify-between mb-2 relative">
+                  <div className="flex gap-6">
+                    <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                      Item
+                    </span>
+                    <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                      Renews
+                    </span>
                   </div>
-                ))}
+                  <div className="flex items-center gap-3">
+                    {dueSoonRenewals.length > 0 && (
+                      <span
+                        className="text-xs font-mono uppercase tracking-widest text-brand-orange border border-brand-orange px-2 py-0.5"
+                        style={{ transform: 'rotate(-4deg)', display: 'inline-block' }}
+                      >
+                        Due Soon
+                      </span>
+                    )}
+                    <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                      Amount
+                    </span>
+                  </div>
+                </div>
+
+                {/* Perforated separator */}
+                <div className="border-perf mb-4" />
+
+                {/* Renewal rows */}
+                <div className="space-y-3">
+                  {shownRenewals.map((renewal) => (
+                    <div key={renewal.id} className="flex items-baseline gap-1">
+                      <span className="font-mono font-bold text-sm shrink-0">{renewal.name}</span>
+                      <span className="text-xs text-muted-foreground font-mono shrink-0 ml-1">
+                        {format(new Date(renewal.renewalDate), 'MMM d')}
+                      </span>
+                      <div className="leader-dots flex-1 mx-2 mb-0.5" />
+                      <span className="font-mono font-bold text-sm shrink-0">
+                        ${parseFloat(renewal.cost).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Double-line separator */}
+                <div className="mt-4 mb-1 h-px bg-foreground" />
+                <div className="mb-3 h-px bg-foreground" />
+
+                {/* Total due */}
+                <div className="flex items-baseline justify-between">
+                  <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                    Total
+                  </span>
+                  <span className="font-mono font-bold text-2xl">
+                    ${renewalTotal.toFixed(2)}
+                  </span>
+                </div>
+
                 {summary.upcomingRenewals.length > 5 && (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full"
+                    className="w-full mt-4"
                     onClick={() => navigate('/subscriptions')}
                   >
                     View all {summary.upcomingRenewals.length} renewals
                   </Button>
                 )}
-              </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -212,11 +267,11 @@ export default function Dashboard() {
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '0.5rem',
+                      borderRadius: '2px',
                     }}
                     formatter={(value: number) => [`$${value.toFixed(2)}`, 'Monthly']}
                   />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

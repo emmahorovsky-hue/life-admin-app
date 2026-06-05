@@ -137,11 +137,11 @@ export default function Subscriptions() {
                     </div>
                     
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      <span className="font-medium text-foreground">
+                      <span className="font-medium text-foreground font-mono">
                         {sub.currency} {parseFloat(sub.cost).toFixed(2)}
                       </span>
                       <span>{sub.billingCycle}</span>
-                      <span>
+                      <span className="font-mono">
                         Next: {format(new Date(sub.renewalDate), 'MMM d, yyyy')}
                       </span>
                     </div>

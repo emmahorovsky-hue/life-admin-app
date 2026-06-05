@@ -52,10 +52,10 @@ export const UnverifiedEmailBanner: React.FC = () => {
   };
 
   return (
-    <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3">
+    <div className="bg-accent border-b border-border border-l-4 border-l-brand-orange px-4 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-yellow-800">
+          <span className="text-foreground">
             📧 <strong>Verify your email.</strong> We sent a link to{' '}
             <strong>{user.email}</strong>. {deletionWarning}
           </span>
@@ -64,7 +64,7 @@ export const UnverifiedEmailBanner: React.FC = () => {
           <button
             onClick={handleResend}
             disabled={resending || countdown > 0}
-            className="text-sm text-yellow-900 underline hover:no-underline disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm text-foreground underline hover:no-underline disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {countdown > 0
               ? `Resend (${countdown}s)`
