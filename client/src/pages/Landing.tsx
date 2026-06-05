@@ -179,32 +179,16 @@ function AnimatedTimeline({ reduced }: { reduced: boolean }) {
   );
 }
 
-function StatCounter({ target, label, reduced }: { target: number; label: string; reduced: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
+// Counts up to a target £ figure once the band scrolls into view.
+function CostStat({ target, reduced }: { target: number; reduced: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: '-60px' });
   const count = useCountUp(target, inView, reduced);
 
   return (
-    <motion.div
-      ref={ref}
-      className="text-center px-4 md:px-8"
-      initial={reduced ? {} : { opacity: 0, y: 20 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-    >
-      <span
-        className="block text-6xl md:text-7xl font-black tracking-tighter tabular-nums"
-        style={{ color: 'hsl(var(--background))' }}
-      >
-        {count}
-      </span>
-      <span
-        className="text-xs font-medium uppercase tracking-widest mt-2 block"
-        style={{ color: 'hsl(var(--background) / 0.55)' }}
-      >
-        {label}
-      </span>
-    </motion.div>
+    <span ref={ref} className="tabular-nums" style={{ color: 'hsl(var(--brand-orange))' }}>
+      £{count}+
+    </span>
   );
 }
 
@@ -477,24 +461,46 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Stats strip ──────────────────────────────────────────────────── */}
-      <section className="py-16 px-4" style={{ backgroundColor: 'hsl(var(--foreground))' }}>
-        <div className="container mx-auto max-w-3xl">
-          <div className="grid grid-cols-3">
-            {[
-              { target: 6, label: 'categories tracked' },
-              { target: 30, label: 'day look-ahead' },
-              { target: 0, label: 'surprises' },
-            ].map(({ target, label }, i) => (
-              <div
-                key={label}
-                className={i > 0 ? 'border-l' : ''}
-                style={{ borderColor: 'hsl(var(--background) / 0.15)' }}
-              >
-                <StatCounter target={target} label={label} reduced={reduced} />
-              </div>
-            ))}
-          </div>
+      {/* ── Problem stat band ────────────────────────────────────────────── */}
+      {/* NOTE: the "£200+/year" figure is illustrative marketing copy, hedged
+          with "can quietly add up to". Swap in a sourced statistic (and cite
+          it) before launch if you want a hard, defensible number. */}
+      <section className="py-20 px-4" style={{ backgroundColor: 'hsl(var(--foreground))' }}>
+        <div className="container mx-auto max-w-3xl text-center">
+          <motion.p
+            className="text-xs font-mono uppercase tracking-widest mb-6"
+            style={{ color: 'hsl(var(--background) / 0.5)' }}
+            initial={reduced ? {} : { opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          >
+            The cost of forgetting
+          </motion.p>
+
+          <motion.p
+            className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]"
+            style={{ color: 'hsl(var(--background))' }}
+            initial={reduced ? {} : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ delay: 0.08, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <CostStat target={200} reduced={reduced} /> a year
+          </motion.p>
+
+          <motion.p
+            className="text-base md:text-lg max-w-xl mx-auto mt-6 leading-relaxed"
+            style={{ color: 'hsl(var(--background) / 0.6)' }}
+            initial={reduced ? {} : { opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ delay: 0.16, duration: 0.5, ease: 'easeOut' }}
+          >
+            is what forgotten subscriptions and auto-renewals can quietly add up to.
+            Paypr keeps every renewal, contract, and warranty on one timeline — so
+            nothing slips through.
+          </motion.p>
         </div>
       </section>
 
