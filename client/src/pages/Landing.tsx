@@ -90,48 +90,37 @@ function useCountUp(target: number, inView: boolean, reduced: boolean): number {
 function DashboardMockup({ reduced }: { reduced: boolean }) {
   return (
     <motion.div
-      animate={reduced ? {} : { y: [0, -10, 0] }}
+      animate={reduced ? {} : { y: [0, -8, 0] }}
       transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-      className="relative w-full max-w-sm mx-auto lg:mx-0 lg:ml-auto"
+      className="w-[340px] max-w-[86vw] rounded-xl border bg-card overflow-hidden"
+      style={{ boxShadow: '0 30px 70px -20px rgba(73,60,74,0.45), 0 8px 24px -8px rgba(0,0,0,0.12)' }}
     >
-      <div
-        className="rounded-lg border bg-card overflow-hidden"
-        style={{ boxShadow: '0 30px 70px -15px rgba(229,61,0,0.18), 0 10px 30px -8px rgba(0,0,0,0.08)' }}
-      >
-        <div className="px-5 py-4 border-b flex items-center justify-between">
-          <span className="text-sm font-bold tracking-tight">Upcoming renewals</span>
-          <span className="text-xs text-muted-foreground font-mono">next 45 days</span>
-        </div>
-        <div className="divide-y">
-          {RENEWAL_ITEMS.map((item, i) => (
-            <motion.div
-              key={item.name}
-              initial={reduced ? {} : { opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.85 + i * 0.1, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="px-5 py-3.5 flex items-center gap-3"
+      <div className="px-5 py-4 border-b flex items-center justify-between">
+        <span className="text-sm font-bold tracking-tight">Upcoming renewals</span>
+        <span className="text-xs text-muted-foreground font-mono">next 30 days</span>
+      </div>
+      <div className="divide-y">
+        {RENEWAL_ITEMS.map((item, i) => (
+          <motion.div
+            key={item.name}
+            initial={reduced ? {} : { opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.85 + i * 0.1, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="px-5 py-4 flex items-center justify-between gap-3"
+          >
+            <span className="text-sm font-medium truncate">{item.name}</span>
+            <span
+              className="text-xs font-mono px-2.5 py-1 rounded-sm flex-shrink-0"
+              style={
+                i === 0
+                  ? { backgroundColor: 'hsl(var(--brand-orange))', color: 'white' }
+                  : { backgroundColor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }
+              }
             >
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: item.days <= 7 ? 'hsl(var(--brand-orange))' : 'hsl(var(--border))' }}
-              />
-              <span className="text-sm font-medium flex-1 truncate">{item.name}</span>
-              <span className="text-xs text-muted-foreground font-mono">{item.amount}</span>
-              <span
-                className="text-xs font-mono px-2 py-0.5 rounded-sm"
-                style={{
-                  backgroundColor: item.days <= 7 ? 'hsl(var(--brand-orange) / 0.1)' : 'hsl(var(--muted))',
-                  color: item.days <= 7 ? 'hsl(var(--brand-orange))' : 'hsl(var(--muted-foreground))',
-                }}
-              >
-                {item.days}d
-              </span>
-            </motion.div>
-          ))}
-        </div>
-        <div className="px-5 py-3 border-t bg-muted/30">
-          <span className="text-xs text-muted-foreground">Updated just now</span>
-        </div>
+              {item.amount}
+            </span>
+          </motion.div>
+        ))}
       </div>
     </motion.div>
   );
@@ -333,13 +322,27 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* Right: dashboard mockup */}
+          {/* Right: illustration panel with floating subscriptions card */}
           <motion.div
             initial={reduced ? {} : { opacity: 0, x: 40, scale: 0.96 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             transition={{ delay: 0.28, duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full max-w-lg mx-auto lg:mx-0 lg:ml-auto"
           >
-            <DashboardMockup reduced={reduced} />
+            {/* Desk illustration panel */}
+            <div className="relative overflow-hidden aspect-square">
+              <img
+                src="/hero-desk.svg"
+                alt="An illustrated desk of notebooks, papers and a planner"
+                draggable={false}
+                className="absolute inset-0 w-full h-full object-cover select-none"
+              />
+            </div>
+
+            {/* Subscriptions card overlapping the panel's right edge */}
+            <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 lg:left-auto lg:right-0 lg:translate-x-12">
+              <DashboardMockup reduced={reduced} />
+            </div>
           </motion.div>
         </div>
       </section>

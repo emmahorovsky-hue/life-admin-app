@@ -50,8 +50,16 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-background">
+      {/* Desk illustration background */}
+      <img
+        src="/hero-desk.svg"
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        className="pointer-events-none select-none absolute inset-0 w-full h-full object-cover"
+      />
+      <Card className="relative w-full max-w-md shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-black">{APP_NAME}</CardTitle>
           <CardDescription>Create your account</CardDescription>
