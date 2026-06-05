@@ -1,0 +1,94 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+### Backend (`server/`)
+
+```bash
+npm run dev            # Start dev server with nodemon + tsx (port 3001)
+npm run build          # Compile TypeScript to dist/
+npm run test           # Run Jest tests (requires lifeadmin_test DB — see below)
+npm run test:watch     # Jest in watch mode
+npm run test:coverage  # Coverage report
+npm run prisma:migrate # Apply migrations (dev)
+npm run prisma:studio  # Open Prisma Studio GUI
+npm run seed           # Seed database with test data
+```
+
+### Frontend (`client/`)
+
+```bash
+npm run dev      # Vite dev server (port 3000)
+npm run build    # tsc + vite build
+npm run lint     # ESLint (max-warnings 0 — any warning fails)
+npm run test:e2e # Playwright e2e tests (spins up port 4173 via vite preview)
+```
+
+### Running a single backend test file
+
+```bash
+cd server && npx jest src/__tests__/auth.verification.test.ts
+```
+
+### Test database setup (required before first `npm test`)
+
+```bash
+createdb lifeadmin_test
+cd server && npm run prisma:migrate:deploy  # or jest globalSetup handles it automatically
+```
+
+The test DB is configured in `server/.env.test`. By default it connects to `postgresql://<OS_USER>:@localhost:5432/lifeadmin_test`.
+
+## Architecture
+
+This is a monorepo with a separate `server/` (Express API) and `client/` (React SPA). They are deployed independently: backend on Railway, frontend on Vercel.
+
+### Auth flow
+
+JWT tokens are issued on login/register and stored as **httpOnly cookies** (not localStorage). The `authenticateToken` middleware (`server/src/middleware/auth.ts`) reads `req.cookies.token`. The frontend axios client (`client/src/lib/api.ts`) sets `withCredentials: true` on every request so cookies are sent cross-origin.
+
+Email verification uses a separate `EmailVerificationToken` table. On registration, a 32-byte token is generated, SHA-256 hashed before storage (raw token only travels in the email link), and expires in 24 hours. The verify endpoint lives at `GET /api/auth/verify-email?token=<raw>` and redirects the browser to `/verify-email/success` or `/verify-email/error`.
+
+### Backend request lifecycle
+
+```
+Route (routes/) → Middleware (express-validator) → Controller (controllers/) → Service (services/) → Prisma → DB
+```
+
+- Routes define validation chains and call controllers
+- Controllers handle HTTP concerns (req/res, status codes)
+- Services contain business logic (`emailVerificationService`, `emailService`)
+- `server/src/utils/db.ts` exports the singleton Prisma client
+
+### Frontend data flow
+
+`AuthContext` (`client/src/contexts/AuthContext.tsx`) is the single source of truth for the logged-in user. It calls `GET /api/auth/me` on mount. All protected pages are wrapped in `<ProtectedRoute>` which reads from this context. The Axios interceptor in `lib/api.ts` auto-redirects to `/login` on 401 for non-public paths.
+
+### CORS
+
+The server allows: localhost, any `.vercel.app` subdomain, and the configured `CLIENT_URL` env var. This handles Vercel preview deployments without explicit allowlisting.
+
+### Key env vars
+
+| Var | Where used |
+|-----|-----------|
+| `DATABASE_URL` | Prisma (required, server fails to start without it) |
+| `JWT_SECRET` | Token signing (required) |
+| `API_URL` | Included in verification email links (e.g. `http://localhost:3001`) |
+| `CLIENT_URL` | CORS allowlist |
+| `RESEND_API_KEY` | Email sending via Resend SDK |
+| `VITE_API_URL` | Frontend axios baseURL (defaults to `/api` for same-origin proxy) |
+
+### Database schema highlights
+
+- `User.emailVerified` — users can use the app without verifying, but a banner (`UnverifiedEmailBanner.tsx`) is shown
+- `Subscription.isActive` — soft-delete pattern; cancelled subscriptions set `isActive=false`
+- `NotificationLog` — append-only log of sent renewal reminder emails; no foreign key to `Subscription` (intentional, subscriptions can be deleted)
+
+## Branch & commit conventions
+
+Branch format: `{type}/{issue-number}-{description}` (e.g. `feature/LIF-42-email-reminders`)
+
+Commit format: `{type}({scope}): {subject}` — present tense, imperative, ≤50 chars subject, `Closes #N` footer.
