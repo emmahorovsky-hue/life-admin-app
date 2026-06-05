@@ -14,7 +14,6 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +40,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await register(email, password, name || undefined);
+      await register(email, password, undefined);
       navigate('/dashboard');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Registration failed'));
@@ -72,18 +71,6 @@ export default function Register() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Name (optional)</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
