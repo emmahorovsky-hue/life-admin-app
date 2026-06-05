@@ -53,7 +53,7 @@ export default function Register() {
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-background">
       {/* Desk illustration background */}
       <img
-        src="/hero-desk.svg"
+        src="/hero-desk.webp"
         alt=""
         aria-hidden="true"
         draggable={false}
