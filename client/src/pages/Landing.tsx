@@ -214,7 +214,7 @@ export default function Landing() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const headline = ['Know', "what's", 'coming', 'next.'];
+  const headline = ['Your', 'entire', 'paper', 'trail.'];
 
   return (
     <div className="min-h-screen bg-background font-sans overflow-x-hidden">
@@ -234,7 +234,7 @@ export default function Landing() {
         className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       >
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-brand-orange">
+          <Link to="/" className="text-xl font-bold text-foreground">
             {APP_NAME}
           </Link>
           <div className="flex items-center gap-2">
@@ -287,7 +287,7 @@ export default function Landing() {
               {headline.map((word, i) => (
                 <motion.span
                   key={word + i}
-                  className={`inline-block mr-[0.22em] last:mr-0 ${word === 'next.' ? 'text-brand-orange' : ''}`}
+                  className={`inline-block mr-[0.22em] last:mr-0 ${word === 'trail.' ? 'text-brand-orange' : ''}`}
                   initial={reduced ? {} : { opacity: 0, y: 32 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.08 + i * 0.09, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
@@ -303,8 +303,7 @@ export default function Landing() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.52, duration: 0.55, ease: 'easeOut' }}
             >
-              Subscriptions, contracts, warranties, leases — everything with a deadline,
-              organised on one timeline. Never miss a renewal or forget what you've committed to.
+              Every subscription, contract, invoice and renewal - organised into one living timeline.
             </motion.p>
 
             <motion.div
@@ -361,7 +360,7 @@ export default function Landing() {
               Everything with a deadline, in one place
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              If it renews, expires, or auto-charges — {APP_NAME} tracks it.
+              If it renews, expires, or auto-charges - {APP_NAME} tracks it.
             </p>
           </motion.div>
 
@@ -498,7 +497,7 @@ export default function Landing() {
             transition={{ delay: 0.16, duration: 0.5, ease: 'easeOut' }}
           >
             is what forgotten subscriptions and auto-renewals can quietly add up to.
-            Paypr keeps every renewal, contract, and warranty on one timeline — so
+            Paypr keeps every renewal, contract, and warranty on one timeline - so
             nothing slips through.
           </motion.p>
         </div>
