@@ -347,10 +347,10 @@ export default function Landing() {
       <div className="border-perf-t" aria-hidden="true" />
 
       {/* ── What you track ───────────────────────────────────────────────── */}
-      <section id="what-you-track" className="py-20 px-4 bg-muted/30">
-        <div className="container mx-auto max-w-4xl">
+      <section id="what-you-track" className="py-20 bg-muted/30 overflow-hidden">
+        <div className="container mx-auto max-w-4xl px-4">
           <motion.div
-            className="text-center mb-12"
+            className="text-center mb-4"
             initial={reduced ? {} : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
@@ -363,33 +363,86 @@ export default function Landing() {
               If it renews, expires, or auto-charges - {APP_NAME} tracks it.
             </p>
           </motion.div>
+        </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {TRACKED_ITEMS.map(({ icon: Icon, label, description }, i) => (
-              <motion.div
+        {/* Paper rail — horizontal scroll */}
+        <div
+          className="flex gap-7 overflow-x-auto snap-x snap-mandatory pt-10 pb-12
+            px-8 sm:px-16 scroll-pl-8 sm:scroll-pl-16
+            [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {TRACKED_ITEMS.map(({ icon: Icon, label, description }, i) => {
+            const tilt = [-2.5, 1.5, -1, 2, -1.5, 1.2][i % 6];
+            const tint = ['#fbf8f1', '#fdfbf6', '#f9f6ee', '#fcf9f2', '#faf7ef', '#fdfaf4'][i % 6];
+            return (
+              <motion.article
                 key={label}
-                initial={reduced ? {} : { opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{ delay: i * 0.07, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                whileHover={reduced ? {} : { y: -4 }}
-                style={{ willChange: 'transform' }}
-                className="rounded-lg border bg-card p-5 space-y-3 hover:border-primary/50 transition-[border-color,box-shadow] hover:shadow-md cursor-default"
+                initial={reduced ? {} : { opacity: 0, y: 60, rotate: tilt * 1.6 }}
+                whileInView={{ opacity: 1, y: 0, rotate: tilt }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ delay: i * 0.09, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={reduced ? {} : { rotate: 0, y: -10, scale: 1.03, transition: { duration: 0.25 } }}
+                style={{
+                  backgroundColor: tint,
+                  boxShadow:
+                    '0 1px 2px rgba(40,33,20,0.06), 0 6px 12px rgba(40,33,20,0.08), 0 16px 32px rgba(40,33,20,0.12)',
+                }}
+                className="group relative shrink-0 snap-start w-[260px] sm:w-[280px] h-[360px] rounded-[3px]
+                  border border-black/[0.06] overflow-hidden cursor-default"
               >
+                {/* ruled lines */}
+                <div
+                  aria-hidden
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    backgroundImage:
+                      'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(212 55% 55% / 0.10) 31px, hsl(212 55% 55% / 0.10) 32px)',
+                    backgroundPosition: '0 96px',
+                  }}
+                />
+                {/* left margin rule */}
+                <div
+                  aria-hidden
+                  className="absolute top-0 bottom-0 left-8"
+                  style={{ width: 1, background: 'hsl(2 65% 58% / 0.30)' }}
+                />
+                {/* rubber stamp */}
                 <motion.div
-                  className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent"
-                  whileHover={reduced ? {} : { rotate: 15 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                  aria-hidden
+                  whileHover={reduced ? {} : { scale: 1.08 }}
+                  className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center"
+                  style={{
+                    transform: 'rotate(-7deg)',
+                    border: '2px dashed hsl(16 100% 45% / 0.45)',
+                    borderRadius: 4,
+                    backgroundColor: 'hsl(16 100% 45% / 0.06)',
+                  }}
                 >
-                  <Icon className="w-5 h-5 text-brand-orange" />
+                  <Icon className="w-5 h-5" style={{ color: 'hsl(16 100% 45% / 0.85)' }} />
                 </motion.div>
-                <div>
-                  <p className="font-semibold text-sm">{label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+
+                {/* content */}
+                <div className="relative h-full pl-10 pr-6 pt-7 pb-6 flex flex-col">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40">
+                    {APP_NAME} · Tracked
+                  </p>
+                  <h3 className="font-sans text-[1.7rem] leading-tight font-bold text-foreground/90 mt-10 mb-3">
+                    {label}
+                  </h3>
+                  <p className="font-sans text-[0.95rem] leading-relaxed text-foreground/65">
+                    {description}
+                  </p>
+
+                  <div className="mt-auto">
+                    <div className="h-px bg-foreground/15 mb-2" />
+                    <p className="font-mono text-[10px] text-foreground/40">
+                      No. {String(i + 1).padStart(2, '0')} · filed with {APP_NAME}
+                    </p>
+                  </div>
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              </motion.article>
+            );
+          })}
         </div>
       </section>
 
