@@ -137,7 +137,7 @@ function DashboardMockup({ reduced }: { reduced: boolean }) {
   );
 }
 
-function AnimatedTimeline({ inView, reduced }: { inView: boolean; reduced: boolean }) {
+function AnimatedTimeline({ reduced }: { reduced: boolean }) {
   return (
     <div className="mt-6 relative flex-1">
       <div className="absolute left-[7px] top-3 bottom-3 w-px bg-border" />
@@ -145,7 +145,8 @@ function AnimatedTimeline({ inView, reduced }: { inView: boolean; reduced: boole
         <motion.div
           key={item.name}
           initial={reduced ? {} : { opacity: 0, x: -16 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: '-60px' }}
           transition={{ delay: 0.25 + i * 0.14, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="flex items-center gap-3 py-2.5 relative"
         >
@@ -216,9 +217,6 @@ export default function Landing() {
 
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
-
-  const featuresRef = useRef<HTMLDivElement>(null);
-  const featuresInView = useInView(featuresRef, { once: true, margin: '-80px' });
 
   if (loading) {
     return (
@@ -427,14 +425,14 @@ export default function Landing() {
           </motion.div>
 
           <div
-            ref={featuresRef}
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
             style={{ gridTemplateRows: 'auto auto' }}
           >
             {/* Tall left card — timeline */}
             <motion.div
               initial={reduced ? {} : { opacity: 0, x: -32 }}
-              animate={featuresInView ? { opacity: 1, x: 0 } : {}}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
               className="rounded-lg border bg-card p-6 flex flex-col md:row-span-2"
             >
@@ -443,13 +441,14 @@ export default function Landing() {
               </div>
               <h3 className="font-semibold mb-1">{FEATURES[0].title}</h3>
               <p className="text-sm text-muted-foreground">{FEATURES[0].description}</p>
-              <AnimatedTimeline inView={featuresInView} reduced={reduced} />
+              <AnimatedTimeline reduced={reduced} />
             </motion.div>
 
             {/* Top right — alerts */}
             <motion.div
               initial={reduced ? {} : { opacity: 0, x: 32 }}
-              animate={featuresInView ? { opacity: 1, x: 0 } : {}}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
               transition={{ delay: 0.1, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
               className="rounded-lg border bg-card p-6 flex flex-col"
             >
@@ -463,7 +462,8 @@ export default function Landing() {
             {/* Bottom right — organised view */}
             <motion.div
               initial={reduced ? {} : { opacity: 0, x: 32 }}
-              animate={featuresInView ? { opacity: 1, x: 0 } : {}}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
               transition={{ delay: 0.2, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
               className="rounded-lg border bg-card p-6 flex flex-col"
             >
