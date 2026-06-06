@@ -206,6 +206,19 @@ function Rule() {
   );
 }
 
+// Registration "+" marks pinned to the four corners of a framed block,
+// Vercel/feature146-style. Parent must be `relative`.
+function FrameCorners() {
+  return (
+    <span aria-hidden="true" className="pointer-events-none">
+      <span className="absolute -left-[6px] -top-[6px]"><Plus /></span>
+      <span className="absolute -right-[6px] -top-[6px]"><Plus /></span>
+      <span className="absolute -left-[6px] -bottom-[6px]"><Plus /></span>
+      <span className="absolute -right-[6px] -bottom-[6px]"><Plus /></span>
+    </span>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function Landing() {
@@ -459,7 +472,7 @@ export default function Landing() {
                   style={{
                     transform: 'rotate(-7deg)',
                     border: '2px dashed hsl(var(--brand-orange) / 0.45)',
-                    borderRadius: 4,
+                    borderRadius: '9999px',
                     backgroundColor: 'hsl(var(--brand-orange) / 0.06)',
                   }}
                 >
@@ -493,70 +506,69 @@ export default function Landing() {
 
       <Rule />
 
-      {/* ── Features — bento ─────────────────────────────────────────────── */}
+      {/* ── Features — editorial framed bento (feature146-style) ─────────── */}
       <section id="features" className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto max-w-5xl">
+          {/* Split header — heading left, supporting copy right */}
           <motion.div
-            className="text-center mb-12"
+            className="grid md:grid-cols-2 gap-6 md:gap-12 items-end mb-10 md:mb-14"
             initial={reduced ? {} : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
-            <h2 className="text-3xl md:text-4xl font-extrabold mb-4">Built around what matters</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">No spreadsheets. No guessing. Just clarity.</p>
+            <div>
+              <h2 className="text-3xl md:text-4xl font-extrabold leading-[1.1]">
+                Built around<br />what matters
+              </h2>
+            </div>
+            <p className="text-muted-foreground md:text-right md:pb-1">
+              No spreadsheets. No guessing. Just clarity — every commitment filed,
+              dated, and surfaced before it costs you.
+            </p>
           </motion.div>
 
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
-            style={{ gridTemplateRows: 'auto auto' }}
+          {/* Framed bento — hairline-divided cells with corner registration marks */}
+          <motion.div
+            className="relative border border-foreground/15"
+            initial={reduced ? {} : { opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ delay: 0.08, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
-            {/* Tall left card — timeline */}
-            <motion.div
-              initial={reduced ? {} : { opacity: 0, x: -32 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: '-80px' }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-lg border bg-card p-6 flex flex-col md:row-span-2"
-            >
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent mb-4 flex-shrink-0">
-                <Calendar className="w-5 h-5 text-brand-orange" />
-              </div>
-              <h3 className="font-semibold mb-1">{FEATURES[0].title}</h3>
-              <p className="text-sm text-muted-foreground">{FEATURES[0].description}</p>
-              <AnimatedTimeline reduced={reduced} />
-            </motion.div>
+            <FrameCorners />
 
-            {/* Top right — alerts */}
-            <motion.div
-              initial={reduced ? {} : { opacity: 0, x: 32 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: '-80px' }}
-              transition={{ delay: 0.1, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-lg border bg-card p-6 flex flex-col"
-            >
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent mb-4">
-                <Bell className="w-5 h-5 text-brand-orange" />
+            {/* Top row — wide timeline cell + narrow alerts cell */}
+            <div className="grid md:grid-cols-5">
+              <div className="md:col-span-3 p-6 md:p-8 flex flex-col border-b md:border-b-0 md:border-r border-foreground/15">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent flex-shrink-0 mb-4">
+                  <Calendar className="w-5 h-5 text-brand-orange" />
+                </div>
+                <h3 className="font-semibold mb-1">{FEATURES[0].title}</h3>
+                <p className="text-sm text-muted-foreground">{FEATURES[0].description}</p>
+                <AnimatedTimeline reduced={reduced} />
               </div>
-              <h3 className="font-semibold mb-1">{FEATURES[1].title}</h3>
-              <p className="text-sm text-muted-foreground">{FEATURES[1].description}</p>
-            </motion.div>
 
-            {/* Bottom right — organised view */}
-            <motion.div
-              initial={reduced ? {} : { opacity: 0, x: 32 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: '-80px' }}
-              transition={{ delay: 0.2, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-lg border bg-card p-6 flex flex-col"
-            >
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent mb-4">
+              <div className="md:col-span-2 p-6 md:p-8 flex flex-col">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent flex-shrink-0 mb-4">
+                  <Bell className="w-5 h-5 text-brand-orange" />
+                </div>
+                <h3 className="font-semibold mb-1">{FEATURES[1].title}</h3>
+                <p className="text-sm text-muted-foreground">{FEATURES[1].description}</p>
+              </div>
+            </div>
+
+            {/* Bottom row — panoramic full-width cell */}
+            <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-4 md:gap-8 border-t border-foreground/15">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent flex-shrink-0">
                 <LayoutGrid className="w-5 h-5 text-brand-orange" />
               </div>
-              <h3 className="font-semibold mb-1">{FEATURES[2].title}</h3>
-              <p className="text-sm text-muted-foreground">{FEATURES[2].description}</p>
-            </motion.div>
-          </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1">{FEATURES[2].title}</h3>
+                <p className="text-sm text-muted-foreground max-w-2xl">{FEATURES[2].description}</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
