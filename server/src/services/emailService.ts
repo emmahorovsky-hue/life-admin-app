@@ -61,3 +61,31 @@ export async function sendDeletionWarningEmail({ to, deleteInHours, loginUrl }: 
   if (res.error) throw new Error(`${res.error.name}: ${res.error.message}`);
   return res.data!;
 }
+
+export async function sendPasswordResetEmail({ to, resetUrl, expiresInHours }: { to: string; resetUrl: string; expiresInHours: number }) {
+  if (!resend) {
+    console.log('[Email Service] Resend not configured. Would send password reset email to:', to);
+    console.log('[Email Service] Reset URL:', resetUrl);
+    return { id: 'mock-email-id' };
+  }
+  const subject = 'Reset your Paypr password';
+  const html = `
+    <html>
+      <body style="font-family: system-ui, sans-serif; padding: 24px;">
+        <div style="max-width: 560px; margin: 0 auto;">
+          <h1>Reset your password</h1>
+          <p>We received a request to reset the password for your Paypr account. Click the button below to choose a new password. The link expires in ${expiresInHours} hour.</p>
+          <a href="${resetUrl}" style="display: inline-block; background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Reset password</a>
+          <p style="font-size: 12px; color: #888;">Or paste this URL into your browser:<br>${resetUrl}</p>
+          <p style="font-size: 12px; color: #888; margin-top: 24px;">If you didn't request a password reset, you can safely ignore this email. Your password will not change.</p>
+          <p>— Paypr</p>
+        </div>
+      </body>
+    </html>
+  `;
+  const text = `Reset your Paypr password by clicking this link: ${resetUrl}\nThe link expires in ${expiresInHours} hour.\nIf you didn't request this, ignore this email.`;
+
+  const res = await resend!.emails.send({ from: FROM, to, subject, html, text });
+  if (res.error) throw new Error(`${res.error.name}: ${res.error.message}`);
+  return res.data!;
+}

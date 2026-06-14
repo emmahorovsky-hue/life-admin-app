@@ -13,7 +13,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      const publicPaths = ['/login', '/register', '/verify-email'];
+      const publicPaths = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password'];
       const currentPath = window.location.pathname;
 
       // The landing page ('/') is public; match it exactly so an anonymous
@@ -61,4 +61,12 @@ export interface ErrorResponse {
 // API methods
 export const resendVerification = async (email: string) => {
   return api.post('/auth/resend-verification', { email });
+};
+
+export const forgotPassword = async (email: string) => {
+  return api.post('/auth/forgot-password', { email });
+};
+
+export const resetPassword = async (token: string, password: string) => {
+  return api.post('/auth/reset-password', { token, password });
 };

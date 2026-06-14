@@ -8,6 +8,8 @@ import {
   getMe,
   verifyEmail,
   resendVerification,
+  forgotPassword,
+  resetPassword,
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -41,6 +43,40 @@ const authLimiter = rateLimit({
 const genericResponse = {
   message: "If that email is registered and unverified, we've sent a verification link.",
 };
+
+// Rate limiters for forgot-password (anti-enumeration: always return 200)
+const forgotPasswordGenericResponse = {
+  message: "If that email is registered, we've sent a password reset link.",
+};
+
+const forgotPasswordPerEmailLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 1,
+  skip: () => isTestEnv,
+  keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
+  handler: (req, res) => res.status(200).json(forgotPasswordGenericResponse),
+  standardHeaders: false,
+  legacyHeaders: false,
+});
+
+const forgotPasswordPerEmailHourlyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  skip: () => isTestEnv,
+  keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
+  handler: (req, res) => res.status(200).json(forgotPasswordGenericResponse),
+  standardHeaders: false,
+  legacyHeaders: false,
+});
+
+const forgotPasswordPerIpLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20,
+  skip: () => isTestEnv,
+  handler: (req, res) => res.status(200).json(forgotPasswordGenericResponse),
+  standardHeaders: false,
+  legacyHeaders: false,
+});
 
 const resendPerEmailLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -123,6 +159,36 @@ router.post(
     body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
   ],
   resendVerification
+);
+
+// POST /api/auth/forgot-password
+router.post(
+  '/forgot-password',
+  forgotPasswordPerEmailLimiter,
+  forgotPasswordPerEmailHourlyLimiter,
+  forgotPasswordPerIpLimiter,
+  [
+    body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+  ],
+  forgotPassword
+);
+
+// POST /api/auth/reset-password
+router.post(
+  '/reset-password',
+  authLimiter,
+  [
+    body('token').notEmpty().withMessage('Reset token is required'),
+    body('password')
+      .isStrongPassword({
+        minLength: 8,
+        minUppercase: 1,
+        minNumbers: 1,
+        minSymbols: 1,
+      })
+      .withMessage('Password must be at least 8 characters with 1 uppercase, 1 number, and 1 special character'),
+  ],
+  resetPassword
 );
 
 export default router;

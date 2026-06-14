@@ -5,6 +5,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
 import { generateToken } from '../utils/jwt';
 import { issueEmailVerificationToken, consumeEmailVerificationToken } from '../services/emailVerificationService';
+import { issuePasswordResetToken, consumePasswordResetToken } from '../services/passwordResetService';
 
 // The frontend (Vercel) and backend (Railway) are served from different sites
 // in production, so the auth cookie must be SameSite=None to be sent on the
@@ -256,6 +257,81 @@ export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void
   } catch (error) {
     console.error('Verify email error:', error);
     res.redirect(`${clientUrl}/verify-email/error?reason=invalid`);
+  }
+};
+
+export const forgotPassword = async (req: AuthRequest, res: Response): Promise<void> => {
+  const genericResponse = { message: "If that email is registered, we've sent a password reset link." };
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(200).json(genericResponse);
+      return;
+    }
+
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+
+    if (!user) {
+      res.status(200).json(genericResponse);
+      return;
+    }
+
+    issuePasswordResetToken(user.id, user.email).catch((err) => {
+      console.error('Failed to send password reset email:', err);
+    });
+
+    res.status(200).json(genericResponse);
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(200).json(genericResponse);
+  }
+};
+
+export const resetPassword = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        error: { message: 'Validation failed', code: 'VALIDATION_ERROR', details: errors.array() },
+      });
+      return;
+    }
+
+    const { token, password } = req.body;
+    const result = await consumePasswordResetToken(token);
+
+    if (!result.ok) {
+      const messages: Record<string, string> = {
+        invalid: 'This password reset link is invalid.',
+        expired: 'This password reset link has expired. Please request a new one.',
+        already_used: 'This password reset link has already been used.',
+      };
+      res.status(400).json({
+        error: { message: messages[result.reason] ?? 'Invalid reset link.', code: 'INVALID_RESET_TOKEN' },
+      });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: result.userId },
+        data: { password: hashedPassword },
+      }),
+      prisma.passwordResetToken.updateMany({
+        where: { userId: result.userId, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    res.status(200).json({ message: 'Password reset successfully.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      error: { message: 'Failed to reset password', code: 'RESET_PASSWORD_FAILED' },
+    });
   }
 };
 
