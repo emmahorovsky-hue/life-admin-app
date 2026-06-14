@@ -42,3 +42,33 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
+      # TEMP DEBUG (remove once the review-not-posting issue is diagnosed):
+      # surface the full Claude transcript/error, which the action otherwise
+      # only writes to a temp file on the runner.
+      - name: Debug — dump Claude execution output
+        if: always()
+        env:
+          EXEC_FILE: ${{ steps.claude-review.outputs.execution_file }}
+        run: |
+          F="${EXEC_FILE:-/home/runner/work/_temp/claude-execution-output.json}"
+          echo "execution_file output: '$EXEC_FILE'"
+          echo "resolved path: '$F'"
+          if [ -f "$F" ]; then
+            echo "===== BEGIN claude-execution-output.json ====="
+            cat "$F"
+            echo "===== END claude-execution-output.json ====="
+            cp "$F" "$GITHUB_WORKSPACE/claude-execution-output.json" || true
+          else
+            echo "No execution output file found."
+            echo "--- listing /home/runner/work/_temp ---"
+            ls -la /home/runner/work/_temp/ 2>/dev/null || true
+          fi
+
+      - name: Upload Claude execution output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-execution-output
+          path: claude-execution-output.json
+          if-no-files-found: warn
+
