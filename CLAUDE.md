@@ -24,7 +24,9 @@ npm run seed             # Seed database with test data
 npm run dev      # Vite dev server (port 3000)
 npm run build    # tsc + vite build
 npm run lint     # ESLint (max-warnings 0 — any warning fails)
-npm run test:e2e # Playwright e2e tests (spins up port 4173 via vite preview)
+npm run test:unit      # Vitest unit tests (jsdom)
+npm run test:unit:watch # Vitest in watch mode
+npm run test:e2e # Playwright e2e tests (spins up the Vite dev server on port 4173; needs the backend on 3001 for the /api proxy)
 ```
 
 ### Running a single backend test file
