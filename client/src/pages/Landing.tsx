@@ -222,21 +222,15 @@ function FrameCorners() {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function Landing() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const prefersReducedMotion = useReducedMotion();
   const reduced = prefersReducedMotion ?? false;
 
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-muted-foreground text-sm">Loading…</div>
-      </div>
-    );
-  }
-
+  // Public marketing page — render immediately rather than waiting on the auth check.
+  // Once auth resolves, logged-in visitors get redirected to the dashboard.
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
