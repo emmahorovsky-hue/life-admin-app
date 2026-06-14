@@ -19,4 +19,8 @@ module.exports = {
   globalSetup: '<rootDir>/src/__tests__/globalSetup.ts',
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   testTimeout: 10000,
+  // The suite shares a single Postgres database and setup.ts wipes all tables
+  // between tests, so test files are NOT safe to run in parallel — concurrent
+  // workers clobber each other's data. Run serially for deterministic results.
+  maxWorkers: 1,
 };
