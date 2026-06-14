@@ -1,0 +1,53 @@
+name: Claude QA on Merge
+
+# Replaces the old OpenClaw "Spawn QA Agent" notifications (agent-workflow.yml /
+# notify-push.yml). Instead of pinging an external gateway, Claude runs in the
+# GitHub runner and does the QA pass directly. Interactive @claude (claude.yml)
+# and automatic PR review (claude-code-review.yml) cover the other behaviours.
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  claude-qa:
+    name: QA merged change
+    # Only run when the PR actually merged — `closed` also fires on plain close.
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # post the QA summary comment
+      issues: write # open an issue only if a real defect is found
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Check out the base branch (now containing the merge) with full
+          # history so Claude can inspect the merged diff.
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      - name: Run Claude QA
+        id: claude-qa
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            A pull request was just merged into the default branch:
+            PR #${{ github.event.pull_request.number }} — "${{ github.event.pull_request.title }}".
+
+            Act as a QA engineer for this change:
+            1. Review the merged diff and the files it touched.
+            2. Sanity-check that the change is coherent and complete — look for
+               obvious regressions, missing test coverage, or needed follow-ups.
+            3. Where practical, build/test the affected package(s), e.g.
+               `cd server && npm ci && npm test` or
+               `cd client && npm ci && npm run test:unit && npm run build`.
+            4. Post a single concise QA summary comment on PR
+               #${{ github.event.pull_request.number }} with your findings and a
+               clear PASS / NEEDS-FOLLOW-UP verdict. Only open a GitHub issue if
+               you find a genuine defect.
+          claude_args: '--max-turns 20'
