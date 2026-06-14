@@ -1,42 +1,59 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import AuthLayout from '@/components/AuthLayout';
-import { getApiErrorMessage } from '@/lib/utils';
+import { forgotPassword } from '@/lib/api';
 
-export default function Login() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
+export default function ForgotPassword() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
-      await login(email, password);
-      navigate('/dashboard');
-    } catch (err) {
-      setError(getApiErrorMessage(err, 'Login failed'));
+      await forgotPassword(email);
+      setSubmitted(true);
+    } catch {
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  if (submitted) {
+    return (
+      <AuthLayout>
+        <div className="w-full max-w-sm space-y-6 text-center">
+          <h1 className="text-2xl font-bold">Check your inbox</h1>
+          <p className="text-sm text-muted-foreground">
+            If <strong>{email}</strong> is registered, we&apos;ve sent a password reset link. It expires in 1 hour.
+          </p>
+          <p className="text-center text-sm text-muted-foreground">
+            <Link
+              to="/login"
+              className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+            >
+              Back to sign in
+            </Link>
+          </p>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout>
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-bold">Welcome back</h1>
+          <h1 className="text-2xl font-bold">Forgot your password?</h1>
           <p className="text-sm text-muted-foreground">
-            Sign in to your account to continue
+            Enter your email and we&apos;ll send you a reset link.
           </p>
         </div>
 
@@ -54,27 +71,6 @@ export default function Login() {
             />
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Link
-                to="/forgot-password"
-                className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
-
           {error && (
             <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
               {error}
@@ -82,17 +78,16 @@ export default function Login() {
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Sending...' : 'Send reset link'}
           </Button>
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
           <Link
-            to="/register"
+            to="/login"
             className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
           >
-            Create an account
+            Back to sign in
           </Link>
         </p>
       </form>

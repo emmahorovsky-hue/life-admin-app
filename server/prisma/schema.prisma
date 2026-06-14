@@ -23,7 +23,8 @@ model User {
   
   subscriptions Subscription[]
   emailVerificationTokens EmailVerificationToken[]  // NEW
-  
+  passwordResetTokens     PasswordResetToken[]
+
   @@index([email])
 }
 
@@ -59,6 +60,20 @@ model NotificationLog {
   @@index([userId])
   @@index([subscriptionId])
   @@index([sentAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique          // sha256(raw), hex
+  expiresAt DateTime
+  usedAt    DateTime?                  // null = active; set = consumed/invalidated
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model EmailVerificationToken {

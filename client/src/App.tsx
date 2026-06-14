@@ -13,6 +13,8 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const VerifyEmailSuccess = lazy(() => import('./pages/VerifyEmailSuccess'));
 const VerifyEmailError = lazy(() => import('./pages/VerifyEmailError'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 function PageFallback() {
   return (
@@ -32,6 +34,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email/success" element={<VerifyEmailSuccess />} />
             <Route path="/verify-email/error" element={<VerifyEmailError />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/dashboard"
               element={
