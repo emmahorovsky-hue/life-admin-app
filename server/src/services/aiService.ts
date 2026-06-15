@@ -1,33 +1,19 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { CATEGORY_IDS, BILLING_CYCLES } from '../constants/subscriptions';
 
 // Graceful skip when no key is configured — mirrors emailService's RESEND_API_KEY handling.
 const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 
-// Vision-capable by default. Swap to claude-sonnet-4-6 / claude-haiku-4-5 via AI_MODEL for lower cost.
-const MODEL = process.env.AI_MODEL || 'claude-opus-4-8';
+// Haiku 4.5 is vision-capable and the cheapest model that handles receipt/invoice OCR well.
+// Override with AI_MODEL to trade cost for accuracy (e.g. claude-sonnet-4-6 / claude-opus-4-8).
+const MODEL = process.env.AI_MODEL || 'claude-haiku-4-5';
 
-// Must match the backend authoritative category ids (categoryController.ts).
-export const VALID_CATEGORIES = [
-  'streaming',
-  'fitness',
-  'software',
-  'music',
-  'cloud',
-  'gaming',
-  'productivity',
-  'other',
-] as const;
-
-// Must match the billingCycle values accepted by the create-subscription validation (routes/subscriptions.ts).
-export const VALID_BILLING_CYCLES = [
-  'monthly',
-  'annual',
-  'yearly',
-  'weekly',
-  'quarterly',
-] as const;
+// Authoritative enums live in constants/subscriptions.ts; re-exported here for the extraction schema
+// and any consumers (LIF-68 endpoint) that already import these names.
+export const VALID_CATEGORIES = CATEGORY_IDS;
+export const VALID_BILLING_CYCLES = BILLING_CYCLES;
 
 // Image media types Claude's vision input accepts. PDFs go through the document block instead.
 const ALLOWED_IMAGE_MIME_TYPES = [
@@ -141,6 +127,11 @@ const SYSTEM_PROMPT =
   'Normalize the merchant name. If a value is not present in the document, set it to null and add the field name to uncertainFields. ' +
   'If the document is a one-off purchase rather than a recurring subscription, set isSubscription to false.';
 
+/** True if the mime type is one we can send to Claude (PDF document or supported image). */
+export function isSupportedMimeType(mimeType: string): boolean {
+  return (ALLOWED_UPLOAD_MIME_TYPES as readonly string[]).includes(mimeType);
+}
+
 /**
  * Build the user content block for the uploaded file.
  * Images use an `image` block; PDFs use a `document` block.
@@ -182,6 +173,12 @@ export async function extractSubscription(
   fileBuffer: Buffer,
   mimeType: string
 ): Promise<ExtractionResult> {
+  // Validate the mime type up-front so an unsupported upload throws to the caller (→ 400)
+  // instead of being swallowed by the try/catch below and looking like a failed extraction.
+  if (!isSupportedMimeType(mimeType)) {
+    throw new Error(`Unsupported mime type for extraction: ${mimeType}`);
+  }
+
   if (!anthropic) {
     console.log('[AI Service] ANTHROPIC_API_KEY not configured. Skipping extraction.');
     return { source: 'none', candidates: [] };
@@ -228,7 +225,7 @@ export async function extractSubscription(
 /**
  * Coerce the model's tool input into a safe SubscriptionCandidate, clamping enums to valid values.
  */
-function normalizeCandidate(input: unknown): SubscriptionCandidate {
+export function normalizeCandidate(input: unknown): SubscriptionCandidate {
   const raw = (input ?? {}) as Record<string, unknown>;
 
   const category = VALID_CATEGORIES.includes(raw.category as never)
