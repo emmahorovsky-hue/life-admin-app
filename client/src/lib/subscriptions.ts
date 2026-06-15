@@ -65,14 +65,15 @@ export const subscriptionApi = {
   },
 };
 
+// Ids must match the backend's authoritative category list (server categoryController.ts):
+// streaming, fitness, software, music, cloud, gaming, productivity, other.
 export const categories = [
   { id: 'streaming', name: 'Streaming' },
   { id: 'fitness', name: 'Fitness' },
   { id: 'software', name: 'Software' },
   { id: 'music', name: 'Music' },
-  { id: 'cloud-storage', name: 'Cloud Storage' },
+  { id: 'cloud', name: 'Cloud Storage' },
   { id: 'gaming', name: 'Gaming' },
-  { id: 'news', name: 'News & Media' },
   { id: 'productivity', name: 'Productivity' },
   { id: 'other', name: 'Other' },
 ];
