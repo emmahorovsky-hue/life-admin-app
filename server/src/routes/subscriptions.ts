@@ -6,8 +6,10 @@ import {
   getSubscriptionById,
   updateSubscription,
   deleteSubscription,
+  extractSubscriptionFromFile,
 } from '../controllers/subscriptionController';
 import { authenticateToken } from '../middleware/auth';
+import { receiptUpload, extractRateLimit } from '../middleware/receiptUpload';
 
 const router = express.Router();
 
@@ -38,6 +40,9 @@ router.post(
   ],
   createSubscription
 );
+
+// POST /api/subscriptions/extract — upload a receipt/invoice → AI extracts review candidates
+router.post('/extract', extractRateLimit, receiptUpload, extractSubscriptionFromFile);
 
 // GET /api/subscriptions/:id
 router.get('/:id', getSubscriptionById);
