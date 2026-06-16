@@ -29,7 +29,7 @@ export async function issuePasswordResetToken(userId: string, email: string): Pr
 }
 
 type ConsumeResult =
-  | { ok: true; userId: string; tokenHash: string }
+  | { ok: true; userId: string }
   | { ok: false; reason: 'invalid' | 'expired' | 'already_used' };
 
 export async function consumePasswordResetToken(rawToken: string): Promise<ConsumeResult> {
@@ -42,5 +42,16 @@ export async function consumePasswordResetToken(rawToken: string): Promise<Consu
   if (record.usedAt) return { ok: false, reason: 'already_used' };
   if (record.expiresAt < new Date()) return { ok: false, reason: 'expired' };
 
-  return { ok: true, userId: record.userId, tokenHash };
+  // Atomically claim the token so two concurrent requests with the same valid
+  // token can't both succeed. Only the request whose updateMany flips usedAt
+  // (count === 1) is allowed to proceed; a loser sees count === 0. The WHERE
+  // re-checks usedAt/expiresAt inside the same write to close the read→write gap.
+  const claim = await prisma.passwordResetToken.updateMany({
+    where: { tokenHash, usedAt: null, expiresAt: { gt: new Date() } },
+    data: { usedAt: new Date() },
+  });
+
+  if (claim.count === 0) return { ok: false, reason: 'already_used' };
+
+  return { ok: true, userId: record.userId };
 }
