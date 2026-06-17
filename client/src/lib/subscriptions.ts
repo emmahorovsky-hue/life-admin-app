@@ -35,6 +35,26 @@ export interface UpdateSubscriptionData {
   notes?: string;
 }
 
+// A candidate subscription extracted from an uploaded receipt/invoice.
+// Mirrors the backend SubscriptionCandidate (server/src/services/aiService.ts).
+export interface SubscriptionCandidate {
+  name: string;
+  cost: number | null;
+  currency: string | null;
+  billingCycle: string;
+  renewalDate: string | null; // YYYY-MM-DD
+  category: string;
+  notes: string | null;
+  isSubscription: boolean;
+  confidence: 'high' | 'medium' | 'low';
+  uncertainFields: string[];
+}
+
+export interface ExtractionResult {
+  candidates: SubscriptionCandidate[];
+  source: 'ai' | 'none';
+}
+
 export const subscriptionApi = {
   getAll: async (params?: {
     category?: string;
@@ -62,6 +82,18 @@ export const subscriptionApi = {
 
   delete: async (id: string) => {
     await api.delete(`/subscriptions/${id}`);
+  },
+
+  // Upload a receipt/invoice and get back extracted subscription candidates.
+  // The shared axios instance defaults Content-Type to application/json, so it
+  // must be overridden here for the multipart upload.
+  extract: async (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await api.post<ExtractionResult>('/subscriptions/extract', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
   },
 };
 

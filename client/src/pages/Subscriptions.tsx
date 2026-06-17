@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import { subscriptionApi, Subscription, categories } from '@/lib/subscriptions';
+import { Upload } from 'lucide-react';
+import {
+  subscriptionApi,
+  Subscription,
+  SubscriptionCandidate,
+  categories,
+} from '@/lib/subscriptions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +13,8 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import AddSubscriptionDialog from '@/components/AddSubscriptionDialog';
 import EditSubscriptionDialog from '@/components/EditSubscriptionDialog';
+import UploadReceiptDialog from '@/components/UploadReceiptDialog';
+import ReviewExtractedDialog from '@/components/ReviewExtractedDialog';
 import { format } from 'date-fns';
 import { getApiErrorMessage } from '@/lib/utils';
 
@@ -18,6 +26,9 @@ export default function Subscriptions() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [extractedCandidate, setExtractedCandidate] = useState<SubscriptionCandidate | null>(null);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
 
   const loadSubscriptions = async () => {
@@ -62,9 +73,15 @@ export default function Subscriptions() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">All Subscriptions</h2>
-        <Button onClick={() => setAddDialogOpen(true)}>
-          Add Subscription
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setUploadDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Receipt
+          </Button>
+          <Button onClick={() => setAddDialogOpen(true)}>
+            Add Subscription
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -187,6 +204,23 @@ export default function Subscriptions() {
         subscription={selectedSubscription}
         onSuccess={loadSubscriptions}
         onDelete={handleDelete}
+      />
+
+      <UploadReceiptDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        onExtracted={(candidate) => {
+          setExtractedCandidate(candidate);
+          setUploadDialogOpen(false);
+          setReviewDialogOpen(true);
+        }}
+      />
+
+      <ReviewExtractedDialog
+        open={reviewDialogOpen}
+        onOpenChange={setReviewDialogOpen}
+        candidate={extractedCandidate}
+        onSuccess={loadSubscriptions}
       />
     </div>
   );
