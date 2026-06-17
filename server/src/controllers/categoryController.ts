@@ -1,16 +1,5 @@
 import { Request, Response } from 'express';
-
-// Hardcoded categories for MVP
-const CATEGORIES = [
-  { id: 'streaming', name: 'Streaming', description: 'Netflix, Hulu, Disney+, etc.' },
-  { id: 'fitness', name: 'Fitness', description: 'Gym, ClassPass, Peloton, etc.' },
-  { id: 'software', name: 'Software', description: 'Adobe, Figma, GitHub, etc.' },
-  { id: 'music', name: 'Music', description: 'Spotify, Apple Music, etc.' },
-  { id: 'cloud', name: 'Cloud Storage', description: 'Dropbox, iCloud, Google Drive, etc.' },
-  { id: 'gaming', name: 'Gaming', description: 'Xbox Game Pass, PlayStation Plus, etc.' },
-  { id: 'productivity', name: 'Productivity', description: 'Notion, Evernote, etc.' },
-  { id: 'other', name: 'Other', description: 'Miscellaneous subscriptions' },
-];
+import { CATEGORIES } from '../constants/subscriptions';
 
 export const getCategories = async (
   req: Request,

@@ -84,6 +84,8 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `API_URL`       | Included in verification email links (e.g. `http://localhost:3001`)  |
 | `CLIENT_URL`    | CORS allowlist                                                       |
 | `RESEND_API_KEY`| Email sending via Resend SDK                                         |
+| `ANTHROPIC_API_KEY` | Receipt/invoice AI extraction (optional; feature degrades gracefully without it) |
+| `AI_MODEL`      | Claude model id for extraction (optional, defaults to `claude-haiku-4-5`)        |
 | `VITE_API_URL`  | Frontend axios baseURL (defaults to `/api` for same-origin proxy)    |
 
 ### Database schema highlights
