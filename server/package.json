@@ -16,6 +16,7 @@
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "job:cleanup-unverified": "tsx src/bin/run-cleanup.ts",
+    "smoke:extract": "tsx src/bin/extract-receipt.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [
