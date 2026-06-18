@@ -45,6 +45,12 @@ export interface SubscriptionCandidate {
 export interface ExtractionResult {
   candidates: SubscriptionCandidate[];
   source: 'ai' | 'none';
+  /**
+   * When source is 'none', why extraction didn't produce a candidate — so the
+   * caller can distinguish an ops misconfiguration ('not_configured') from a
+   * transient/runtime failure ('error') in logs and response codes.
+   */
+  reason?: 'not_configured' | 'error';
 }
 
 const EXTRACTION_TOOL: Anthropic.Tool = {
@@ -181,7 +187,7 @@ export async function extractSubscription(
 
   if (!anthropic) {
     console.log('[AI Service] ANTHROPIC_API_KEY not configured. Skipping extraction.');
-    return { source: 'none', candidates: [] };
+    return { source: 'none', reason: 'not_configured', candidates: [] };
   }
 
   try {
@@ -211,14 +217,14 @@ export async function extractSubscription(
 
     if (!toolUse) {
       console.warn('[AI Service] No tool_use block in extraction response.');
-      return { source: 'none', candidates: [] };
+      return { source: 'none', reason: 'error', candidates: [] };
     }
 
     const candidate = normalizeCandidate(toolUse.input);
     return { candidates: [candidate], source: 'ai' };
   } catch (error) {
     console.error('[AI Service] Extraction failed:', error);
-    return { source: 'none', candidates: [] };
+    return { source: 'none', reason: 'error', candidates: [] };
   }
 }
 

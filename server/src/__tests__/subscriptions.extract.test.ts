@@ -125,8 +125,8 @@ describe('POST /api/subscriptions/extract', () => {
     expect(mockedExtract.mock.calls[0][1]).toBe('application/pdf');
   });
 
-  it('returns 503 EXTRACTION_UNAVAILABLE when the service has no key (source "none")', async () => {
-    mockedExtract.mockResolvedValue({ source: 'none', candidates: [] });
+  it('returns 503 EXTRACTION_NOT_CONFIGURED when the service has no key', async () => {
+    mockedExtract.mockResolvedValue({ source: 'none', reason: 'not_configured', candidates: [] });
 
     const res = await request(app)
       .post('/api/subscriptions/extract')
@@ -138,7 +138,25 @@ describe('POST /api/subscriptions/extract', () => {
 
     expect(res.status).toBe(503);
     expect(res.body.error).toMatchObject({
-      code: 'EXTRACTION_UNAVAILABLE',
+      code: 'EXTRACTION_NOT_CONFIGURED',
+      message: expect.any(String),
+    });
+  });
+
+  it('returns 503 EXTRACTION_FAILED when extraction errors at runtime', async () => {
+    mockedExtract.mockResolvedValue({ source: 'none', reason: 'error', candidates: [] });
+
+    const res = await request(app)
+      .post('/api/subscriptions/extract')
+      .set('Cookie', authCookie())
+      .attach('file', Buffer.from('%PDF-1.4'), {
+        filename: 'r.pdf',
+        contentType: 'application/pdf',
+      });
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatchObject({
+      code: 'EXTRACTION_FAILED',
       message: expect.any(String),
     });
   });
