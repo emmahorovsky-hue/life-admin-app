@@ -32,11 +32,22 @@ export const extractSubscriptionFromFile = async (
     const result = await extractSubscription(req.file.buffer, req.file.mimetype);
 
     if (result.source === 'none') {
+      // Same user-facing copy either way — the value is in the code + logs so an
+      // operator can tell a missing/unconfigured key apart from a transient API
+      // failure without exposing provider internals to the user.
+      if (result.reason === 'not_configured') {
+        console.warn(
+          '[extract] ANTHROPIC_API_KEY is not configured in this environment — receipt extraction is disabled.'
+        );
+      }
       res.status(503).json({
         error: {
           message:
             'AI extraction is unavailable right now. Please add the subscription manually.',
-          code: 'EXTRACTION_UNAVAILABLE',
+          code:
+            result.reason === 'not_configured'
+              ? 'EXTRACTION_NOT_CONFIGURED'
+              : 'EXTRACTION_FAILED',
         },
       });
       return;

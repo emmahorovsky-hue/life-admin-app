@@ -128,22 +128,22 @@ describe('aiService', () => {
       });
     });
 
-    it('returns source "none" when the model omits a tool_use block', async () => {
+    it('returns source "none" with reason "error" when the model omits a tool_use block', async () => {
       mockMessagesCreate.mockResolvedValue({ content: [{ type: 'text', text: 'sorry' }] });
       const { extractSubscription } = await loadAiService();
 
       const result = await extractSubscription(Buffer.from('pdf'), 'application/pdf');
 
-      expect(result).toEqual({ source: 'none', candidates: [] });
+      expect(result).toEqual({ source: 'none', reason: 'error', candidates: [] });
     });
 
-    it('returns source "none" when the SDK call throws', async () => {
+    it('returns source "none" with reason "error" when the SDK call throws', async () => {
       mockMessagesCreate.mockRejectedValue(new Error('rate limited'));
       const { extractSubscription } = await loadAiService();
 
       const result = await extractSubscription(Buffer.from('pdf'), 'application/pdf');
 
-      expect(result).toEqual({ source: 'none', candidates: [] });
+      expect(result).toEqual({ source: 'none', reason: 'error', candidates: [] });
     });
 
     it('throws on an unsupported mime type without calling the SDK', async () => {
@@ -157,12 +157,12 @@ describe('aiService', () => {
   });
 
   describe('extractSubscription with no key configured', () => {
-    it('returns source "none" without constructing the client or calling the SDK', async () => {
+    it('returns source "none" with reason "not_configured" without constructing the client or calling the SDK', async () => {
       const { extractSubscription } = await loadAiService();
 
       const result = await extractSubscription(Buffer.from('pdf'), 'application/pdf');
 
-      expect(result).toEqual({ source: 'none', candidates: [] });
+      expect(result).toEqual({ source: 'none', reason: 'not_configured', candidates: [] });
       expect(mockCtor).not.toHaveBeenCalled();
       expect(mockMessagesCreate).not.toHaveBeenCalled();
     });
