@@ -35,6 +35,29 @@ export interface UpdateSubscriptionData {
   notes?: string;
 }
 
+// Fully-populated form state shared by the add / edit / review dialogs via
+// <SubscriptionForm>. Every field is present (no optionals) so the inputs stay
+// controlled; each dialog maps this to the Create/Update payload it needs.
+export interface SubscriptionFormValues {
+  name: string;
+  cost: number;
+  currency: string;
+  billingCycle: string;
+  renewalDate: string;
+  category: string;
+  notes: string;
+}
+
+export const defaultSubscriptionFormValues = (): SubscriptionFormValues => ({
+  name: '',
+  cost: 0,
+  currency: 'SGD',
+  billingCycle: 'monthly',
+  renewalDate: new Date().toISOString().split('T')[0],
+  category: 'streaming',
+  notes: '',
+});
+
 // A candidate subscription extracted from an uploaded receipt/invoice.
 // Mirrors the backend SubscriptionCandidate (server/src/services/aiService.ts).
 export interface SubscriptionCandidate {
@@ -120,3 +143,7 @@ export const billingCycles = [
   { id: 'weekly', name: 'Weekly' },
   { id: 'quarterly', name: 'Quarterly' },
 ];
+
+// Currencies offered in the subscription form's currency picker. Centralized
+// here (rather than hardcoded per dialog) so the list can't drift.
+export const currencies = ['USD', 'EUR', 'GBP', 'SGD'];
