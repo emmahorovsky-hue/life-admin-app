@@ -85,8 +85,11 @@ export const subscriptionApi = {
   },
 
   // Upload a receipt/invoice and get back extracted subscription candidates.
-  // The shared axios instance defaults Content-Type to application/json, so it
-  // must be overridden here for the multipart upload.
+  // The shared axios instance defaults Content-Type to application/json; this
+  // override is required, not cosmetic. Without it axios sees a JSON content-type
+  // on a FormData body and serializes the file to JSON. Setting it to
+  // multipart/form-data here makes axios pass the FormData through, and its XHR
+  // adapter then resets the header so the browser adds the required boundary.
   extract: async (file: File) => {
     const form = new FormData();
     form.append('file', file);
