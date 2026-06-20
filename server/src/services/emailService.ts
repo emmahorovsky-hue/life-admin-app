@@ -3,13 +3,19 @@ import { Resend } from 'resend';
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM = process.env.EMAIL_FROM ?? 'noreply@paypr.live';
 
-function buildEmailHtml({ heading, bodyHtml, ctaText, ctaUrl, footerNote }: {
+const CLIENT_URL = process.env.CLIENT_URL ?? 'https://paypr.live';
+
+function buildEmailHtml({ heading, bodyHtml, ctaText, ctaUrl, footerNote, illustrationUrl }: {
   heading: string;
   bodyHtml: string;
   ctaText: string;
   ctaUrl: string;
   footerNote: string;
+  illustrationUrl?: string;
 }): string {
+  const illustration = illustrationUrl
+    ? `<img src="${illustrationUrl}" alt="" width="560" style="display: block; width: 100%; height: auto; border-bottom: 1px dashed #CBC7C1;" />`
+    : '';
   return `
     <html>
       <head>
@@ -20,6 +26,7 @@ function buildEmailHtml({ heading, bodyHtml, ctaText, ctaUrl, footerNote }: {
           <div style="padding: 20px 32px; border-bottom: 1px dashed #CBC7C1;">
             <span style="font-size: 20px; font-weight: 600; color: #161616;">Pay<span style="color: #E53D00;">pr</span></span>
           </div>
+          ${illustration}
           <div style="padding: 32px 32px 24px;">
             <h1 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #161616;">${heading}</h1>
             ${bodyHtml}
@@ -49,6 +56,7 @@ export async function sendVerificationEmail({ to, verifyUrl, expiresInHours }: {
     ctaText: 'Verify email',
     ctaUrl: verifyUrl,
     footerNote: "If you didn't sign up for Paypr, you can safely ignore this email.",
+    illustrationUrl: `${CLIENT_URL}/email-welcome.png`,
   });
   const text = `Welcome! Click this link to verify your email: ${verifyUrl}\nLink expires in ${expiresInHours} hours.\nIf you didn't sign up, ignore this email.`;
 
@@ -94,6 +102,7 @@ export async function sendPasswordResetEmail({ to, resetUrl, expiresInHours }: {
     ctaText: 'Reset password',
     ctaUrl: resetUrl,
     footerNote: "If you didn't request a password reset, you can safely ignore this email. Your password will not change.",
+    illustrationUrl: `${CLIENT_URL}/email-password-reset.png`,
   });
   const text = `Reset your Paypr password by clicking this link: ${resetUrl}\nThe link expires in ${expiresInHours} hour.\nIf you didn't request this, ignore this email.`;
 
