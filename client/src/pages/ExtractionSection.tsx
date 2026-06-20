@@ -11,7 +11,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 
 const EXTRACTED_FIELDS = [
   { label: 'Merchant', value: 'Nordic Gym Co.' },
-  { label: 'Category', value: 'Membership' },
+  { label: 'Category', value: 'Sport & Fitness' },
   { label: 'Amount', value: '$35.00' },
   { label: 'Cycle', value: 'Monthly' },
   { label: 'Renewal date', value: '02 Jul 2026' },
@@ -95,16 +95,6 @@ export default function ExtractionSection() {
 
           {/* ── Right: annotated extracted fields ───────────────────────── */}
           <div>
-            <motion.p
-              className="font-mono text-xs uppercase tracking-[0.24em] text-brand-orange mb-3.5"
-              initial={reduced ? {} : { opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-            >
-              Auto-extracted
-            </motion.p>
-
             <motion.h2
               className="text-3xl md:text-4xl font-extrabold leading-[1.08] tracking-tight mb-7"
               initial={reduced ? {} : { opacity: 0, y: 20 }}
