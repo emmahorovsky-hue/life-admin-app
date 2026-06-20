@@ -315,14 +315,15 @@ export const resetPassword = async (req: AuthRequest, res: Response): Promise<vo
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const now = new Date();
     await prisma.$transaction([
       prisma.user.update({
         where: { id: result.userId },
-        data: { password: hashedPassword },
+        data: { password: hashedPassword, passwordChangedAt: now },
       }),
       prisma.passwordResetToken.updateMany({
         where: { userId: result.userId, usedAt: null },
-        data: { usedAt: new Date() },
+        data: { usedAt: now },
       }),
     ]);
 
