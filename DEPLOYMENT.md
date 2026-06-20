@@ -85,7 +85,8 @@ Have ready:
 |----------|-------|-------|
 | `NODE_ENV` | `production` | Enables production mode |
 | `JWT_SECRET` | Generate strong secret | Use: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `CORS_ORIGIN` | Your Vercel domain | e.g., `https://client-beta-flame.vercel.app` |
+| `CLIENT_URL` | Your Vercel domain | CORS allowlist — e.g., `https://client-beta-flame.vercel.app` (localhost and `*.vercel.app` previews are always allowed) |
+| `API_URL` | Your Railway backend URL | Base URL embedded in verification email links — e.g., `https://your-railway-url` |
 | `ANTHROPIC_API_KEY` | `sk-ant-...` | Optional — enables AI receipt/invoice extraction. Without it the feature degrades to manual entry (the extract endpoint returns 503). **Read at process start, so a redeploy/restart is required after setting it.** |
 | `AI_MODEL` | `claude-haiku-4-5` | Optional — defaults to `claude-haiku-4-5`. Bump to `claude-sonnet-4-6` / `claude-opus-4-8` for higher extraction accuracy. |
 
@@ -231,10 +232,10 @@ Vercel should auto-detect, but verify:
 
 ### 4.1 Backend CORS
 
-Update `CORS_ORIGIN` in Railway to match Vercel frontend domain:
+Update `CLIENT_URL` in Railway to match Vercel frontend domain:
 
 1. Railway project → Variables
-2. Set `CORS_ORIGIN` to `https://client-beta-flame.vercel.app`
+2. Set `CLIENT_URL` to `https://client-beta-flame.vercel.app`
 3. Redeploy backend
 
 ### 4.2 Vercel API URL
@@ -290,7 +291,7 @@ Verify `VITE_API_URL` in Vercel environment matches Railway backend:
 
 #### "CORS error in frontend"
 **Problem:** Frontend & backend domains don't match
-**Solution:** Update `CORS_ORIGIN` in Railway to match Vercel domain
+**Solution:** Update `CLIENT_URL` in Railway to match Vercel domain
 
 #### "Login fails, 401 Unauthorized"
 **Problem:** JWT_SECRET mismatch or database not migrated
@@ -389,7 +390,7 @@ Before going live:
 
 - [ ] `NODE_ENV` = `production` in Railway
 - [ ] `JWT_SECRET` is strong (32+ characters)
-- [ ] `CORS_ORIGIN` is production domain
+- [ ] `CLIENT_URL` is production domain
 - [ ] No hardcoded secrets in code
 - [ ] HTTPS enabled (automatic on both)
 - [ ] Database backups configured (automatic)
