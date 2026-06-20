@@ -86,6 +86,8 @@ Have ready:
 | `NODE_ENV` | `production` | Enables production mode |
 | `JWT_SECRET` | Generate strong secret | Use: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `CORS_ORIGIN` | Your Vercel domain | e.g., `https://client-beta-flame.vercel.app` |
+| `ANTHROPIC_API_KEY` | `sk-ant-...` | Optional — enables AI receipt/invoice extraction. Without it the feature degrades to manual entry (the extract endpoint returns 503). **Read at process start, so a redeploy/restart is required after setting it.** |
+| `AI_MODEL` | `claude-haiku-4-5` | Optional — defaults to `claude-haiku-4-5`. Bump to `claude-sonnet-4-6` / `claude-opus-4-8` for higher extraction accuracy. |
 
 **Environment variables already set by Railway:**
 - `DATABASE_URL` - PostgreSQL connection string
@@ -114,6 +116,22 @@ curl https://your-railway-url/health
 # Should return:
 # { "status": "ok" }
 ```
+
+### 1.8 Verify AI Extraction (optional)
+
+Only relevant if `ANTHROPIC_API_KEY` is set (see §1.5). To confirm receipt/invoice extraction
+reaches the Anthropic API, run the opt-in smoke script with a sample receipt:
+
+```bash
+cd server && npm run smoke:extract -- <path-to-receipt.(pdf|png|jpg)>
+```
+
+- Prints `source=ai` on success.
+- **Skips cleanly with no error when `ANTHROPIC_API_KEY` is unset** — so it's safe to run anywhere.
+- Script: `server/src/bin/extract-receipt.ts` (npm script `smoke:extract`).
+
+**End-to-end check on the live site:** upload a receipt in the Upload Receipt dialog — it should
+advance to the review dialog with prefilled fields (not "AI extraction is unavailable").
 
 ## Part 2: Database Setup (Railway PostgreSQL)
 
@@ -285,6 +303,15 @@ Verify `VITE_API_URL` in Vercel environment matches Railway backend:
 **Problem:** No indexes or inefficient queries
 **Solution:** Check Prisma query logs, verify indexes exist
 
+#### "AI extraction is unavailable" on receipt upload
+**Problem:** `ANTHROPIC_API_KEY` is not set on Railway, or it was set but the service hasn't been
+redeployed (the key is read at import time, so a running process won't pick it up).
+**Solution:**
+1. Set `ANTHROPIC_API_KEY` in Railway Variables (see §1.5)
+2. Redeploy, and confirm the deployment **ID actually rolled** — Railway "Online"/health 200 can be
+   served from a stale image while a new deploy fails
+3. Verify with the smoke script (§1.8) or by uploading a receipt on the live site
+
 ## Rollback Plan
 
 ### Rollback Frontend (Vercel)
@@ -409,6 +436,6 @@ git push origin main
 
 ---
 
-**Last Updated:** 2026-06-02  
+**Last Updated:** 2026-06-20  
 **Target Audience:** DevOps, Tech Leads  
 **Related Docs:** [CONTRIBUTING.md](CONTRIBUTING.md), [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
