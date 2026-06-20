@@ -5,7 +5,7 @@ const FROM = process.env.EMAIL_FROM ?? 'noreply@paypr.live';
 
 const CLIENT_URL = process.env.CLIENT_URL ?? 'https://paypr.live';
 
-function buildEmailHtml({ heading, bodyHtml, ctaText, ctaUrl, footerNote, illustrationUrl }: {
+export function buildEmailHtml({ heading, bodyHtml, ctaText, ctaUrl, footerNote, illustrationUrl }: {
   heading: string;
   bodyHtml: string;
   ctaText: string;
@@ -21,16 +21,16 @@ function buildEmailHtml({ heading, bodyHtml, ctaText, ctaUrl, footerNote, illust
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600&display=swap" rel="stylesheet">
       </head>
-      <body style="margin: 0; padding: 32px 16px; background: #FAFAF8; font-family: 'Archivo', system-ui, sans-serif; color: #161616;">
-        <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #CBC7C1; border-radius: 2px; overflow: hidden;">
+      <body style="margin: 0; padding: 32px 16px; background: #FBFBF9; font-family: 'Archivo', system-ui, sans-serif; color: #161616;">
+        <div style="max-width: 560px; margin: 0 auto; background: #FBFBF9; border: 1px solid #CBC7C1; border-radius: 2px; overflow: hidden;">
           <div style="padding: 20px 32px; border-bottom: 1px dashed #CBC7C1;">
-            <span style="font-size: 20px; font-weight: 600; color: #161616;">Pay<span style="color: #E53D00;">pr</span></span>
+            <span style="font-size: 20px; font-weight: 700; color: #161616;">Paypr</span>
           </div>
           ${illustration}
           <div style="padding: 32px 32px 24px;">
             <h1 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #161616;">${heading}</h1>
             ${bodyHtml}
-            <a href="${ctaUrl}" style="display: inline-block; background: #161616; color: #FAFAF8; padding: 12px 24px; text-decoration: none; border-radius: 2px; font-weight: 600; font-size: 14px; margin-top: 8px;">${ctaText}</a>
+            <a href="${ctaUrl}" style="display: inline-block; background: #161616; color: #FBFBF9; padding: 12px 24px; text-decoration: none; border-radius: 2px; font-weight: 600; font-size: 14px; margin-top: 8px;">${ctaText}</a>
             <p style="margin: 16px 0 0; font-size: 12px; color: #7F7B73;">Or paste this URL into your browser:<br><a href="${ctaUrl}" style="color: #7F7B73;">${ctaUrl}</a></p>
           </div>
           <div style="border-top: 1px dashed #CBC7C1; margin: 0 32px;"></div>
