@@ -18,6 +18,7 @@ model User {
   emailVerified Boolean @default(false)   // NEW
   emailVerifiedAt DateTime?                   // NEW
   deletionWarningSentAt DateTime?             // set when grace-period deletion warning email sent
+  passwordChangedAt     DateTime?             // set on password reset; tokens issued before this are rejected
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   

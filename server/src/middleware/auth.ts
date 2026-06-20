@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
+import prisma from '../utils/db';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -8,13 +9,12 @@ export interface AuthRequest extends Request {
   };
 }
 
-export const authenticateToken = (
+export const authenticateToken = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   try {
-    // Get token from cookie
     const token = req.cookies.token;
 
     if (!token) {
@@ -27,8 +27,25 @@ export const authenticateToken = (
       return;
     }
 
-    // Verify token
     const decoded = verifyToken(token);
+
+    // Reject tokens issued before the last password reset
+    if (decoded.iat) {
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: { passwordChangedAt: true },
+      });
+      if (user?.passwordChangedAt && decoded.iat < user.passwordChangedAt.getTime() / 1000) {
+        res.status(401).json({
+          error: {
+            message: 'Session invalidated. Please log in again.',
+            code: 'SESSION_INVALIDATED',
+          },
+        });
+        return;
+      }
+    }
+
     req.user = decoded;
     next();
   } catch (error) {

@@ -222,5 +222,17 @@ describe('Auth Password Reset Endpoints', () => {
       const statuses = [a.status, b.status].sort();
       expect(statuses).toEqual([200, 400]); // exactly one succeeds
     });
+
+    it('sets passwordChangedAt so pre-reset JWT tokens are later rejected by the middleware', async () => {
+      const user = await createUser();
+      const raw = await seedResetToken(user.id);
+
+      await request(app)
+        .post('/api/auth/reset-password')
+        .send({ token: raw, password: 'BrandNew123!' });
+
+      const updated = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(updated!.passwordChangedAt).not.toBeNull();
+    });
   });
 });
