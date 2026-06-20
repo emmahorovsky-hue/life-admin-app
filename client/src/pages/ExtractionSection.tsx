@@ -53,16 +53,18 @@ export default function ExtractionSection() {
                 />
               )}
 
-              <p className="font-mono text-[13px] font-bold tracking-wider text-foreground">
+              {/* Receipt text colors are hardcoded (not theme tokens) so the
+                  white paper card stays legible regardless of theme. */}
+              <p className="font-mono text-[13px] font-bold tracking-wider text-neutral-900">
                 NORDIC GYM CO.
               </p>
-              <p className="font-mono text-[9px] text-muted-foreground mt-1">
+              <p className="font-mono text-[9px] text-neutral-500 mt-1">
                 Membership · monthly
               </p>
 
               <div className="border-perf my-4" />
 
-              <div className="font-mono text-[10px] text-muted-foreground leading-loose">
+              <div className="font-mono text-[10px] text-neutral-500 leading-loose">
                 {[
                   ['Member', 'A. Lindqvist'],
                   ['Plan', 'Premium'],
@@ -70,7 +72,7 @@ export default function ExtractionSection() {
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between">
                     <span>{k}</span>
-                    <span className="text-foreground">{v}</span>
+                    <span className="text-neutral-900">{v}</span>
                   </div>
                 ))}
               </div>
@@ -78,8 +80,8 @@ export default function ExtractionSection() {
               <div className="border-perf my-4" />
 
               <div className="flex justify-between items-baseline">
-                <span className="font-mono text-[11px] text-muted-foreground">TOTAL</span>
-                <span className="font-mono text-xl font-bold text-foreground">$35.00</span>
+                <span className="font-mono text-[11px] text-neutral-500">TOTAL</span>
+                <span className="font-mono text-xl font-bold text-neutral-900">$35.00</span>
               </div>
 
               {/* faux barcode */}
@@ -87,7 +89,7 @@ export default function ExtractionSection() {
                 className="mt-4 h-6"
                 style={{
                   background:
-                    'repeating-linear-gradient(90deg, hsl(var(--foreground)) 0 2px, transparent 2px 4px)',
+                    'repeating-linear-gradient(90deg, #282114 0 2px, transparent 2px 4px)',
                 }}
               />
             </motion.div>
