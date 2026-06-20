@@ -8,83 +8,173 @@ on:
 
 jobs:
   backend-lint-test:
-    name: Backend Lint & Test
+    name: Backend Test
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./server
-    
+
+    # Postgres for the Jest suite. globalSetup runs `prisma migrate deploy`
+    # against this DB; setup.ts supplies JWT_SECRET etc., so no .env.test is
+    # needed in CI — only DATABASE_URL.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lifeadmin_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lifeadmin_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: server/package-lock.json
-      
+
       - name: Install dependencies
         run: npm ci
-      
-      - name: Run linter
-        run: npm run lint || echo "No lint script configured, skipping..."
-        continue-on-error: true
-      
+
+      - name: Apply database migrations
+        run: npm run prisma:migrate:deploy
+
       - name: Run tests
-        run: npm test || echo "No tests configured yet"
-        continue-on-error: true
-      
+        run: npm test
+
       - name: Check TypeScript compilation
         run: npx tsc --noEmit
 
   frontend-lint-test:
-    name: Frontend Lint & Test
+    name: Frontend Lint, Test & Build
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./client
-    
+
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: client/package-lock.json
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run linter
-        run: npm run lint || echo "No lint script configured, skipping..."
-        continue-on-error: true
-      
-      - name: Run tests
-        run: npm test || echo "No tests configured yet"
-        continue-on-error: true
-      
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm run test:unit
+
       - name: Build check
         run: npm run build
         env:
           VITE_API_URL: http://localhost:3001
 
+  e2e:
+    name: E2E (Playwright, non-blocking)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lifeadmin_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lifeadmin_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+      ENABLE_CRON: 'false'
+      API_URL: http://localhost:3001
+      CLIENT_URL: http://127.0.0.1:4173
+      RESEND_API_KEY: test-dummy-key
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install server dependencies
+        run: npm ci
+        working-directory: ./server
+
+      - name: Apply database migrations
+        run: npm run prisma:migrate:deploy
+        working-directory: ./server
+
+      - name: Start backend (port 3001)
+        run: |
+          npm run dev > /tmp/server.log 2>&1 &
+          # Wait for the API port to accept connections.
+          for i in $(seq 1 30); do
+            (echo > /dev/tcp/localhost/3001) >/dev/null 2>&1 && break
+            sleep 2
+          done
+          (echo > /dev/tcp/localhost/3001) >/dev/null 2>&1 \
+            || { echo "Backend failed to start:"; cat /tmp/server.log; exit 1; }
+        working-directory: ./server
+
+      - name: Install client dependencies
+        run: npm ci
+        working-directory: ./client
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: ./client
+
+      # Playwright's webServer boots the Vite dev server on 4173, which proxies
+      # /api to the backend started above. Non-blocking: e2e is informational.
+      - name: Run e2e tests
+        run: npm run test:e2e
+        working-directory: ./client
+        continue-on-error: true
+
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
-    
+
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Audit backend dependencies
         run: cd server && npm audit --audit-level=moderate || true
-      
+
       - name: Audit frontend dependencies
         run: cd client && npm audit --audit-level=moderate || true

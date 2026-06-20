@@ -6,8 +6,11 @@ import {
   getSubscriptionById,
   updateSubscription,
   deleteSubscription,
+  extractSubscriptionFromFile,
 } from '../controllers/subscriptionController';
 import { authenticateToken } from '../middleware/auth';
+import { BILLING_CYCLES } from '../constants/subscriptions';
+import { receiptUpload, extractRateLimit } from '../middleware/receiptUpload';
 
 const router = express.Router();
 
@@ -30,7 +33,7 @@ router.post(
       .isLength({ min: 3, max: 3 })
       .withMessage('Currency must be a 3-letter ISO code'),
     body('billingCycle')
-      .isIn(['monthly', 'annual', 'yearly', 'weekly', 'quarterly'])
+      .isIn([...BILLING_CYCLES])
       .withMessage('Invalid billing cycle'),
     body('renewalDate').isISO8601().withMessage('Invalid renewal date'),
     body('category').trim().notEmpty().withMessage('Category is required'),
@@ -38,6 +41,9 @@ router.post(
   ],
   createSubscription
 );
+
+// POST /api/subscriptions/extract — upload a receipt/invoice → AI extracts review candidates
+router.post('/extract', extractRateLimit, receiptUpload, extractSubscriptionFromFile);
 
 // GET /api/subscriptions/:id
 router.get('/:id', getSubscriptionById);
@@ -57,7 +63,7 @@ router.patch(
       .withMessage('Currency must be a 3-letter ISO code'),
     body('billingCycle')
       .optional()
-      .isIn(['monthly', 'annual', 'yearly', 'weekly', 'quarterly'])
+      .isIn([...BILLING_CYCLES])
       .withMessage('Invalid billing cycle'),
     body('renewalDate')
       .optional()

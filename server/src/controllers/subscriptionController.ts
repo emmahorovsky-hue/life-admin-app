@@ -3,6 +3,67 @@ import { validationResult } from 'express-validator';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
 import { Prisma } from '@prisma/client';
+import { extractSubscription } from '../services/aiService';
+
+/**
+ * POST /api/subscriptions/extract
+ * Accepts an uploaded receipt/invoice (multipart `file`), runs LLM extraction, and returns
+ * review candidates. Does NOT create anything — the user confirms via the normal create path.
+ */
+export const extractSubscriptionFromFile = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        error: { message: 'Not authenticated', code: 'NOT_AUTHENTICATED' },
+      });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({
+        error: { message: 'No file uploaded.', code: 'NO_FILE' },
+      });
+      return;
+    }
+
+    const result = await extractSubscription(req.file.buffer, req.file.mimetype);
+
+    if (result.source === 'none') {
+      // Same user-facing copy either way — the value is in the code + logs so an
+      // operator can tell a missing/unconfigured key apart from a transient API
+      // failure without exposing provider internals to the user.
+      if (result.reason === 'not_configured') {
+        console.warn(
+          '[extract] ANTHROPIC_API_KEY is not configured in this environment — receipt extraction is disabled.'
+        );
+      }
+      res.status(503).json({
+        error: {
+          message:
+            'AI extraction is unavailable right now. Please add the subscription manually.',
+          code:
+            result.reason === 'not_configured'
+              ? 'EXTRACTION_NOT_CONFIGURED'
+              : 'EXTRACTION_FAILED',
+        },
+      });
+      return;
+    }
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Extract subscription error:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to extract subscription from file',
+        code: 'EXTRACT_SUBSCRIPTION_FAILED',
+      },
+    });
+  }
+};
 
 export const createSubscription = async (
   req: AuthRequest,

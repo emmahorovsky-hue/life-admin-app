@@ -16,6 +16,7 @@
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "job:cleanup-unverified": "tsx src/bin/run-cleanup.ts",
+    "smoke:extract": "tsx src/bin/extract-receipt.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [
@@ -27,6 +28,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.2",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
@@ -36,6 +38,7 @@
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
     "node-cron": "^3.0.3",
     "prisma": "^5.22.0",
     "resend": "^6.12.4",
@@ -48,6 +51,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.7",
+    "@types/multer": "^2.1.0",
     "@types/node": "^22.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/supertest": "^7.2.0",

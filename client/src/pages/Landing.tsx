@@ -14,6 +14,7 @@ import {
   useReducedMotion,
 } from 'framer-motion';
 import { useRef, useEffect, useState } from 'react';
+import ExtractionSection from './ExtractionSection';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -497,6 +498,10 @@ export default function Landing() {
           })}
         </div>
       </section>
+
+      <Rule />
+
+      <ExtractionSection />
 
       <Rule />
 
