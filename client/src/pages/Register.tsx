@@ -49,7 +49,7 @@ export default function Register() {
   };
 
   return (
-    <AuthLayout>
+    <AuthLayout illustration="/hero-desk.webp">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold">Create your account</h1>
