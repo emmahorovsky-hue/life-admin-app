@@ -23,6 +23,7 @@ export default function Profile() {
 
   const emailChanged = searchParams.get('emailChanged') === 'true';
   const tokenError = searchParams.get('error') === 'invalid-token';
+  const emailTakenError = searchParams.get('error') === 'email-taken';
 
   // Clear query params from URL after reading them (runs once per param presence)
   useEffect(() => {
@@ -127,6 +128,11 @@ export default function Profile() {
       {tokenError && (
         <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md">
           That confirmation link is invalid or has expired. Please request a new one.
+        </div>
+      )}
+      {emailTakenError && (
+        <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md">
+          That email address is now in use by another account. Please try a different address.
         </div>
       )}
 
