@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import ExtractionLoadingOverlay from '@/components/ExtractionLoadingOverlay';
 import { subscriptionApi, SubscriptionCandidate } from '@/lib/subscriptions';
 import { getApiErrorMessage } from '@/lib/utils';
 
@@ -118,11 +119,13 @@ export default function UploadReceiptDialog({
             </Button>
             <Button type="submit" disabled={loading || !file}>
               <Upload className="mr-2 h-4 w-4" />
-              {loading ? 'Extracting...' : 'Extract'}
+              Extract
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <ExtractionLoadingOverlay open={loading} />
     </Dialog>
   );
 }
