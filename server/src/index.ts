@@ -1,4 +1,5 @@
 import express from 'express';
+import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
@@ -58,6 +59,11 @@ const corsOptions = {
 };
 
 // Middleware
+app.use(helmet({
+  // The frontend is served from a different origin (Vercel), so resources must
+  // be accessible cross-origin. All other helmet defaults remain in effect.
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
