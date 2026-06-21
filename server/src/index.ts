@@ -59,6 +59,9 @@ const corsOptions = {
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  // Expose the CSRF token header so the cross-origin SPA can read it (the
+  // csrf_token cookie itself is invisible to document.cookie across origins).
+  exposedHeaders: ['x-csrf-token'],
 };
 
 // Middleware
