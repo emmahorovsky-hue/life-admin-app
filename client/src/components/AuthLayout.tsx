@@ -3,6 +3,8 @@ import { APP_NAME } from '@/lib/constants';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
+  /** Illustration shown in the right column. Defaults to the auth desk image. */
+  illustration?: string;
 }
 
 /**
@@ -10,7 +12,7 @@ interface AuthLayoutProps {
  * illustration on the right. The illustration drops away below `lg`,
  * leaving a centered form for mobile/tablet.
  */
-export default function AuthLayout({ children }: AuthLayoutProps) {
+export default function AuthLayout({ children, illustration = '/hero-auth.webp' }: AuthLayoutProps) {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       {/* Form column */}
@@ -30,7 +32,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       {/* Illustration column */}
       <div className="relative hidden bg-muted lg:block">
         <img
-          src="/hero-desk.webp"
+          src={illustration}
           alt=""
           aria-hidden="true"
           draggable={false}
