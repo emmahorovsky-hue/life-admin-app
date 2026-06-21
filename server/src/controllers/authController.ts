@@ -407,6 +407,11 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
+    if (currentPassword === newPassword) {
+      res.status(400).json({ error: { message: 'New password must be different from the current password', code: 'PASSWORD_UNCHANGED' } });
+      return;
+    }
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Floor passwordChangedAt to the current second so the re-issued token's iat
@@ -446,13 +451,14 @@ export const initiateEmailChangeHandler = async (req: AuthRequest, res: Response
 
     const { email: newEmail } = req.body;
 
+    // Anti-enumeration: respond identically whether or not the address is already
+    // registered (mirrors forgot-password). Only actually issue a token + send the
+    // confirmation link when the address is free; uniqueness is re-checked at
+    // consume-time as the authoritative guard.
     const existing = await prisma.user.findUnique({ where: { email: newEmail } });
-    if (existing) {
-      res.status(400).json({ error: { message: 'That email address is already in use', code: 'EMAIL_EXISTS' } });
-      return;
+    if (!existing) {
+      await initiateEmailChange(req.user.userId, newEmail);
     }
-
-    await initiateEmailChange(req.user.userId, newEmail);
 
     res.status(200).json({ message: 'Confirmation email sent. Check your inbox to complete the change.' });
   } catch (error) {
@@ -463,6 +469,9 @@ export const initiateEmailChangeHandler = async (req: AuthRequest, res: Response
 
 export const verifyEmailChange = async (req: AuthRequest, res: Response): Promise<void> => {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  // The raw token rides in the query string, so prevent it leaking via Referer on
+  // every outcome, not just success.
+  res.setHeader('Referrer-Policy', 'no-referrer');
   try {
     const { token } = req.query;
 
@@ -474,11 +483,11 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
     const result = await consumeEmailChangeToken(token);
 
     if (!result.ok) {
-      res.redirect(`${clientUrl}/profile?error=invalid-token`);
+      const errorParam = result.reason === 'email_taken' ? 'email-taken' : 'invalid-token';
+      res.redirect(`${clientUrl}/profile?error=${errorParam}`);
       return;
     }
 
-    res.setHeader('Referrer-Policy', 'no-referrer');
     res.redirect(`${clientUrl}/profile?emailChanged=true`);
   } catch (error) {
     console.error('Verify email change error:', error);

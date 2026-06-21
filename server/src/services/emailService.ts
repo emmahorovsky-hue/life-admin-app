@@ -110,6 +110,27 @@ export async function sendEmailChangeVerificationEmail({ to, verifyUrl, expiresI
   return res.data!;
 }
 
+export async function sendEmailChangedNoticeEmail({ to, newEmail }: { to: string; newEmail: string }) {
+  if (!resend) {
+    console.log('[Email Service] Resend not configured. Would send email-changed notice to:', to);
+    console.log('[Email Service] New email:', newEmail);
+    return { id: 'mock-email-id' };
+  }
+  const subject = 'Your Paypr email address was changed';
+  const html = buildEmailHtml({
+    heading: 'Your email address was changed',
+    bodyHtml: `<p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5;">The login email for your Paypr account was just changed to <strong>${newEmail}</strong>. If this was you, no action is needed.</p>`,
+    ctaText: 'Go to Paypr',
+    ctaUrl: `${CLIENT_URL}/login`,
+    footerNote: "If you didn't make this change, your account may be compromised — contact support immediately.",
+  });
+  const text = `The login email for your Paypr account was changed to ${newEmail}.\nIf this wasn't you, your account may be compromised — contact support immediately.`;
+
+  const res = await resend!.emails.send({ from: FROM, to, subject, html, text });
+  if (res.error) throw new Error(`${res.error.name}: ${res.error.message}`);
+  return res.data!;
+}
+
 export async function sendPasswordResetEmail({ to, resetUrl, expiresInHours }: { to: string; resetUrl: string; expiresInHours: number }) {
   if (!resend) {
     console.log('[Email Service] Resend not configured. Would send password reset email to:', to);
