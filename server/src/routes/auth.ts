@@ -116,7 +116,7 @@ router.post(
   '/register',
   authLimiter,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+    body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Invalid email'),
     body('password')
       .isStrongPassword({
         minLength: 8,
@@ -135,7 +135,7 @@ router.post(
   '/login',
   authLimiter,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+    body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Invalid email'),
     // Login intentionally uses .notEmpty() rather than isStrongPassword() so that
     // users who registered before the strong-password policy was introduced can
     // still log in. Strength enforcement only applies at registration time.
@@ -160,7 +160,7 @@ router.post(
   resendPerEmailHourlyLimiter,
   resendPerIpLimiter,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+    body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Invalid email'),
   ],
   resendVerification
 );
@@ -172,7 +172,7 @@ router.post(
   forgotPasswordPerEmailHourlyLimiter,
   forgotPasswordPerIpLimiter,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+    body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Invalid email'),
   ],
   forgotPassword
 );
@@ -231,7 +231,7 @@ router.post(
   authenticateToken,
   authLimiter,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Invalid email address'),
+    body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Invalid email address'),
   ],
   initiateEmailChangeHandler
 );
