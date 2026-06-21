@@ -8,24 +8,45 @@ const api = axios.create({
   },
 });
 
-// Attach the CSRF token (set by the server as a readable cookie) to every
-// mutating request. The server validates header === cookie, which an attacker
-// on a different origin can't satisfy because they can't read our cookies.
-api.interceptors.request.use((config) => {
+// CSRF double-submit token. The server delivers it two ways: as a (non-httpOnly)
+// cookie that the browser returns automatically, and as a readable `x-csrf-token`
+// response header. We rely on the header because in production the SPA (Vercel)
+// and API (Railway) are different origins, so document.cookie can't see the
+// API-origin cookie. We cache the latest header value and echo it back on every
+// mutating request; the server checks header === cookie, which an attacker on
+// another origin can't satisfy. The cookie fallback keeps same-origin dev working.
+let csrfToken: string | null = null;
+
+const readCsrfCookie = (): string | null => {
   const match = document.cookie
     .split('; ')
     .find((row) => row.startsWith('csrf_token='));
-  const token = match?.split('=')[1];
+  return match?.split('=')[1] ?? null;
+};
+
+const captureCsrfToken = (headers: Record<string, unknown> | undefined) => {
+  const headerToken = headers?.['x-csrf-token'];
+  if (typeof headerToken === 'string' && headerToken) {
+    csrfToken = headerToken;
+  }
+};
+
+api.interceptors.request.use((config) => {
+  const token = csrfToken ?? readCsrfCookie();
   if (token) {
     config.headers['x-csrf-token'] = token;
   }
   return config;
 });
 
-// Response interceptor for error handling
+// Response interceptor: capture the rotating CSRF token, then handle errors.
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    captureCsrfToken(response.headers as Record<string, unknown>);
+    return response;
+  },
   (error) => {
+    captureCsrfToken(error.response?.headers as Record<string, unknown> | undefined);
     if (error.response?.status === 401) {
       const publicPaths = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password'];
       const currentPath = window.location.pathname;
