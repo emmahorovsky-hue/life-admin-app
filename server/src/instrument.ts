@@ -9,5 +9,8 @@ if (process.env.SENTRY_DSN) {
     environment: process.env.NODE_ENV || 'development',
     release: process.env.SENTRY_RELEASE,
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
+    // Never attach request bodies, cookies, or user IP to events. The app uses
+    // httpOnly auth cookies and handles user emails, so keep PII off by default.
+    sendDefaultPii: false,
   });
 }
