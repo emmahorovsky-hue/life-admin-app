@@ -131,6 +131,47 @@ export async function sendEmailChangedNoticeEmail({ to, newEmail }: { to: string
   return res.data!;
 }
 
+export async function sendRenewalReminderEmail({ to, subscriptionName, renewalDate, cost, currency, billingCycle, manageUrl }: {
+  to: string;
+  subscriptionName: string;
+  renewalDate: Date;
+  cost: number;
+  currency: string;
+  billingCycle: string;
+  manageUrl?: string;
+}) {
+  const url = manageUrl ?? `${CLIENT_URL}/dashboard`;
+  const formattedDate = renewalDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const formattedCost = `${currency} ${cost.toFixed(2)}`;
+
+  if (!resend) {
+    console.log('[Email Service] Resend not configured. Would send renewal reminder to:', to);
+    console.log('[Email Service] Subscription:', subscriptionName, '| Renewal:', formattedDate);
+    return { id: 'mock-email-id' };
+  }
+
+  const subject = `Your ${subscriptionName} subscription renews on ${formattedDate}`;
+  const html = buildEmailHtml({
+    heading: `Your ${subscriptionName} subscription renews soon`,
+    bodyHtml: `
+      <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.5;">This is a heads-up that your <strong>${subscriptionName}</strong> subscription is due to renew on <strong>${formattedDate}</strong>.</p>
+      <table style="margin: 0 0 16px; font-size: 14px; color: #161616; border-collapse: collapse;">
+        <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Amount</td><td style="padding: 4px 0;"><strong>${formattedCost}</strong></td></tr>
+        <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Billing cycle</td><td style="padding: 4px 0;">${billingCycle}</td></tr>
+        <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Renewal date</td><td style="padding: 4px 0;">${formattedDate}</td></tr>
+      </table>
+    `,
+    ctaText: 'Manage subscriptions',
+    ctaUrl: url,
+    footerNote: "You're receiving this because you have renewal reminders enabled on Paypr. To stop these, remove the subscription from your account.",
+  });
+  const text = `Your ${subscriptionName} subscription renews on ${formattedDate}.\nAmount: ${formattedCost} (${billingCycle})\nManage your subscriptions: ${url}`;
+
+  const res = await resend!.emails.send({ from: FROM, to, subject, html, text });
+  if (res.error) throw new Error(`${res.error.name}: ${res.error.message}`);
+  return res.data!;
+}
+
 export async function sendPasswordResetEmail({ to, resetUrl, expiresInHours }: { to: string; resetUrl: string; expiresInHours: number }) {
   if (!resend) {
     console.log('[Email Service] Resend not configured. Would send password reset email to:', to);

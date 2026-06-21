@@ -1,9 +1,13 @@
 import cron from 'node-cron';
 import { runUnverifiedAccountCleanup } from '../services/accountCleanupService';
+import { sendRenewalReminders } from '../services/renewalReminderService';
 
 // Daily at 03:00 UTC — warn unverified accounts nearing their deadline, then
 // delete those already warned long enough ago.
 const CLEANUP_SCHEDULE = process.env.CLEANUP_CRON ?? '0 3 * * *';
+
+// Daily at 09:00 UTC — send renewal reminder emails for subscriptions due soon.
+const RENEWAL_SCHEDULE = process.env.RENEWAL_CRON ?? '0 9 * * *';
 
 export function startCronJobs(): void {
   cron.schedule(
@@ -19,5 +23,19 @@ export function startCronJobs(): void {
     { timezone: 'UTC' }
   );
 
+  cron.schedule(
+    RENEWAL_SCHEDULE,
+    async () => {
+      try {
+        const { sent, skipped, failed } = await sendRenewalReminders();
+        console.log(`[cron] renewal-reminders: sent=${sent} skipped=${skipped} failed=${failed}`);
+      } catch (err) {
+        console.error('[cron] renewal-reminders failed:', err);
+      }
+    },
+    { timezone: 'UTC' }
+  );
+
   console.log(`[cron] scheduled unverified-account cleanup (${CLEANUP_SCHEDULE} UTC)`);
+  console.log(`[cron] scheduled renewal-reminders (${RENEWAL_SCHEDULE} UTC)`);
 }
