@@ -13,6 +13,7 @@ export const errorHandler = (
   const statusCode = err.statusCode || 500;
   const isServerError = statusCode >= 500;
 
+  // Sentry capture is handled upstream by setupExpressErrorHandler in index.ts.
   // In production, never leak raw error internals for server errors — they can
   // contain Prisma messages, stack traces, or DB connection strings.
   const message = isServerError && isProduction
