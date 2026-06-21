@@ -8,6 +8,20 @@ const api = axios.create({
   },
 });
 
+// Attach the CSRF token (set by the server as a readable cookie) to every
+// mutating request. The server validates header === cookie, which an attacker
+// on a different origin can't satisfy because they can't read our cookies.
+api.interceptors.request.use((config) => {
+  const match = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('csrf_token='));
+  const token = match?.split('=')[1];
+  if (token) {
+    config.headers['x-csrf-token'] = token;
+  }
+  return config;
+});
+
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,

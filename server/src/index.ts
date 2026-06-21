@@ -7,6 +7,7 @@ import subscriptionRoutes from './routes/subscriptions';
 import dashboardRoutes from './routes/dashboard';
 import categoryRoutes from './routes/categories';
 import { errorHandler } from './middleware/errorHandler';
+import { csrfMiddleware } from './middleware/csrf';
 import { startCronJobs } from './jobs';
 
 // Load environment variables
@@ -61,6 +62,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
+app.use(csrfMiddleware);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
