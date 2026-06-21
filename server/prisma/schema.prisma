@@ -15,6 +15,7 @@ model User {
   email     String   @unique
   password      String   // bcrypt hashed
   name          String?
+  surname       String?
   emailVerified Boolean @default(false)   // NEW
   emailVerifiedAt DateTime?                   // NEW
   deletionWarningSentAt DateTime?             // set when grace-period deletion warning email sent
@@ -25,6 +26,7 @@ model User {
   subscriptions Subscription[]
   emailVerificationTokens EmailVerificationToken[]  // NEW
   passwordResetTokens     PasswordResetToken[]
+  emailChangeTokens       EmailChangeToken[]
 
   @@index([email])
 }
@@ -67,6 +69,21 @@ model PasswordResetToken {
   id        String    @id @default(cuid())
   userId    String
   tokenHash String    @unique          // sha256(raw), hex
+  expiresAt DateTime
+  usedAt    DateTime?                  // null = active; set = consumed/invalidated
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailChangeToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique          // sha256(raw), hex
+  newEmail  String                     // the address to switch to on confirmation
   expiresAt DateTime
   usedAt    DateTime?                  // null = active; set = consumed/invalidated
   createdAt DateTime  @default(now())

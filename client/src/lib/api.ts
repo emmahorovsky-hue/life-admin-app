@@ -39,6 +39,7 @@ export interface User {
   id: string;
   email: string;
   name: string | null;
+  surname: string | null;
   emailVerified: boolean;
   emailVerifiedAt: string | null;
   createdAt: string;
@@ -69,4 +70,16 @@ export const forgotPassword = async (email: string) => {
 
 export const resetPassword = async (token: string, password: string) => {
   return api.post('/auth/reset-password', { token, password });
+};
+
+export const updateProfile = async (data: { name?: string; surname?: string }) => {
+  return api.patch<{ user: User }>('/auth/profile', data);
+};
+
+export const changePassword = async (data: { currentPassword: string; newPassword: string }) => {
+  return api.post('/auth/change-password', data);
+};
+
+export const initiateEmailChange = async (data: { email: string }) => {
+  return api.post('/auth/change-email', data);
 };

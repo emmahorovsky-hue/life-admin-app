@@ -89,6 +89,27 @@ export async function sendDeletionWarningEmail({ to, deleteInHours, loginUrl }: 
   return res.data!;
 }
 
+export async function sendEmailChangeVerificationEmail({ to, verifyUrl, expiresInHours }: { to: string; verifyUrl: string; expiresInHours: number }) {
+  if (!resend) {
+    console.log('[Email Service] Resend not configured. Would send email-change verification email to:', to);
+    console.log('[Email Service] Verification URL:', verifyUrl);
+    return { id: 'mock-email-id' };
+  }
+  const subject = 'Confirm your new email address for Paypr';
+  const html = buildEmailHtml({
+    heading: 'Confirm your new email',
+    bodyHtml: `<p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5;">Click the button below to confirm this address as your new Paypr login email. The link expires in ${expiresInHours} hours.</p>`,
+    ctaText: 'Confirm new email',
+    ctaUrl: verifyUrl,
+    footerNote: "If you didn't request this change, you can safely ignore this email. Your current email address will not change.",
+  });
+  const text = `Confirm your new Paypr email by clicking this link: ${verifyUrl}\nThe link expires in ${expiresInHours} hours.\nIf you didn't request this, ignore this email.`;
+
+  const res = await resend!.emails.send({ from: FROM, to, subject, html, text });
+  if (res.error) throw new Error(`${res.error.name}: ${res.error.message}`);
+  return res.data!;
+}
+
 export async function sendPasswordResetEmail({ to, resetUrl, expiresInHours }: { to: string; resetUrl: string; expiresInHours: number }) {
   if (!resend) {
     console.log('[Email Service] Resend not configured. Would send password reset email to:', to);

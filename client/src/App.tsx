@@ -15,6 +15,7 @@ const VerifyEmailSuccess = lazy(() => import('./pages/VerifyEmailSuccess'));
 const VerifyEmailError = lazy(() => import('./pages/VerifyEmailError'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 function PageFallback() {
   return (
@@ -52,6 +53,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Subscriptions />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Profile />
                   </Layout>
                 </ProtectedRoute>
               }
