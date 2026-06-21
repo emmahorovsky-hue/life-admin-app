@@ -85,8 +85,13 @@ app.use((req, res) => {
   });
 });
 
-// Sentry error handler (must be before custom error handler)
-Sentry.setupExpressErrorHandler(app);
+// Sentry error handler (must be before custom error handler).
+// Only captures 5xx — 4xx client errors are expected and not worth alerting on.
+Sentry.setupExpressErrorHandler(app, {
+  shouldHandleError(error) {
+    return ((error as any).statusCode ?? 500) >= 500;
+  },
+});
 
 // Error handler (must be last)
 app.use(errorHandler);

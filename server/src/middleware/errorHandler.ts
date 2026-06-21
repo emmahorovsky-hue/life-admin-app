@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import * as Sentry from '@sentry/node';
 
 export const errorHandler = (
   err: any,
@@ -11,10 +10,7 @@ export const errorHandler = (
 
   const statusCode = err.statusCode || 500;
 
-  if (statusCode >= 500) {
-    Sentry.captureException(err);
-  }
-
+  // Sentry capture is handled upstream by setupExpressErrorHandler in index.ts
   const message = err.message || 'Internal server error';
   const code = err.code || 'INTERNAL_ERROR';
 
