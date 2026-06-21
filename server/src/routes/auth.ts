@@ -10,6 +10,10 @@ import {
   resendVerification,
   forgotPassword,
   resetPassword,
+  updateProfile,
+  changePassword,
+  initiateEmailChangeHandler,
+  verifyEmailChange,
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -190,5 +194,49 @@ router.post(
   ],
   resetPassword
 );
+
+// PATCH /api/auth/profile
+router.patch(
+  '/profile',
+  authenticateToken,
+  [
+    body('name').optional().trim(),
+    body('surname').optional().trim(),
+  ],
+  updateProfile
+);
+
+// POST /api/auth/change-password
+router.post(
+  '/change-password',
+  authenticateToken,
+  authLimiter,
+  [
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
+    body('newPassword')
+      .isStrongPassword({
+        minLength: 8,
+        minUppercase: 1,
+        minNumbers: 1,
+        minSymbols: 1,
+      })
+      .withMessage('Password must be at least 8 characters with 1 uppercase, 1 number, and 1 special character'),
+  ],
+  changePassword
+);
+
+// POST /api/auth/change-email
+router.post(
+  '/change-email',
+  authenticateToken,
+  authLimiter,
+  [
+    body('email').isEmail().normalizeEmail().withMessage('Invalid email address'),
+  ],
+  initiateEmailChangeHandler
+);
+
+// GET /api/auth/verify-email-change
+router.get('/verify-email-change', verifyEmailChange);
 
 export default router;

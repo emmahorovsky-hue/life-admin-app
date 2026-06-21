@@ -13,6 +13,7 @@ interface LayoutProps {
 const navItems = [
   { path: '/dashboard', label: 'Dashboard' },
   { path: '/subscriptions', label: 'Subscriptions' },
+  { path: '/profile', label: 'Profile' },
 ];
 
 interface SidebarContentProps {

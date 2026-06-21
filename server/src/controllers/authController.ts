@@ -6,6 +6,7 @@ import prisma from '../utils/db';
 import { generateToken } from '../utils/jwt';
 import { issueEmailVerificationToken, consumeEmailVerificationToken } from '../services/emailVerificationService';
 import { issuePasswordResetToken, consumePasswordResetToken } from '../services/passwordResetService';
+import { initiateEmailChange, consumeEmailChangeToken } from '../services/emailChangeService';
 
 // The frontend (Vercel) and backend (Railway) are served from different sites
 // in production, so the auth cookie must be SameSite=None to be sent on the
@@ -158,6 +159,7 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
         id: user.id,
         email: user.email,
         name: user.name,
+        surname: user.surname,
         emailVerified: user.emailVerified,
         emailVerifiedAt: user.emailVerifiedAt,
         createdAt: user.createdAt,
@@ -206,6 +208,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         id: true,
         email: true,
         name: true,
+        surname: true,
         emailVerified: true,
         emailVerifiedAt: true,
         createdAt: true,
@@ -333,6 +336,153 @@ export const resetPassword = async (req: AuthRequest, res: Response): Promise<vo
     res.status(500).json({
       error: { message: 'Failed to reset password', code: 'RESET_PASSWORD_FAILED' },
     });
+  }
+};
+
+export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        error: { message: 'Validation failed', code: 'VALIDATION_ERROR', details: errors.array() },
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: { message: 'Not authenticated', code: 'NOT_AUTHENTICATED' } });
+      return;
+    }
+
+    const { name, surname } = req.body;
+
+    const user = await prisma.user.update({
+      where: { id: req.user.userId },
+      data: { name: name ?? undefined, surname: surname ?? undefined },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        surname: true,
+        emailVerified: true,
+        emailVerifiedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: { message: 'Failed to update profile', code: 'UPDATE_PROFILE_FAILED' } });
+  }
+};
+
+export const changePassword = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        error: { message: 'Validation failed', code: 'VALIDATION_ERROR', details: errors.array() },
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: { message: 'Not authenticated', code: 'NOT_AUTHENTICATED' } });
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    if (!user) {
+      res.status(404).json({ error: { message: 'User not found', code: 'USER_NOT_FOUND' } });
+      return;
+    }
+
+    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!passwordMatch) {
+      res.status(400).json({ error: { message: 'Current password is incorrect', code: 'INVALID_CURRENT_PASSWORD' } });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Floor passwordChangedAt to the current second so the re-issued token's iat
+    // (which is also in whole seconds) satisfies iat >= passwordChangedAt/1000,
+    // keeping this session alive while still invalidating older sessions.
+    const passwordChangedAt = new Date(Math.floor(Date.now() / 1000) * 1000);
+    const token = generateToken({ userId: user.id, email: user.email });
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword, passwordChangedAt },
+    });
+
+    res.cookie('token', token, COOKIE_OPTIONS);
+
+    res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: { message: 'Failed to change password', code: 'CHANGE_PASSWORD_FAILED' } });
+  }
+};
+
+export const initiateEmailChangeHandler = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        error: { message: 'Validation failed', code: 'VALIDATION_ERROR', details: errors.array() },
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: { message: 'Not authenticated', code: 'NOT_AUTHENTICATED' } });
+      return;
+    }
+
+    const { email: newEmail } = req.body;
+
+    const existing = await prisma.user.findUnique({ where: { email: newEmail } });
+    if (existing) {
+      res.status(400).json({ error: { message: 'That email address is already in use', code: 'EMAIL_EXISTS' } });
+      return;
+    }
+
+    await initiateEmailChange(req.user.userId, newEmail);
+
+    res.status(200).json({ message: 'Confirmation email sent. Check your inbox to complete the change.' });
+  } catch (error) {
+    console.error('Initiate email change error:', error);
+    res.status(500).json({ error: { message: 'Failed to initiate email change', code: 'EMAIL_CHANGE_FAILED' } });
+  }
+};
+
+export const verifyEmailChange = async (req: AuthRequest, res: Response): Promise<void> => {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  try {
+    const { token } = req.query;
+
+    if (!token || typeof token !== 'string') {
+      res.redirect(`${clientUrl}/profile?error=invalid-token`);
+      return;
+    }
+
+    const result = await consumeEmailChangeToken(token);
+
+    if (!result.ok) {
+      res.redirect(`${clientUrl}/profile?error=invalid-token`);
+      return;
+    }
+
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.redirect(`${clientUrl}/profile?emailChanged=true`);
+  } catch (error) {
+    console.error('Verify email change error:', error);
+    res.redirect(`${clientUrl}/profile?error=invalid-token`);
   }
 };
 
