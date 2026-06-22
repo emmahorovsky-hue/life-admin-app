@@ -181,8 +181,8 @@ function FrameCorners() {
 function Crosshair() {
   return (
     <span className="relative block h-[13px] w-[13px]">
-      <span className="absolute left-1/2 top-0 h-[13px] w-px -translate-x-1/2" style={{ background: 'rgba(229,61,0,0.6)' }} />
-      <span className="absolute left-0 top-1/2 h-px w-[13px] -translate-y-1/2" style={{ background: 'rgba(229,61,0,0.6)' }} />
+      <span className="absolute left-1/2 top-0 h-[13px] w-px -translate-x-1/2" style={{ background: 'hsl(var(--brand-orange) / 0.6)' }} />
+      <span className="absolute left-0 top-1/2 h-px w-[13px] -translate-y-1/2" style={{ background: 'hsl(var(--brand-orange) / 0.6)' }} />
     </span>
   );
 }
@@ -298,19 +298,19 @@ function RenewalRadar() {
       {/* Track */}
       <div className="relative mt-[26px] h-[52px]">
         {/* baseline */}
-        <div className="absolute left-0 right-0 top-[26px] h-px" style={{ background: 'rgba(250,250,248,0.16)' }} />
+        <div className="absolute left-0 right-0 top-[26px] h-px" style={{ background: 'hsl(var(--background) / 0.16)' }} />
         {/* progress fill */}
-        <div className="absolute top-[21px] left-0 h-[11px]" style={{ width: `${playheadPct}%`, background: 'rgba(229,61,0,0.16)' }} />
+        <div className="absolute top-[21px] left-0 h-[11px]" style={{ width: `${playheadPct}%`, background: 'hsl(var(--brand-orange) / 0.16)' }} />
         {/* dots */}
         {sorted.map((it) => {
           const isNext = next ? it.name === next.name : false;
           const isPast = it.days <= day;
           const base = { left: `${(it.days / 90) * 100}%`, top: '26px' } as const;
           const style = isNext
-            ? { ...base, width: 14, height: 14, marginLeft: -7, marginTop: -7, background: '#E53D00', border: '2px solid #FAFAF8', boxShadow: '0 0 0 4px rgba(229,61,0,0.25)', zIndex: 3 }
+            ? { ...base, width: 14, height: 14, marginLeft: -7, marginTop: -7, background: 'hsl(var(--brand-orange))', border: '2px solid hsl(var(--background))', boxShadow: '0 0 0 4px hsl(var(--brand-orange) / 0.25)', zIndex: 3 }
             : isPast
-            ? { ...base, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, background: 'rgba(250,250,248,0.35)', border: '2px solid #FAFAF8' }
-            : { ...base, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, background: '#161616', border: '2px solid rgba(250,250,248,0.7)' };
+            ? { ...base, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, background: 'hsl(var(--background) / 0.35)', border: '2px solid hsl(var(--background))' }
+            : { ...base, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, background: 'hsl(var(--foreground))', border: '2px solid hsl(var(--background) / 0.7)' };
           return (
             <span
               key={it.name}
@@ -323,7 +323,7 @@ function RenewalRadar() {
         {/* playhead */}
         <div
           className="absolute w-[2px] h-[24px]"
-          style={{ left: `${playheadPct}%`, top: '14px', marginLeft: -1, background: '#E53D00', boxShadow: '0 0 10px rgba(229,61,0,0.7)' }}
+          style={{ left: `${playheadPct}%`, top: '14px', marginLeft: -1, background: 'hsl(var(--brand-orange))', boxShadow: '0 0 10px hsl(var(--brand-orange) / 0.7)' }}
         />
       </div>
 
@@ -362,7 +362,7 @@ function RenewalRadar() {
 function ReceiptGlyph() {
   return (
     <span className="relative block h-4 w-[13px] rounded-[1px] border-2 border-foreground">
-      <span className="absolute left-[2px] right-[2px] top-[2px] h-[1.5px]" style={{ background: '#E53D00' }} />
+      <span className="absolute left-[2px] right-[2px] top-[2px] h-[1.5px]" style={{ background: 'hsl(var(--brand-orange))' }} />
       <span className="absolute left-[2px] right-[2px] top-[6px] h-[1.5px] bg-foreground" />
     </span>
   );
@@ -392,8 +392,8 @@ function ReceiptTicker({ speed = 'calm' }: { speed?: 'calm' | 'brisk' }) {
         <div
           className="absolute left-0 right-0 top-0 z-20 h-[10px]"
           style={{
-            background: 'repeating-linear-gradient(90deg,#FAFAF8 0 6px,transparent 6px 12px)',
-            borderBottom: '1px dashed rgba(22,22,22,0.18)',
+            background: 'repeating-linear-gradient(90deg,hsl(var(--background)) 0 6px,transparent 6px 12px)',
+            borderBottom: '1px dashed hsl(var(--foreground) / 0.18)',
           }}
         />
         {/* fade masks */}

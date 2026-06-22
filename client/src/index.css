@@ -137,12 +137,12 @@
   .radar-scrubber:focus-visible { outline: none; }
   .radar-scrubber::-webkit-slider-runnable-track {
     height: 2px;
-    background: rgba(250, 250, 248, 0.18);
+    background: hsl(var(--background) / 0.18);
     border-radius: 1px;
   }
   .radar-scrubber::-moz-range-track {
     height: 2px;
-    background: rgba(250, 250, 248, 0.18);
+    background: hsl(var(--background) / 0.18);
     border-radius: 1px;
   }
   .radar-scrubber::-webkit-slider-thumb {
@@ -151,18 +151,18 @@
     width: 12px;
     height: 24px;
     margin-top: -11px; /* centre the 24px thumb on the 2px track */
-    background: #e53d00;
-    border: 2px solid #161616;
+    background: hsl(var(--brand-orange));
+    border: 2px solid hsl(var(--foreground));
     border-radius: 1px;
-    box-shadow: 0 0 0 1px #e53d00;
+    box-shadow: 0 0 0 1px hsl(var(--brand-orange));
   }
   .radar-scrubber::-moz-range-thumb {
     width: 12px;
     height: 24px;
-    background: #e53d00;
-    border: 2px solid #161616;
+    background: hsl(var(--brand-orange));
+    border: 2px solid hsl(var(--foreground));
     border-radius: 1px;
-    box-shadow: 0 0 0 1px #e53d00;
+    box-shadow: 0 0 0 1px hsl(var(--brand-orange));
   }
 }
 
