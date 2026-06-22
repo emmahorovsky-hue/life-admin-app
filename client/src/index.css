@@ -113,6 +113,57 @@
 
   /* Dotted leader line for receipt-style rows */
   .leader-dots { border-bottom: 1.5px dotted hsl(var(--border)); }
+
+  /* Receipt ticker — infinite upward roll. The line list is rendered twice
+     back-to-back, so a -50% translate loops seamlessly. */
+  @keyframes paypr-roll {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-50%); }
+  }
+  .animate-roll-calm  { animation: paypr-roll 14s linear infinite; }
+  .animate-roll-brisk { animation: paypr-roll 7s  linear infinite; }
+
+  /* Renewal Radar scrubber — native range input styled as a printer playhead.
+     Thumb/track pseudo-elements can't be expressed with Tailwind utilities. */
+  .radar-scrubber {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 24px;
+    background: transparent;
+    cursor: grab;
+  }
+  .radar-scrubber:active { cursor: grabbing; }
+  .radar-scrubber:focus-visible { outline: none; }
+  .radar-scrubber::-webkit-slider-runnable-track {
+    height: 2px;
+    background: rgba(250, 250, 248, 0.18);
+    border-radius: 1px;
+  }
+  .radar-scrubber::-moz-range-track {
+    height: 2px;
+    background: rgba(250, 250, 248, 0.18);
+    border-radius: 1px;
+  }
+  .radar-scrubber::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 24px;
+    margin-top: -11px; /* centre the 24px thumb on the 2px track */
+    background: #e53d00;
+    border: 2px solid #161616;
+    border-radius: 1px;
+    box-shadow: 0 0 0 1px #e53d00;
+  }
+  .radar-scrubber::-moz-range-thumb {
+    width: 12px;
+    height: 24px;
+    background: #e53d00;
+    border: 2px solid #161616;
+    border-radius: 1px;
+    box-shadow: 0 0 0 1px #e53d00;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

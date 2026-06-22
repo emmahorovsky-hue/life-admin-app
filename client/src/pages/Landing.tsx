@@ -4,7 +4,6 @@ import { buttonVariants } from '@/components/ui/button';
 import { APP_NAME } from '@/lib/constants';
 import {
   RefreshCw, FileText, Users, Shield, Globe, Home,
-  Calendar, Bell, LayoutGrid,
 } from 'lucide-react';
 import {
   motion,
@@ -27,24 +26,6 @@ const TRACKED_ITEMS = [
   { icon: Home, label: 'Leases', description: 'Rent, storage, parking' },
 ];
 
-const FEATURES = [
-  {
-    icon: Calendar,
-    title: 'Upcoming timeline',
-    description: 'See everything due in the next 7, 30, and 90 days at a glance. No surprises.',
-  },
-  {
-    icon: Bell,
-    title: 'Renewal alerts',
-    description: 'Know before it renews. Plan cancellations and budget for upcoming charges in advance.',
-  },
-  {
-    icon: LayoutGrid,
-    title: 'One organised view',
-    description: 'All your commitments in one place. Filter by category, sort by date, and finally feel in control.',
-  },
-];
-
 const RENEWAL_ITEMS = [
   { name: 'Netflix', amount: '$15.99' },
   { name: 'Gym membership', amount: '$35.00' },
@@ -52,11 +33,27 @@ const RENEWAL_ITEMS = [
   { name: 'Home insurance', amount: '$89.00' },
 ];
 
-const TIMELINE_ITEMS = [
-  { name: 'Netflix', days: 3, urgent: true },
-  { name: 'Gym membership', days: 12, urgent: false },
-  { name: 'Domain .io', days: 28, urgent: false },
-  { name: 'Insurance', days: 45, urgent: false },
+// Renewal Radar timeline — sample data; in production these are the user's tracked items.
+const RADAR_ITEMS = [
+  { name: 'Netflix', days: 3 },
+  { name: 'Gym membership', days: 12 },
+  { name: 'iCloud+', days: 21 },
+  { name: 'Domain .io', days: 28 },
+  { name: 'Home insurance', days: 45 },
+  { name: 'AppleCare', days: 67 },
+  { name: 'Office lease', days: 84 },
+];
+
+// Receipt ticker lines — sample data for the "Always on file" cell.
+const RECEIPT_LINES = [
+  { name: 'NETFLIX', amount: '15.99' },
+  { name: 'SPOTIFY', amount: '11.99' },
+  { name: 'GYM', amount: '35.00' },
+  { name: 'DOMAIN .IO', amount: '12.00' },
+  { name: 'ICLOUD+', amount: '2.99' },
+  { name: 'HOME INSURANCE', amount: '89.00' },
+  { name: 'APPLECARE', amount: '9.99' },
+  { name: 'PHONE PLAN', amount: '24.00' },
 ];
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
@@ -130,48 +127,6 @@ function DashboardMockup({ reduced }: { reduced: boolean }) {
   );
 }
 
-function AnimatedTimeline({ reduced }: { reduced: boolean }) {
-  return (
-    <div className="mt-6 relative flex-1">
-      <div className="absolute left-[7px] top-3 bottom-3 w-px bg-border" />
-      {TIMELINE_ITEMS.map((item, i) => (
-        <motion.div
-          key={item.name}
-          initial={reduced ? {} : { opacity: 0, x: -16 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ delay: 0.25 + i * 0.14, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center gap-3 py-2.5 relative"
-        >
-          <div className="relative z-10 flex-shrink-0 w-4 flex justify-center">
-            {item.urgent ? (
-              <span className="relative flex h-3.5 w-3.5">
-                <span
-                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-50"
-                  style={{ backgroundColor: 'hsl(var(--brand-orange))' }}
-                />
-                <span
-                  className="relative inline-flex rounded-full h-3.5 w-3.5"
-                  style={{ backgroundColor: 'hsl(var(--brand-orange))' }}
-                />
-              </span>
-            ) : (
-              <span className="flex h-3 w-3 rounded-full border-2 bg-background" style={{ borderColor: 'hsl(var(--border))' }} />
-            )}
-          </div>
-          <span className="text-sm flex-1 font-medium">{item.name}</span>
-          <span
-            className="text-xs font-mono"
-            style={{ color: item.urgent ? 'hsl(var(--brand-orange))' : 'hsl(var(--muted-foreground))' }}
-          >
-            {item.days} days
-          </span>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
 // Counts up to a target $ figure once the band scrolls into view.
 function CostStat({ target, reduced }: { target: number; reduced: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -220,6 +175,268 @@ function FrameCorners() {
   );
 }
 
+// ─── Renewal Radar bento sub-components ─────────────────────────────────────────
+
+// Tiny orange crosshair used by the magnetic registration marks.
+function Crosshair() {
+  return (
+    <span className="relative block h-[13px] w-[13px]">
+      <span className="absolute left-1/2 top-0 h-[13px] w-px -translate-x-1/2" style={{ background: 'rgba(229,61,0,0.6)' }} />
+      <span className="absolute left-0 top-1/2 h-px w-[13px] -translate-y-1/2" style={{ background: 'rgba(229,61,0,0.6)' }} />
+    </span>
+  );
+}
+
+// Two crosshairs pinned to the frame's vertical seam (top & bottom). While the
+// cursor is inside the frame each mark is pulled toward it (decorative). Refs +
+// direct DOM writes — no React state per frame. Disabled on coarse pointers /
+// reduced motion. Parent (the frame) must be `relative` and pass its ref.
+function MagneticMarks({ frameRef, enabled }: { frameRef: React.RefObject<HTMLDivElement>; enabled: boolean }) {
+  const topRef = useRef<HTMLSpanElement>(null);
+  const bottomRef = useRef<HTMLSpanElement>(null);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') {
+      setActive(false);
+      return;
+    }
+    setActive(!window.matchMedia('(pointer: coarse)').matches);
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!active) return;
+    const frame = frameRef.current;
+    if (!frame) return;
+    const marks = [topRef.current, bottomRef.current].filter(Boolean) as HTMLElement[];
+
+    const onMove = (e: MouseEvent) => {
+      for (const mark of marks) {
+        const r = mark.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2);
+        const dy = e.clientY - (r.top + r.height / 2);
+        const dist = Math.hypot(dx, dy);
+        if (dist < 130) {
+          const pull = (1 - dist / 130) * 0.45;
+          mark.style.transform = `translate(${dx * pull}px, ${dy * pull}px)`;
+        } else {
+          mark.style.transform = 'translate(0, 0)';
+        }
+      }
+    };
+    const onLeave = () => {
+      for (const mark of marks) mark.style.transform = 'translate(0, 0)';
+    };
+
+    frame.addEventListener('mousemove', onMove);
+    frame.addEventListener('mouseleave', onLeave);
+    return () => {
+      frame.removeEventListener('mousemove', onMove);
+      frame.removeEventListener('mouseleave', onLeave);
+    };
+  }, [active, frameRef]);
+
+  if (!active) return null;
+
+  return (
+    <span aria-hidden="true" className="pointer-events-none">
+      <span
+        ref={topRef}
+        className="absolute z-[5] block transition-transform duration-[120ms] ease-out"
+        style={{ left: '60%', top: -6.5, marginLeft: -6.5 }}
+      >
+        <Crosshair />
+      </span>
+      <span
+        ref={bottomRef}
+        className="absolute z-[5] block transition-transform duration-[120ms] ease-out"
+        style={{ left: '60%', bottom: -6.5, marginLeft: -6.5 }}
+      >
+        <Crosshair />
+      </span>
+    </span>
+  );
+}
+
+// Inverted (black) radar cell. A single `day` (0–90) drives the playhead,
+// progress fill, per-item dots, the live "next up" readout, and both count tiles.
+function RenewalRadar() {
+  const [day, setDay] = useState(6);
+
+  const sorted = [...RADAR_ITEMS].sort((a, b) => a.days - b.days);
+  const passed = sorted.filter((it) => it.days <= day);
+  const ahead = sorted.filter((it) => it.days > day);
+  const next = ahead[0] ?? null;
+  const playheadPct = (day / 90) * 100;
+
+  return (
+    <div className="md:col-span-3 bg-foreground p-6 md:p-8 border-b md:border-b-0 md:border-r border-background/15">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-background/50">Renewal radar</p>
+          <h3 className="font-sans text-[22px] font-extrabold tracking-[-0.02em] text-background mt-1 leading-tight">
+            Scrub the next 90 days
+          </h3>
+        </div>
+        <div className="text-right">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-background/50">Next up</p>
+          {next ? (
+            <>
+              <p className="text-[15px] font-bold text-background mt-1">{next.name}</p>
+              <p className="font-mono text-[12px] text-brand-orange">in {next.days - day} days</p>
+            </>
+          ) : (
+            <>
+              <p className="text-[15px] font-bold text-background mt-1">All clear</p>
+              <p className="font-mono text-[12px] text-brand-orange">nothing ahead</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Track */}
+      <div className="relative mt-[26px] h-[52px]">
+        {/* baseline */}
+        <div className="absolute left-0 right-0 top-[26px] h-px" style={{ background: 'rgba(250,250,248,0.16)' }} />
+        {/* progress fill */}
+        <div className="absolute top-[21px] left-0 h-[11px]" style={{ width: `${playheadPct}%`, background: 'rgba(229,61,0,0.16)' }} />
+        {/* dots */}
+        {sorted.map((it) => {
+          const isNext = next ? it.name === next.name : false;
+          const isPast = it.days <= day;
+          const base = { left: `${(it.days / 90) * 100}%`, top: '26px' } as const;
+          const style = isNext
+            ? { ...base, width: 14, height: 14, marginLeft: -7, marginTop: -7, background: '#E53D00', border: '2px solid #FAFAF8', boxShadow: '0 0 0 4px rgba(229,61,0,0.25)', zIndex: 3 }
+            : isPast
+            ? { ...base, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, background: 'rgba(250,250,248,0.35)', border: '2px solid #FAFAF8' }
+            : { ...base, width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, background: '#161616', border: '2px solid rgba(250,250,248,0.7)' };
+          return (
+            <span
+              key={it.name}
+              title={`${it.name} · day ${it.days}`}
+              className="absolute rounded-full transition-all duration-150"
+              style={style}
+            />
+          );
+        })}
+        {/* playhead */}
+        <div
+          className="absolute w-[2px] h-[24px]"
+          style={{ left: `${playheadPct}%`, top: '14px', marginLeft: -1, background: '#E53D00', boxShadow: '0 0 10px rgba(229,61,0,0.7)' }}
+        />
+      </div>
+
+      {/* Scrubber */}
+      <input
+        type="range"
+        min={0}
+        max={90}
+        value={day}
+        onChange={(e) => setDay(Number(e.target.value))}
+        aria-label="Scrub the next 90 days"
+        className="radar-scrubber mt-2"
+      />
+      <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.1em] text-background/50 mt-1">
+        <span>Today</span>
+        <span className="text-background">Day {day}</span>
+        <span>+90</span>
+      </div>
+
+      {/* Count tiles */}
+      <div className="flex gap-2.5 mt-[22px]">
+        <div className="flex-1 border border-background/15 rounded-[2px] px-3.5 py-3">
+          <p className="text-[26px] font-extrabold leading-none text-background">{passed.length}</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-background/50 mt-1.5">Renewed by day {day}</p>
+        </div>
+        <div className="flex-1 border border-background/15 rounded-[2px] px-3.5 py-3">
+          <p className="text-[26px] font-extrabold leading-none text-brand-orange">{ahead.length}</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-background/50 mt-1.5">Still ahead</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Small receipt glyph for the "Always on file" header tile.
+function ReceiptGlyph() {
+  return (
+    <span className="relative block h-4 w-[13px] rounded-[1px] border-2 border-foreground">
+      <span className="absolute left-[2px] right-[2px] top-[2px] h-[1.5px]" style={{ background: '#E53D00' }} />
+      <span className="absolute left-[2px] right-[2px] top-[6px] h-[1.5px] bg-foreground" />
+    </span>
+  );
+}
+
+// Receipt cell — header + a window with an infinite upward CSS marquee. The line
+// list is rendered twice so the -50% roll loops seamlessly. Reduced motion is
+// handled by the global prefers-reduced-motion rule in index.css.
+function ReceiptTicker({ speed = 'calm' }: { speed?: 'calm' | 'brisk' }) {
+  const rollClass = speed === 'brisk' ? 'animate-roll-brisk' : 'animate-roll-calm';
+  return (
+    <div className="md:col-span-2 bg-background p-6 md:p-8 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[2px] bg-accent">
+          <ReceiptGlyph />
+        </div>
+        <div>
+          <h3 className="text-[17px] font-bold leading-tight text-foreground">Always on file</h3>
+          <p className="text-[13px] text-muted-foreground">Every charge, printed &amp; kept.</p>
+        </div>
+      </div>
+
+      {/* Receipt window */}
+      <div className="relative mt-5 min-h-[230px] flex-1 overflow-hidden rounded-[2px] border border-foreground/15 bg-white">
+        {/* perforated top edge */}
+        <div
+          className="absolute left-0 right-0 top-0 z-20 h-[10px]"
+          style={{
+            background: 'repeating-linear-gradient(90deg,#FAFAF8 0 6px,transparent 6px 12px)',
+            borderBottom: '1px dashed rgba(22,22,22,0.18)',
+          }}
+        />
+        {/* fade masks */}
+        <div className="pointer-events-none absolute left-0 right-0 top-[10px] z-10 h-8" style={{ background: 'linear-gradient(#fff, transparent)' }} />
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-8" style={{ background: 'linear-gradient(transparent, #fff)' }} />
+        {/* rolling lines (rendered twice for a seamless loop) */}
+        <div className={`absolute left-0 right-0 top-[14px] ${rollClass}`}>
+          {[...RECEIPT_LINES, ...RECEIPT_LINES].map((line, i) => (
+            <div key={i} className="flex items-center gap-2 px-4 py-2 font-mono text-[11px]">
+              <span className="whitespace-nowrap text-foreground">{line.name}</span>
+              <span className="leader-dots mb-[3px] flex-1 self-center" />
+              <span className="whitespace-nowrap text-muted-foreground">{line.amount}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 2×2 registration-dot grid for the bottom strip's orange tile.
+function RegistrationDots() {
+  return (
+    <span className="grid grid-cols-2 gap-1.5">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <span key={i} className="block h-1.5 w-1.5 rounded-full bg-background" />
+      ))}
+    </span>
+  );
+}
+
+// Count-up "caught before renewal" figure; reuses useCountUp + useInView.
+function CaughtStat({ reduced }: { reduced: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+  const count = useCountUp(203, inView, reduced);
+  return (
+    <span ref={ref} className="tabular-nums text-foreground">
+      $<span className="text-brand-orange">{count}</span>
+    </span>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function Landing() {
@@ -229,6 +446,9 @@ export default function Landing() {
 
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+
+  // Frame element for the Features bento's cursor-magnetic registration marks.
+  const featuresFrameRef = useRef<HTMLDivElement>(null);
 
   // Public marketing page — render immediately rather than waiting on the auth check.
   // Once auth resolves, logged-in visitors get redirected to the dashboard.
@@ -505,30 +725,33 @@ export default function Landing() {
 
       <Rule />
 
-      {/* ── Features — editorial framed bento (feature146-style) ─────────── */}
+      {/* ── Features — "Renewal Radar" interactive bento ─────────────────── */}
       <section id="features" className="py-20 px-4">
         <div className="container mx-auto max-w-5xl">
-          {/* Split header — heading left, supporting copy right */}
+          {/* Header — two-line headline with orange highlight */}
           <motion.div
-            className="grid md:grid-cols-2 gap-6 md:gap-12 items-end mb-10 md:mb-14"
+            className="mb-10 md:mb-14"
             initial={reduced ? {} : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
-            <div>
-              <h2 className="text-3xl md:text-4xl font-extrabold leading-[1.1]">
-                Built around<br />what matters
-              </h2>
-            </div>
-            <p className="text-muted-foreground md:text-right md:pb-1">
-              No spreadsheets. No guessing. Just clarity — every commitment filed,
-              dated, and surfaced before it costs you.
-            </p>
+            <h2 className="text-3xl md:text-4xl font-extrabold leading-[1.1]">
+              Built around<br />
+              what{' '}
+              <span className="relative inline-block">
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 bottom-1 -z-10 h-2 bg-brand-orange/90"
+                />
+                matters
+              </span>
+            </h2>
           </motion.div>
 
-          {/* Framed bento — hairline-divided cells with corner registration marks */}
+          {/* Framed bento — interactive renewal radar + receipt ticker */}
           <motion.div
+            ref={featuresFrameRef}
             className="relative border border-foreground/15"
             initial={reduced ? {} : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -536,35 +759,33 @@ export default function Landing() {
             transition={{ delay: 0.08, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
             <FrameCorners />
+            <MagneticMarks frameRef={featuresFrameRef} enabled={!reduced} />
 
-            {/* Top row — wide timeline cell + narrow alerts cell */}
+            {/* Top row — radar (3fr) + receipt ticker (2fr) */}
             <div className="grid md:grid-cols-5">
-              <div className="md:col-span-3 p-6 md:p-8 flex flex-col border-b md:border-b-0 md:border-r border-foreground/15">
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent flex-shrink-0 mb-4">
-                  <Calendar className="w-5 h-5 text-brand-orange" />
-                </div>
-                <h3 className="font-semibold mb-1">{FEATURES[0].title}</h3>
-                <p className="text-sm text-muted-foreground">{FEATURES[0].description}</p>
-                <AnimatedTimeline reduced={reduced} />
-              </div>
-
-              <div className="md:col-span-2 p-6 md:p-8 flex flex-col">
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent flex-shrink-0 mb-4">
-                  <Bell className="w-5 h-5 text-brand-orange" />
-                </div>
-                <h3 className="font-semibold mb-1">{FEATURES[1].title}</h3>
-                <p className="text-sm text-muted-foreground">{FEATURES[1].description}</p>
-              </div>
+              <RenewalRadar />
+              <ReceiptTicker />
             </div>
 
-            {/* Bottom row — panoramic full-width cell */}
-            <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-4 md:gap-8 border-t border-foreground/15">
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-accent flex-shrink-0">
-                <LayoutGrid className="w-5 h-5 text-brand-orange" />
+            {/* Bottom row — panoramic strip with count-up stat */}
+            <div className="flex flex-col gap-6 border-t border-foreground/15 p-6 md:flex-row md:items-center md:gap-7 md:p-8">
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[2px] bg-brand-orange">
+                <RegistrationDots />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-1">{FEATURES[2].title}</h3>
-                <p className="text-sm text-muted-foreground max-w-2xl">{FEATURES[2].description}</p>
+                <h3 className="text-lg font-extrabold text-foreground">One organised view</h3>
+                <p className="mt-1 max-w-[52ch] text-[13px] text-muted-foreground">
+                  All your commitments — subscriptions, contracts, warranties, leases —
+                  filtered by category and sorted by date.
+                </p>
+              </div>
+              <div className="md:border-l md:border-foreground/15 md:pl-7 md:text-right">
+                <p className="text-[40px] font-black leading-none tracking-[-0.03em]">
+                  <CaughtStat reduced={reduced} />
+                </p>
+                <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                  Caught before renewal
+                </p>
               </div>
             </div>
           </motion.div>
