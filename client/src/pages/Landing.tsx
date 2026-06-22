@@ -737,16 +737,18 @@ export default function Landing() {
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
             <h2 className="text-3xl md:text-4xl font-extrabold leading-[1.1]">
-              Built around<br />
-              what{' '}
+              Nothing slips<br />
               <span className="relative inline-block">
                 <span
                   aria-hidden="true"
                   className="absolute inset-x-0 bottom-1 -z-10 h-2 bg-brand-orange/90"
                 />
-                matters
+                through
               </span>
             </h2>
+            <p className="mt-4 max-w-md text-muted-foreground">
+              Every renewal, contract and warranty on one timeline — surfaced before it costs you.
+            </p>
           </motion.div>
 
           {/* Framed bento — interactive renewal radar + receipt ticker */}
