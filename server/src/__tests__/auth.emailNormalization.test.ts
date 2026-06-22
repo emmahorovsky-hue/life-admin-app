@@ -33,7 +33,11 @@ describe('Auth email normalization', () => {
     await prisma.$disconnect();
   });
 
-  it('preserves dots in Gmail addresses on register (gmail_remove_dots=false)', async () => {
+  // Gmail treats dots as insignificant (a.b@gmail.com and ab@gmail.com are the
+  // same inbox), so normalizeEmail() canonicalizes to a single dotless form.
+  // Storing the address as typed previously let the same inbox register twice
+  // and broke login for accounts created before the as-typed change (LIF-80).
+  it('strips dots from Gmail addresses on register (canonical dotless form)', async () => {
     const response = await request(app).post('/api/auth/register').send({
       email: 'first.last@gmail.com',
       password: 'TestPass123!',
@@ -41,30 +45,39 @@ describe('Auth email normalization', () => {
     });
 
     expect(response.status).toBe(201);
-    expect(response.body.user.email).toBe('first.last@gmail.com');
+    expect(response.body.user.email).toBe('firstlast@gmail.com');
 
-    // The stored email must keep the dots, not be collapsed to firstlast@gmail.com
+    // The stored email is the dotless canonical form
     const stored = await prisma.user.findUnique({
-      where: { email: 'first.last@gmail.com' },
+      where: { email: 'firstlast@gmail.com' },
     });
     expect(stored).not.toBeNull();
-    expect(stored!.email).toBe('first.last@gmail.com');
+    expect(stored!.email).toBe('firstlast@gmail.com');
   });
 
-  it('lets a dotted Gmail address register then log in (round-trip)', async () => {
+  it('lets a Gmail user log in with either the dotted or dotless form', async () => {
+    // Register with dots...
     await request(app).post('/api/auth/register').send({
       email: 'first.last@gmail.com',
       password: 'TestPass123!',
       name: 'Dotted User',
     });
 
-    const login = await request(app).post('/api/auth/login').send({
-      email: 'first.last@gmail.com',
+    // ...log in with the dotless form...
+    const dotless = await request(app).post('/api/auth/login').send({
+      email: 'firstlast@gmail.com',
       password: 'TestPass123!',
     });
+    expect(dotless.status).toBe(200);
+    expect(dotless.body.user.email).toBe('firstlast@gmail.com');
 
-    expect(login.status).toBe(200);
-    expect(login.body.user.email).toBe('first.last@gmail.com');
+    // ...and with a differently-dotted form — both resolve to the same record.
+    const dotted = await request(app).post('/api/auth/login').send({
+      email: 'fir.st.last@gmail.com',
+      password: 'TestPass123!',
+    });
+    expect(dotted.status).toBe(200);
+    expect(dotted.body.user.email).toBe('firstlast@gmail.com');
   });
 
   it('still lowercases the address on register', async () => {
@@ -75,6 +88,6 @@ describe('Auth email normalization', () => {
     });
 
     expect(response.status).toBe(201);
-    expect(response.body.user.email).toBe('first.last@gmail.com');
+    expect(response.body.user.email).toBe('firstlast@gmail.com');
   });
 });
