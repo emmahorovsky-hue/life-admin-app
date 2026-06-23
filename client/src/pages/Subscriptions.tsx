@@ -55,7 +55,10 @@ export default function Subscriptions() {
   useEffect(() => {
     if ((location.state as { openAdd?: boolean } | null)?.openAdd) {
       setUploadDialogOpen(true);
-      navigate(location.pathname, { replace: true, state: null });
+      navigate(`${location.pathname}${location.search}${location.hash}`, {
+        replace: true,
+        state: null,
+      });
     }
   }, [location, navigate]);
 
