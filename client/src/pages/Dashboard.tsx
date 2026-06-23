@@ -254,7 +254,7 @@ export default function Dashboard() {
             {categoryData.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <p className="text-muted-foreground mb-4">No subscriptions yet</p>
-                <Button onClick={() => navigate('/subscriptions')}>
+                <Button onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
                   Add Subscription
                 </Button>
               </div>
@@ -297,7 +297,7 @@ export default function Dashboard() {
             <p className="text-muted-foreground">
               Start tracking your subscriptions to see insights and never miss a renewal!
             </p>
-            <Button onClick={() => navigate('/subscriptions')}>
+            <Button onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
               Add Your First Subscription
             </Button>
           </CardContent>
