@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   subscriptionApi,
   Subscription,
@@ -19,6 +19,8 @@ import { format } from 'date-fns';
 import { getApiErrorMessage } from '@/lib/utils';
 
 export default function Subscriptions() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -48,6 +50,15 @@ export default function Subscriptions() {
     loadSubscriptions();
   }, []);
 
+  // Open the upload flow directly when navigated here from an "add" button
+  // elsewhere (e.g. the Dashboard). Clear the state so it doesn't re-fire on refresh/back.
+  useEffect(() => {
+    if ((location.state as { openAdd?: boolean } | null)?.openAdd) {
+      setUploadDialogOpen(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location, navigate]);
+
   const handleDelete = async (id: string) => {
     try {
       await subscriptionApi.delete(id);
@@ -73,15 +84,9 @@ export default function Subscriptions() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">All Subscriptions</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setUploadDialogOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Receipt
-          </Button>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            Add Subscription
-          </Button>
-        </div>
+        <Button onClick={() => setUploadDialogOpen(true)}>
+          Add Subscription
+        </Button>
       </div>
 
       {/* Filters */}
@@ -130,7 +135,7 @@ export default function Subscriptions() {
                 : 'No subscriptions yet'}
             </p>
             {!searchTerm && categoryFilter === 'all' && (
-              <Button onClick={() => setAddDialogOpen(true)}>
+              <Button onClick={() => setUploadDialogOpen(true)}>
                 Add Your First Subscription
               </Button>
             )}
@@ -213,6 +218,10 @@ export default function Subscriptions() {
           setExtractedCandidate(candidate);
           setUploadDialogOpen(false);
           setReviewDialogOpen(true);
+        }}
+        onManual={() => {
+          setUploadDialogOpen(false);
+          setAddDialogOpen(true);
         }}
       />
 

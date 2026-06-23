@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import UploadReceiptDialog from './UploadReceiptDialog';
 import ReviewExtractedDialog from './ReviewExtractedDialog';
+import AddSubscriptionDialog from './AddSubscriptionDialog';
 import { subscriptionApi, SubscriptionCandidate } from '@/lib/subscriptions';
 
 // Mock the API surface but keep the real categories/billingCycles the dialogs render.
@@ -31,10 +32,11 @@ const CANDIDATE: SubscriptionCandidate = {
   uncertainFields: ['cost'],
 };
 
-// Mirrors the upload -> review wiring in pages/Subscriptions.tsx.
+// Mirrors the upload -> review (and upload -> manual) wiring in pages/Subscriptions.tsx.
 function ReceiptFlowHarness({ onSuccess }: { onSuccess: () => void }) {
   const [uploadOpen, setUploadOpen] = useState(true);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [candidate, setCandidate] = useState<SubscriptionCandidate | null>(null);
 
   return (
@@ -47,11 +49,20 @@ function ReceiptFlowHarness({ onSuccess }: { onSuccess: () => void }) {
           setUploadOpen(false);
           setReviewOpen(true);
         }}
+        onManual={() => {
+          setUploadOpen(false);
+          setManualOpen(true);
+        }}
       />
       <ReviewExtractedDialog
         open={reviewOpen}
         onOpenChange={setReviewOpen}
         candidate={candidate}
+        onSuccess={onSuccess}
+      />
+      <AddSubscriptionDialog
+        open={manualOpen}
+        onOpenChange={setManualOpen}
         onSuccess={onSuccess}
       />
     </>
@@ -133,5 +144,32 @@ describe('receipt upload -> review flow', () => {
       })
     );
     expect(onSuccess).toHaveBeenCalled();
+  });
+
+  it('lets the user skip the upload and add a subscription manually', async () => {
+    mockedCreate.mockResolvedValue({ id: 'sub-1' } as Awaited<
+      ReturnType<typeof subscriptionApi.create>
+    >);
+    const onSuccess = vi.fn();
+    const user = userEvent.setup();
+    render(<ReceiptFlowHarness onSuccess={onSuccess} />);
+
+    // Escape hatch on the upload screen opens the empty manual form.
+    await user.click(screen.getByRole('button', { name: /enter manually instead/i }));
+
+    const nameInput = await screen.findByLabelText('Service Name *');
+    expect(nameInput).toHaveValue('');
+    expect(screen.queryByText('Review Extracted Subscription')).not.toBeInTheDocument();
+
+    await user.type(nameInput, 'Spotify');
+    await user.click(screen.getByRole('button', { name: /^add subscription$/i }));
+
+    await waitFor(() => expect(mockedCreate).toHaveBeenCalledTimes(1));
+    expect(mockedCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Spotify' })
+    );
+    expect(onSuccess).toHaveBeenCalled();
+    // The manual path must not call the extraction API.
+    expect(mockedExtract).not.toHaveBeenCalled();
   });
 });

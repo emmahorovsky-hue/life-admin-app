@@ -19,6 +19,7 @@ interface UploadReceiptDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onExtracted: (candidate: SubscriptionCandidate) => void;
+  onManual: () => void;
 }
 
 const ACCEPTED = '.pdf,.png,.jpg,.jpeg,.webp';
@@ -27,6 +28,7 @@ export default function UploadReceiptDialog({
   open,
   onOpenChange,
   onExtracted,
+  onManual,
 }: UploadReceiptDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,6 +46,12 @@ export default function UploadReceiptDialog({
     onOpenChange(next);
   };
 
+  const handleManual = () => {
+    if (loading) return;
+    reset();
+    onManual();
+  };
+
   const handleExtract = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
@@ -54,7 +62,7 @@ export default function UploadReceiptDialog({
       const result = await subscriptionApi.extract(file);
       if (result.candidates.length === 0) {
         setError(
-          "We couldn't read a subscription from that file. Please add it manually."
+          "We couldn't read a subscription from that file — enter it manually below."
         );
         return;
       }
@@ -65,7 +73,7 @@ export default function UploadReceiptDialog({
       setError(
         getApiErrorMessage(
           err,
-          'Failed to extract subscription from file. Please try again or add it manually.'
+          'Failed to extract subscription from file. Please try again or enter it manually below.'
         )
       );
     } finally {
@@ -109,6 +117,15 @@ export default function UploadReceiptDialog({
           )}
 
           <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="link"
+              onClick={handleManual}
+              disabled={loading}
+              className="px-0 sm:mr-auto"
+            >
+              Enter manually instead
+            </Button>
             <Button
               type="button"
               variant="outline"
