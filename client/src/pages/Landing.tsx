@@ -896,7 +896,15 @@ export default function Landing() {
             <Logo height={18} />
             <span>© {new Date().getFullYear()}</span>
           </div>
-          <div className="flex gap-4">
+          <div className="flex items-center gap-4">
+            <a
+              href="https://logo.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Logos by Logo.dev
+            </a>
             <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Sign In
             </Link>

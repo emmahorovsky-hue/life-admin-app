@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import AddSubscriptionDialog from '@/components/AddSubscriptionDialog';
 import EditSubscriptionDialog from '@/components/EditSubscriptionDialog';
 import UploadReceiptDialog from '@/components/UploadReceiptDialog';
@@ -155,6 +156,11 @@ export default function Subscriptions() {
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3">
+                      <SubscriptionLogo
+                        name={sub.name}
+                        category={sub.category}
+                        size={32}
+                      />
                       <h3 className="text-xl font-semibold">{sub.name}</h3>
                       <Badge variant="secondary">
                         {categories.find((c) => c.id === sub.category)?.name || sub.category}

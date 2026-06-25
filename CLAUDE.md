@@ -87,6 +87,7 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `ANTHROPIC_API_KEY` | Receipt/invoice AI extraction (optional; feature degrades gracefully without it) |
 | `AI_MODEL`      | Claude model id for extraction (optional, defaults to `claude-haiku-4-5`)        |
 | `VITE_API_URL`  | Frontend axios baseURL (defaults to `/api` for same-origin proxy)    |
+| `VITE_LOGO_DEV_TOKEN` | Brand logos on subscription rows via logo.dev (optional; rows fall back to category icons without it). Publishable client-side token. |
 
 ### Database schema highlights
 
