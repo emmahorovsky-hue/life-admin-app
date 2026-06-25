@@ -28,7 +28,9 @@ function SidebarContent({ currentPath, userEmail, onNav, onLogout, onClose }: Si
   return (
     <>
       <div className="p-6 border-b flex items-center justify-between">
-        <Logo height={24} />
+        <h1 className="leading-none">
+          <Logo height={24} />
+        </h1>
         {onClose && (
           <Button variant="ghost" size="sm" aria-label="Close navigation" onClick={onClose}>
             <X className="h-5 w-5" />
@@ -103,7 +105,9 @@ export default function Layout({ children }: LayoutProps) {
         <div className="flex flex-col flex-1 min-w-0 overflow-y-auto">
           {/* Mobile header */}
           <header className="md:hidden flex items-center justify-between px-4 py-3 border-b bg-card">
-            <Logo height={24} />
+            <h1 className="leading-none">
+              <Logo height={24} />
+            </h1>
             <Button variant="ghost" size="sm" aria-label="Open navigation" onClick={() => setMobileOpen(true)}>
               <Menu className="h-5 w-5" />
             </Button>
