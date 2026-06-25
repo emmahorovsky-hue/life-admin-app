@@ -2,6 +2,7 @@ import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { buttonVariants } from '@/components/ui/button';
 import { APP_NAME } from '@/lib/constants';
+import { Logo } from '@/components/Logo';
 import {
   RefreshCw, FileText, Users, Shield, Globe, Home,
 } from 'lucide-react';
@@ -476,8 +477,8 @@ export default function Landing() {
         className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       >
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-foreground">
-            {APP_NAME}
+          <Link to="/" aria-label={`${APP_NAME} home`}>
+            <Logo height={26} />
           </Link>
           <div className="flex items-center gap-2">
             <Link to="/login" className={buttonVariants({ variant: 'ghost', size: 'default' })}>
@@ -833,7 +834,7 @@ export default function Landing() {
             transition={{ delay: 0.16, duration: 0.5, ease: 'easeOut' }}
           >
             is what forgotten subscriptions and auto-renewals can quietly add up to.
-            Paypr keeps every renewal, contract, and warranty on one timeline - so
+            {APP_NAME} keeps every renewal, contract, and warranty on one timeline - so
             nothing slips through.
           </motion.p>
         </div>
@@ -891,9 +892,10 @@ export default function Landing() {
         transition={{ duration: 0.6 }}
       >
         <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} {APP_NAME}
-          </p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Logo height={18} />
+            <span>© {new Date().getFullYear()}</span>
+          </div>
           <div className="flex gap-4">
             <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Sign In

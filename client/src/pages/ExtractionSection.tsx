@@ -8,6 +8,7 @@
 
 import { Check } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { APP_NAME } from '@/lib/constants';
 
 const EXTRACTED_FIELDS = [
   { label: 'Merchant', value: 'Nordic Gym Co.' },
@@ -137,7 +138,7 @@ export default function ExtractionSection() {
 
             <p className="text-sm text-muted-foreground mt-7 max-w-md leading-relaxed">
               Upload any receipt, invoice or renewal notice — PDF or photo — and
-              Paypr fills in every field for you. You just glance and confirm.
+              {' '}{APP_NAME} fills in every field for you. You just glance and confirm.
             </p>
           </div>
         </div>
