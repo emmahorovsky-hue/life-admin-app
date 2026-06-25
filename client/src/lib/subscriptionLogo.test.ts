@@ -38,6 +38,7 @@ describe('logoUrlForName', () => {
     expect(url).toContain('token=pk_test');
     expect(url).toContain('size=64');
     expect(url).toContain('format=png');
+    expect(url).toContain('fallback=404');
   });
 
   it('returns null for an unresolvable name even with a token', () => {

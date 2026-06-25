@@ -72,7 +72,15 @@ export function logoUrlForName(name: string): string | null {
   const domain = domainForName(name);
   if (!domain) return null;
 
-  const params = new URLSearchParams({ token, size: '64', format: 'png' });
+  // `fallback=404` makes logo.dev return a 404 (not a generated monogram) for
+  // domains it doesn't recognize, so the <img> onError fires and the row falls
+  // back to the category icon instead of showing a generic letter placeholder.
+  const params = new URLSearchParams({
+    token,
+    size: '64',
+    format: 'png',
+    fallback: '404',
+  });
   return `https://img.logo.dev/${domain}?${params.toString()}`;
 }
 
