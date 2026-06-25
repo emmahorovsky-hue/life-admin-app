@@ -24,7 +24,7 @@ export function buildEmailHtml({ heading, bodyHtml, ctaText, ctaUrl, footerNote,
       <body style="margin: 0; padding: 32px 16px; background: #FBFBF9; font-family: 'Archivo', system-ui, sans-serif; color: #161616;">
         <div style="max-width: 560px; margin: 0 auto; background: #FBFBF9; border: 1px solid #CBC7C1; border-radius: 2px; overflow: hidden;">
           <div style="padding: 20px 32px; border-bottom: 1px dashed #CBC7C1;">
-            <span style="font-size: 20px; font-weight: 700; color: #161616;">Paypr</span>
+            <img src="${CLIENT_URL}/paypr-wordmark.png" alt="Paypr" width="89" height="28" style="display: block; height: 28px; width: auto; border: 0;" />
           </div>
           ${illustration}
           <div style="padding: 32px 32px 24px;">

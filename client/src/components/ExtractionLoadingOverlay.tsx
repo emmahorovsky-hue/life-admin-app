@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { APP_NAME } from '@/lib/constants';
 
 const FIELDS = ['Merchant', 'Category', 'Amount', 'Cycle', 'Renewal date'];
 
@@ -81,7 +82,7 @@ export default function ExtractionLoadingOverlay({
       >
         {/* Heading + cycling status */}
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-brand-orange">
-          Paypr · AI
+          {APP_NAME} · AI
         </p>
         <div className="mt-1 h-6 overflow-hidden">
           <AnimatePresence mode="wait">

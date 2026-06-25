@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { APP_NAME } from '@/lib/constants';
+import { Logo } from './Logo';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -20,10 +21,10 @@ export default function AuthLayout({ children, illustration = '/hero-auth.webp' 
         <div className="flex justify-center gap-2 md:justify-start">
           <Link
             to="/"
-            className="text-xl font-black transition-opacity hover:opacity-70"
+            className="transition-opacity hover:opacity-70"
             aria-label={`${APP_NAME} home`}
           >
-            {APP_NAME}
+            <Logo height={26} />
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">{children}</div>
