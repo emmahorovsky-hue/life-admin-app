@@ -116,8 +116,7 @@ export default function Profile() {
   return (
     <div className="space-y-6 max-w-xl">
       <div>
-        <h2 className="text-3xl font-bold mb-2">Profile</h2>
-        <p className="text-muted-foreground">Manage your account details</p>
+        <h2 className="text-3xl font-bold">Profile<span className="text-brand-orange">.</span></h2>
       </div>
 
       {emailChanged && (

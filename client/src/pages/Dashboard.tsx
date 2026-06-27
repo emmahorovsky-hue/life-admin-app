@@ -106,12 +106,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold mb-2">
-          Welcome back, {user?.name || user?.email?.split('@')[0]}
+        <h2 className="text-3xl font-bold">
+          Welcome back, {user?.name || user?.email?.split('@')[0]}<span className="text-brand-orange">.</span>
         </h2>
-        <p className="text-muted-foreground">
-          Here's your subscription overview
-        </p>
       </div>
 
       {/* Summary tiles */}
