@@ -87,7 +87,7 @@ export default function Subscriptions() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold">All Subscriptions</h2>
+        <h2 className="text-3xl font-bold">All Subscriptions<span className="text-brand-orange">.</span></h2>
         <Button onClick={() => setUploadDialogOpen(true)}>
           Add Subscription
         </Button>

@@ -11,6 +11,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
+const Timeline = lazy(() => import('./pages/Timeline'));
 const VerifyEmailSuccess = lazy(() => import('./pages/VerifyEmailSuccess'));
 const VerifyEmailError = lazy(() => import('./pages/VerifyEmailError'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -53,6 +54,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Subscriptions />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/timeline"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Timeline />
                   </Layout>
                 </ProtectedRoute>
               }
