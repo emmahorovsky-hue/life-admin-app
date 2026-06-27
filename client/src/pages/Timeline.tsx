@@ -18,6 +18,14 @@ const BUCKET_LABELS: Record<BucketId, string> = {
 
 const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
 
+// renewalDate is stored as UTC-midnight ISO; parse the date-only portion as a
+// LOCAL calendar date so day-counts/buckets don't shift a day in timezones
+// behind UTC (e.g. "2026-06-30T00:00:00.000Z" → local Jun 30, not Jun 29).
+function parseRenewalDate(value: string): Date {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 // Relative day count → "today" / "tomorrow" / "in N days" (matches the mockup).
 function relativeDays(days: number): string {
   if (days <= 0) return 'today';
@@ -68,9 +76,8 @@ export default function Timeline() {
   if (loading) {
     return (
       <div className="space-y-6 max-w-3xl">
-        <div className="animate-pulse space-y-2">
+        <div className="animate-pulse">
           <div className="h-8 bg-muted rounded w-1/3" />
-          <div className="h-4 bg-muted rounded w-1/2" />
         </div>
         <div className="space-y-3 pt-2">
           {[1, 2, 3, 4].map((i) => (
@@ -99,7 +106,7 @@ export default function Timeline() {
     nextMonth: [],
   };
   for (const sub of subscriptions) {
-    const bucket = bucketFor(new Date(sub.renewalDate), today);
+    const bucket = bucketFor(parseRenewalDate(sub.renewalDate), today);
     if (bucket) buckets[bucket].push(sub);
   }
 
@@ -146,12 +153,13 @@ export default function Timeline() {
 
                 <div className="space-y-3">
                   {buckets[id].map((sub) => {
-                    const days = differenceInCalendarDays(new Date(sub.renewalDate), today);
+                    const renewal = parseRenewalDate(sub.renewalDate);
+                    const days = differenceInCalendarDays(renewal, today);
                     return (
                       <div key={sub.id} className="flex items-baseline gap-1">
                         <span className="font-mono font-bold text-sm shrink-0">{sub.name}</span>
                         <span className="text-xs text-muted-foreground font-mono shrink-0 ml-2">
-                          {format(new Date(sub.renewalDate), 'MMM d')} · {categoryLabel(sub.category)}
+                          {format(renewal, 'MMM d')} · {categoryLabel(sub.category)}
                         </span>
                         <div className="leader-dots flex-1 mx-2 mb-0.5" />
                         <span
