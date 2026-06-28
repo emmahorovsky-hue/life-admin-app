@@ -11,6 +11,7 @@ export interface DashboardSummary {
     cost: string;
     renewalDate: string;
     daysUntilRenewal: number;
+    category: string;
   }>;
 }
 

@@ -79,6 +79,7 @@ export const getDashboardSummary = async (
           cost: sub.cost.toString(),
           renewalDate: sub.renewalDate,
           daysUntilRenewal,
+          category: sub.category,
         };
       });
 

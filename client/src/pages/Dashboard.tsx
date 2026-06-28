@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { dashboardApi, DashboardSummary } from '@/lib/dashboard';
 import { subscriptionApi, categories } from '@/lib/subscriptions';
 import { formatCurrency, dominantCurrency, DEFAULT_CURRENCY } from '@/lib/currency';
+import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -200,7 +201,8 @@ export default function Dashboard() {
                 {/* Renewal rows */}
                 <div className="space-y-3">
                   {shownRenewals.map((renewal) => (
-                    <div key={renewal.id} className="flex items-baseline gap-1">
+                    <div key={renewal.id} className="flex items-center gap-1">
+                      <SubscriptionLogo name={renewal.name} category={renewal.category} size={20} className="shrink-0" />
                       <span className="font-mono font-bold text-sm shrink-0">{renewal.name}</span>
                       <span className="text-xs text-muted-foreground font-mono shrink-0 ml-1">
                         {format(new Date(renewal.renewalDate), 'MMM d')}
