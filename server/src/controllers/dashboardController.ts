@@ -77,6 +77,7 @@ export const getDashboardSummary = async (
         renewalDate: sub.renewalDate,
         nextRenewalDate: toRenewalIsoString(next),
         daysUntilRenewal: daysUntil(next, now),
+        category: sub.category,
       }));
 
     res.status(200).json({
