@@ -1,6 +1,7 @@
 {
   "framework": "vite",
-  "buildCommand": "npm run build",
+  "installCommand": "cd .. && npm install",
+  "buildCommand": "cd .. && npm run build --workspace client",
   "outputDirectory": "dist",
   "rewrites": [
     {
