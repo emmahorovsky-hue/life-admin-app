@@ -74,6 +74,14 @@ describe('csrfMiddleware', () => {
     expect(res.status).toBe(200);
   });
 
+  it('bypasses CSRF validation for Bearer token requests', async () => {
+    const res = await request(buildApp())
+      .post('/api/mutate')
+      .set('Authorization', 'Bearer some.jwt.token')
+      .send({});
+    expect(res.status).toBe(200);
+  });
+
   it('returns 403 (not 500) for a non-ASCII header of equal string length', async () => {
     const app = buildApp();
     const agent = request.agent(app);
