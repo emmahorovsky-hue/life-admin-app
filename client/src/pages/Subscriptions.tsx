@@ -124,8 +124,28 @@ export default function Subscriptions() {
 
       {/* Loading */}
       {loading && (
-        <div className="text-center text-muted-foreground py-12">
-          Loading subscriptions...
+        <div className="grid gap-4" role="status" aria-label="Loading subscriptions">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-3 animate-pulse">
+                      <div className="h-8 w-8 bg-muted rounded" />
+                      <div className="h-6 bg-muted rounded w-40" />
+                      <div className="h-5 bg-muted rounded w-16" />
+                    </div>
+                    <div className="flex gap-4 animate-pulse">
+                      <div className="h-4 bg-muted rounded w-20" />
+                      <div className="h-4 bg-muted rounded w-16" />
+                      <div className="h-4 bg-muted rounded w-32" />
+                    </div>
+                  </div>
+                  <div className="h-8 w-14 bg-muted rounded animate-pulse" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 

@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 // Landing is the marketing entry point ('/') — eager-import it so it paints on
 // the first round trip instead of waterfalling through the Suspense fallback.
 import Landing from './pages/Landing';
+import { LoadingScreen } from './components/LoadingScreen';
 
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -19,19 +20,11 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Profile = lazy(() => import('./pages/Profile'));
 const DesignSystem = lazy(() => import('./pages/DesignSystem'));
 
-function PageFallback() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-muted-foreground">Loading...</div>
-    </div>
-  );
-}
-
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <Suspense fallback={<PageFallback />}>
+        <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
