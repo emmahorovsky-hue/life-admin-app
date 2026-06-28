@@ -15,7 +15,10 @@ export const authenticateToken = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const token = req.cookies.token;
+    const authHeader = req.headers['authorization'];
+    const token =
+      (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null) ??
+      req.cookies.token;
 
     if (!token) {
       res.status(401).json({
