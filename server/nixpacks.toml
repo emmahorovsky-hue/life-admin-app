@@ -8,8 +8,15 @@ nixPkgs = ["nodejs_20", "openssl"]
 # --include=dev forces devDependencies (TypeScript @types/*) to install even when
 # the Railway service sets NODE_ENV=production. tsc needs them at build time; the
 # runtime image only runs the compiled dist/, so the extra deps are harmless.
+#
+# Uses `npm install` (not `npm ci`): the per-package server/package-lock.json was
+# removed in favour of the root workspace lockfile (packages/shared is now an npm
+# workspace). With Railway's Root Directory set to "server" that root lockfile is
+# not in the build context, so `npm ci` would fail ("no package-lock.json"). The
+# server has no @life-admin/shared dependency, so `npm install` resolves cleanly
+# from server/package.json alone.
 [phases.install]
-cmds = ["npm ci --include=dev"]
+cmds = ["npm install --include=dev"]
 
 [phases.build]
 cmds = [
