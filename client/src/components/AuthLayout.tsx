@@ -6,6 +6,7 @@ interface AuthLayoutProps {
   children: React.ReactNode;
   /** Illustration shown in the right column. Defaults to the auth desk image. */
   illustration?: string;
+  hideLegalFooter?: boolean;
 }
 
 /**
@@ -13,7 +14,7 @@ interface AuthLayoutProps {
  * illustration on the right. The illustration drops away below `lg`,
  * leaving a centered form for mobile/tablet.
  */
-export default function AuthLayout({ children, illustration = '/hero-auth.webp' }: AuthLayoutProps) {
+export default function AuthLayout({ children, illustration = '/hero-auth.webp', hideLegalFooter = false }: AuthLayoutProps) {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       {/* Form column */}
@@ -28,6 +29,12 @@ export default function AuthLayout({ children, illustration = '/hero-auth.webp' 
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">{children}</div>
+        {!hideLegalFooter && (
+          <footer className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+            <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+          </footer>
+        )}
       </div>
 
       {/* Illustration column */}

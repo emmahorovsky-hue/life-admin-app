@@ -49,7 +49,7 @@ export default function Register() {
   };
 
   return (
-    <AuthLayout illustration="/hero-desk.webp">
+    <AuthLayout illustration="/hero-desk.webp" hideLegalFooter>
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold">Create your account</h1>
@@ -110,6 +110,18 @@ export default function Register() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Creating account...' : 'Create Account'}
           </Button>
+
+          <p className="text-center text-xs text-muted-foreground">
+            By creating an account, you agree to our{' '}
+            <Link to="/terms" className="underline underline-offset-4 hover:text-foreground transition-colors">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link to="/privacy" className="underline underline-offset-4 hover:text-foreground transition-colors">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
