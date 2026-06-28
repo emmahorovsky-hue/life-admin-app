@@ -89,6 +89,7 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
 
     res.status(201).json({
       message: 'User registered successfully',
+      token,
       user,
     });
   } catch (error) {
@@ -155,6 +156,7 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
 
     res.status(200).json({
       message: 'Login successful',
+      token,
       user: {
         id: user.id,
         email: user.email,
@@ -427,7 +429,11 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
 
     res.cookie('token', token, COOKIE_OPTIONS);
 
-    res.status(200).json({ message: 'Password updated successfully.' });
+    const isBearer = req.headers['authorization']?.startsWith('Bearer ');
+    res.status(200).json({
+      message: 'Password updated successfully.',
+      ...(isBearer && { token }),
+    });
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ error: { message: 'Failed to change password', code: 'CHANGE_PASSWORD_FAILED' } });
