@@ -7,15 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateProfile, changePassword, initiateEmailChange } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/utils';
-
-function isValidPassword(password: string): boolean {
-  return (
-    password.length >= 8 &&
-    /[A-Z]/.test(password) &&
-    /[0-9]/.test(password) &&
-    /[^a-zA-Z0-9\s]/.test(password)
-  );
-}
+import { isValidPassword } from '@life-admin/shared';
 
 export default function Profile() {
   const { user, updateUser } = useAuth();

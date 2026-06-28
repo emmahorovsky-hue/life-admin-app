@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { subscriptionApi, categories, Subscription } from '@/lib/subscriptions';
+import { subscriptionApi, categories } from '@/lib/subscriptions';
+import type { Subscription } from '@/lib/subscriptions';
 import { formatCurrency } from '@/lib/currency';
 import { getApiErrorMessage } from '@/lib/utils';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
-
-// Bucket ids in display order. Each subscription's renewalDate is assigned to the
-// first matching bucket; overdue and beyond-next-month renewals are dropped.
-type BucketId = 'thisWeek' | 'laterThisMonth' | 'nextMonth';
+import { parseRenewalDate, relativeDays, bucketFor } from '@life-admin/shared';
+import type { BucketId } from '@life-admin/shared';
 
 const BUCKET_LABELS: Record<BucketId, string> = {
   thisWeek: 'This Week',
@@ -18,38 +17,6 @@ const BUCKET_LABELS: Record<BucketId, string> = {
 };
 
 const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
-
-// renewalDate is stored as UTC-midnight ISO; parse the date-only portion as a
-// LOCAL calendar date so day-counts/buckets don't shift a day in timezones
-// behind UTC (e.g. "2026-06-30T00:00:00.000Z" → local Jun 30, not Jun 29).
-function parseRenewalDate(value: string): Date {
-  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
-  return new Date(year, month - 1, day);
-}
-
-// Relative day count → "today" / "tomorrow" / "in N days" (matches the mockup).
-function relativeDays(days: number): string {
-  if (days <= 0) return 'today';
-  if (days === 1) return 'tomorrow';
-  return `in ${days} days`;
-}
-
-// Assign a subscription to a bucket from today, or null to hide it.
-function bucketFor(renewal: Date, today: Date): BucketId | null {
-  const days = differenceInCalendarDays(renewal, today);
-  if (days < 0) return null; // overdue — hidden
-  if (days <= 7) return 'thisWeek';
-
-  const sameMonth =
-    renewal.getFullYear() === today.getFullYear() && renewal.getMonth() === today.getMonth();
-  if (sameMonth) return 'laterThisMonth';
-
-  const next = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-  if (renewal.getFullYear() === next.getFullYear() && renewal.getMonth() === next.getMonth()) {
-    return 'nextMonth';
-  }
-  return null; // beyond next month — hidden
-}
 
 export default function Timeline() {
   const navigate = useNavigate();

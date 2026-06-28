@@ -1,20 +1,9 @@
 import api from './api';
-import { Subscription } from './subscriptions';
+import type { Subscription } from '@life-admin/shared';
 
-export interface DashboardSummary {
-  totalMonthlySpend: number;
-  totalAnnualSpend: number;
-  activeSubscriptions: number;
-  upcomingRenewals: Array<{
-    id: string;
-    name: string;
-    cost: string;
-    renewalDate: string;
-    nextRenewalDate: string;
-    daysUntilRenewal: number;
-    category: string;
-  }>;
-}
+export type { DashboardSummary } from '@life-admin/shared';
+
+import type { DashboardSummary } from '@life-admin/shared';
 
 export const dashboardApi = {
   getSummary: async () => {

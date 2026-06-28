@@ -23,7 +23,8 @@
     /* Path alias */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@life-admin/shared": ["../packages/shared/src/index.ts"]
     }
   },
   "include": ["src"],

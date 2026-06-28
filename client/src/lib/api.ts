@@ -1,8 +1,11 @@
 import axios from 'axios';
+import type { User } from '@life-admin/shared';
+
+export type { User, AuthResponse, ErrorResponse } from '@life-admin/shared';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  withCredentials: true, // Important for httpOnly cookies
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -69,32 +72,6 @@ api.interceptors.response.use(
 
 export default api;
 
-// Type definitions
-export interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  surname: string | null;
-  emailVerified: boolean;
-  emailVerifiedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AuthResponse {
-  message: string;
-  user: User;
-}
-
-export interface ErrorResponse {
-  error: {
-    message: string;
-    code: string;
-    details?: unknown;
-  };
-}
-
-// API methods
 export const resendVerification = async (email: string) => {
   return api.post('/auth/resend-verification', { email });
 };
