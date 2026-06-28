@@ -79,7 +79,9 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/design-system" element={<DesignSystem />} />
+            {import.meta.env.DEV && (
+              <Route path="/design-system" element={<DesignSystem />} />
+            )}
             <Route path="/" element={<Landing />} />
           </Routes>
         </Suspense>
