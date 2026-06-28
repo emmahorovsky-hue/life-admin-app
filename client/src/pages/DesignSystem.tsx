@@ -364,10 +364,16 @@ export default function DesignSystem() {
             ))}
           </Row>
           <Row label="sizes">
-            {[3, 4, 5, 6, 8].map(size => (
-              <div key={size} className="flex flex-col items-center gap-1.5">
-                <Bell className={`h-${size} w-${size}`} />
-                <span className="font-mono text-[10px] text-muted-foreground">{size * 4}px</span>
+            {([
+              ['h-3 w-3', 12],
+              ['h-4 w-4', 16],
+              ['h-5 w-5', 20],
+              ['h-6 w-6', 24],
+              ['h-8 w-8', 32],
+            ] as const).map(([cls, px]) => (
+              <div key={px} className="flex flex-col items-center gap-1.5">
+                <Bell className={cls} />
+                <span className="font-mono text-[10px] text-muted-foreground">{px}px</span>
               </div>
             ))}
           </Row>
