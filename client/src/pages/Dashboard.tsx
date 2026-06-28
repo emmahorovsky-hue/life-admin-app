@@ -3,9 +3,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { dashboardApi, DashboardSummary } from '@/lib/dashboard';
+import { dashboardApi } from '@/lib/dashboard';
+import type { DashboardSummary } from '@/lib/dashboard';
 import { subscriptionApi, categories } from '@/lib/subscriptions';
 import { formatCurrency, dominantCurrency, DEFAULT_CURRENCY } from '@/lib/currency';
+import { normalizeToMonthlyCost } from '@life-admin/shared';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -35,12 +37,7 @@ export default function Dashboard() {
 
         const categoryMap = new Map<string, number>();
         allSubs.forEach((sub) => {
-          const cost = parseFloat(sub.cost);
-          const monthlyCost = sub.billingCycle === 'monthly' ? cost :
-                             sub.billingCycle === 'annual' || sub.billingCycle === 'yearly' ? cost / 12 :
-                             sub.billingCycle === 'weekly' ? cost * 4.33 :
-                             sub.billingCycle === 'quarterly' ? cost / 3 : cost;
-
+          const monthlyCost = normalizeToMonthlyCost(parseFloat(sub.cost), sub.billingCycle);
           const current = categoryMap.get(sub.category) || 0;
           categoryMap.set(sub.category, current + monthlyCost);
         });

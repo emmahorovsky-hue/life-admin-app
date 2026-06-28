@@ -1,85 +1,21 @@
 import api from './api';
 
-export interface Subscription {
-  id: string;
-  userId: string;
-  name: string;
-  cost: string;
-  currency: string;
-  billingCycle: string;
-  renewalDate: string;
-  // Next renewal occurrence, computed server-side by rolling renewalDate (an
-  // anchor) forward by whole billing cycles. Use this for display, not renewalDate.
-  nextRenewalDate: string;
-  category: string;
-  notes: string | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+export type {
+  Subscription,
+  CreateSubscriptionData,
+  UpdateSubscriptionData,
+  SubscriptionFormValues,
+  SubscriptionCandidate,
+  ExtractionResult,
+} from '@life-admin/shared';
+export { defaultSubscriptionFormValues, categories, billingCycles, currencies } from '@life-admin/shared';
 
-export interface CreateSubscriptionData {
-  name: string;
-  cost: number;
-  currency?: string;
-  billingCycle: string;
-  renewalDate: string;
-  category: string;
-  notes?: string;
-}
-
-export interface UpdateSubscriptionData {
-  name?: string;
-  cost?: number;
-  currency?: string;
-  billingCycle?: string;
-  renewalDate?: string;
-  category?: string;
-  notes?: string;
-}
-
-// Fully-populated form state shared by the add / edit / review dialogs via
-// <SubscriptionForm>. Every field is present (no optionals) so the inputs stay
-// controlled; each dialog maps this to the Create/Update payload it needs.
-export interface SubscriptionFormValues {
-  name: string;
-  cost: number;
-  currency: string;
-  billingCycle: string;
-  renewalDate: string;
-  category: string;
-  notes: string;
-}
-
-export const defaultSubscriptionFormValues = (): SubscriptionFormValues => ({
-  name: '',
-  cost: 0,
-  currency: 'SGD',
-  billingCycle: 'monthly',
-  renewalDate: new Date().toISOString().split('T')[0],
-  category: 'streaming',
-  notes: '',
-});
-
-// A candidate subscription extracted from an uploaded receipt/invoice.
-// Mirrors the backend SubscriptionCandidate (server/src/services/aiService.ts).
-export interface SubscriptionCandidate {
-  name: string;
-  cost: number | null;
-  currency: string | null;
-  billingCycle: string;
-  renewalDate: string | null; // YYYY-MM-DD
-  category: string;
-  notes: string | null;
-  isSubscription: boolean;
-  confidence: 'high' | 'medium' | 'low';
-  uncertainFields: string[];
-}
-
-export interface ExtractionResult {
-  candidates: SubscriptionCandidate[];
-  source: 'ai' | 'none';
-}
+import type {
+  Subscription,
+  CreateSubscriptionData,
+  UpdateSubscriptionData,
+  ExtractionResult,
+} from '@life-admin/shared';
 
 export const subscriptionApi = {
   getAll: async (params?: {
@@ -125,28 +61,3 @@ export const subscriptionApi = {
     return response.data;
   },
 };
-
-// Ids must match the backend's authoritative category list (server categoryController.ts):
-// streaming, fitness, software, music, cloud, gaming, productivity, other.
-export const categories = [
-  { id: 'streaming', name: 'Streaming' },
-  { id: 'fitness', name: 'Fitness' },
-  { id: 'software', name: 'Software' },
-  { id: 'music', name: 'Music' },
-  { id: 'cloud', name: 'Cloud Storage' },
-  { id: 'gaming', name: 'Gaming' },
-  { id: 'productivity', name: 'Productivity' },
-  { id: 'other', name: 'Other' },
-];
-
-export const billingCycles = [
-  { id: 'monthly', name: 'Monthly' },
-  { id: 'annual', name: 'Annual' },
-  { id: 'yearly', name: 'Yearly' },
-  { id: 'weekly', name: 'Weekly' },
-  { id: 'quarterly', name: 'Quarterly' },
-];
-
-// Currencies offered in the subscription form's currency picker. Centralized
-// here (rather than hardcoded per dialog) so the list can't drift.
-export const currencies = ['USD', 'EUR', 'GBP', 'SGD'];
