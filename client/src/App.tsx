@@ -17,6 +17,7 @@ const VerifyEmailError = lazy(() => import('./pages/VerifyEmailError'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Profile = lazy(() => import('./pages/Profile'));
+const DesignSystem = lazy(() => import('./pages/DesignSystem'));
 
 function PageFallback() {
   return (
@@ -78,6 +79,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/design-system" element={<DesignSystem />} />
             <Route path="/" element={<Landing />} />
           </Routes>
         </Suspense>
