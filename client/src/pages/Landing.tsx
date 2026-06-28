@@ -905,11 +905,11 @@ export default function Landing() {
             >
               Logos by Logo.dev
             </a>
-            <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Sign In
+            <Link to="/terms" onClick={() => window.scrollTo(0, 0)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Terms of Service
             </Link>
-            <Link to="/register" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Create Account
+            <Link to="/privacy" onClick={() => window.scrollTo(0, 0)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Privacy Policy
             </Link>
           </div>
         </div>

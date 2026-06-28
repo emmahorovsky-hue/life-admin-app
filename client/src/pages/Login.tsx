@@ -31,7 +31,7 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout>
+    <AuthLayout hideLegalFooter>
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold">Welcome back</h1>

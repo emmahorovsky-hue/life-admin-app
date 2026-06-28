@@ -48,7 +48,7 @@ api.interceptors.response.use(
   (error) => {
     captureCsrfToken(error.response?.headers as Record<string, unknown> | undefined);
     if (error.response?.status === 401) {
-      const publicPaths = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password'];
+      const publicPaths = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/terms', '/privacy'];
       const currentPath = window.location.pathname;
 
       // The landing page ('/') is public; match it exactly so an anonymous
