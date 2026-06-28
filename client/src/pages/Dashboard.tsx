@@ -97,7 +97,7 @@ export default function Dashboard() {
 
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
   const dueSoonRenewals = summary.upcomingRenewals.filter(
-    r => new Date(r.renewalDate).getTime() - Date.now() <= sevenDaysMs
+    r => new Date(r.nextRenewalDate).getTime() - Date.now() <= sevenDaysMs
   );
   const dueSoonTotal = dueSoonRenewals.reduce((sum, r) => sum + parseFloat(r.cost), 0);
 
@@ -205,7 +205,7 @@ export default function Dashboard() {
                       <SubscriptionLogo name={renewal.name} category={renewal.category} size={20} className="shrink-0" />
                       <span className="font-mono font-bold text-sm shrink-0">{renewal.name}</span>
                       <span className="text-xs text-muted-foreground font-mono shrink-0 ml-1">
-                        {format(new Date(renewal.renewalDate), 'MMM d')}
+                        {format(new Date(renewal.nextRenewalDate), 'MMM d')}
                       </span>
                       <div className="leader-dots flex-1 mx-2 mb-0.5" />
                       <span className="font-mono font-bold text-sm shrink-0">

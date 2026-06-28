@@ -60,7 +60,7 @@ export default function Timeline() {
     const load = async () => {
       try {
         setLoading(true);
-        // getAll returns active subs sorted by renewalDate asc — already timeline order.
+        // getAll sorts by the computed next renewal asc — already timeline order.
         const data = await subscriptionApi.getAll({ sort: 'renewalDate', order: 'asc' });
         setSubscriptions(data);
         setError('');
@@ -106,7 +106,7 @@ export default function Timeline() {
     nextMonth: [],
   };
   for (const sub of subscriptions) {
-    const bucket = bucketFor(parseRenewalDate(sub.renewalDate), today);
+    const bucket = bucketFor(parseRenewalDate(sub.nextRenewalDate), today);
     if (bucket) buckets[bucket].push(sub);
   }
 
@@ -153,7 +153,7 @@ export default function Timeline() {
 
                 <div className="space-y-3">
                   {buckets[id].map((sub) => {
-                    const renewal = parseRenewalDate(sub.renewalDate);
+                    const renewal = parseRenewalDate(sub.nextRenewalDate);
                     const days = differenceInCalendarDays(renewal, today);
                     return (
                       <div key={sub.id} className="flex items-baseline gap-1">

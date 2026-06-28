@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
 import { Prisma } from '@prisma/client';
+import { computeNextRenewal, toRenewalIsoString, daysUntil } from '../utils/renewal';
 
 export const getDashboardSummary = async (
   req: AuthRequest,
@@ -58,30 +59,26 @@ export const getDashboardSummary = async (
       }
     });
 
-    // Get upcoming renewals (next 30 days)
+    // Get upcoming renewals (next 30 days). renewalDate is an anchor; roll it
+    // forward to the next future occurrence before filtering/sorting.
+    const now = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
     const upcomingRenewals = subscriptions
-      .filter((sub) => new Date(sub.renewalDate) <= thirtyDaysFromNow)
-      .sort((a, b) => new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime())
+      .map((sub) => ({ sub, next: computeNextRenewal(sub.renewalDate, sub.billingCycle, now) }))
+      .filter(({ next }) => next <= thirtyDaysFromNow)
+      .sort((a, b) => a.next.getTime() - b.next.getTime())
       .slice(0, 5) // Limit to 5 upcoming renewals
-      .map((sub) => {
-        const now = new Date();
-        const renewal = new Date(sub.renewalDate);
-        const daysUntilRenewal = Math.ceil(
-          (renewal.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        return {
-          id: sub.id,
-          name: sub.name,
-          cost: sub.cost.toString(),
-          renewalDate: sub.renewalDate,
-          daysUntilRenewal,
-          category: sub.category,
-        };
-      });
+      .map(({ sub, next }) => ({
+        id: sub.id,
+        name: sub.name,
+        cost: sub.cost.toString(),
+        renewalDate: sub.renewalDate,
+        nextRenewalDate: toRenewalIsoString(next),
+        daysUntilRenewal: daysUntil(next, now),
+        category: sub.category,
+      }));
 
     res.status(200).json({
       totalMonthlySpend: parseFloat(totalMonthlySpend.toFixed(2)),
@@ -115,34 +112,28 @@ export const getUpcomingRenewals = async (
       return;
     }
 
+    const now = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
+    // renewalDate is a stored anchor, so the next occurrence can't be filtered
+    // or sorted in Prisma — fetch active subs and roll forward in JS.
     const subscriptions = await prisma.subscription.findMany({
       where: {
         userId: req.user.userId,
         isActive: true,
-        renewalDate: {
-          lte: thirtyDaysFromNow,
-        },
-      },
-      orderBy: {
-        renewalDate: 'asc',
       },
     });
 
-    const upcomingRenewals = subscriptions.map((sub) => {
-      const now = new Date();
-      const renewal = new Date(sub.renewalDate);
-      const daysUntilRenewal = Math.ceil(
-        (renewal.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      return {
+    const upcomingRenewals = subscriptions
+      .map((sub) => ({ sub, next: computeNextRenewal(sub.renewalDate, sub.billingCycle, now) }))
+      .filter(({ next }) => next <= thirtyDaysFromNow)
+      .sort((a, b) => a.next.getTime() - b.next.getTime())
+      .map(({ sub, next }) => ({
         ...sub,
-        daysUntilRenewal,
-      };
-    });
+        nextRenewalDate: toRenewalIsoString(next),
+        daysUntilRenewal: daysUntil(next, now),
+      }));
 
     res.status(200).json(upcomingRenewals);
   } catch (error) {
