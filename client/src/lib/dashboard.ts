@@ -10,6 +10,7 @@ export interface DashboardSummary {
     name: string;
     cost: string;
     renewalDate: string;
+    nextRenewalDate: string;
     daysUntilRenewal: number;
   }>;
 }

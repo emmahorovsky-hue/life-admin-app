@@ -42,7 +42,9 @@ export default function EditSubscriptionDialog({
         cost: parseFloat(subscription.cost),
         currency: subscription.currency,
         billingCycle: subscription.billingCycle,
-        renewalDate: subscription.renewalDate.split('T')[0],
+        // Show the computed next renewal (matches what's displayed elsewhere).
+        // Saving untouched re-anchors the stored date to this value.
+        renewalDate: subscription.nextRenewalDate.split('T')[0],
         category: subscription.category,
         notes: subscription.notes || '',
       });

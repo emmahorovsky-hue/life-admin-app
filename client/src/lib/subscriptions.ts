@@ -8,6 +8,9 @@ export interface Subscription {
   currency: string;
   billingCycle: string;
   renewalDate: string;
+  // Next renewal occurrence, computed server-side by rolling renewalDate (an
+  // anchor) forward by whole billing cycles. Use this for display, not renewalDate.
+  nextRenewalDate: string;
   category: string;
   notes: string | null;
   isActive: boolean;
