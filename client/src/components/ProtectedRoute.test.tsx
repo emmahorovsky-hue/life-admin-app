@@ -44,7 +44,7 @@ describe('ProtectedRoute', () => {
   it('shows a loading state while auth is resolving', () => {
     setAuth({ loading: true });
     renderProtected();
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
   });
 
   it('redirects to /login when unauthenticated', () => {

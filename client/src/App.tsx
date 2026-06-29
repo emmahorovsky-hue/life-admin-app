@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 // Landing is the marketing entry point ('/') — eager-import it so it paints on
 // the first round trip instead of waterfalling through the Suspense fallback.
 import Landing from './pages/Landing';
+import { LoadingScreen } from './components/LoadingScreen';
 
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -18,20 +19,14 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Profile = lazy(() => import('./pages/Profile'));
 const DesignSystem = lazy(() => import('./pages/DesignSystem'));
-
-function PageFallback() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-muted-foreground">Loading...</div>
-    </div>
-  );
-}
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <Suspense fallback={<PageFallback />}>
+        <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -82,6 +77,8 @@ function App() {
             {import.meta.env.DEV && (
               <Route path="/design-system" element={<DesignSystem />} />
             )}
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/" element={<Landing />} />
           </Routes>
         </Suspense>
