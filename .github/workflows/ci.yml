@@ -47,8 +47,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
+      # Install the whole workspace from the repo root so the hoisted tree and
+      # the @life-admin/shared symlink are created (per-package lockfiles were
+      # removed in the workspace conversion).
       - name: Install dependencies
         run: npm ci
+        working-directory: .
 
       - name: Apply database migrations
         run: npm run prisma:migrate:deploy
@@ -76,8 +80,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
+      # Install the whole workspace from the repo root (see backend job note).
       - name: Install dependencies
         run: npm ci
+        working-directory: .
 
       - name: Run linter
         run: npm run lint
@@ -126,9 +132,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install server dependencies
+      # One root install covers both server and client workspaces.
+      - name: Install dependencies
         run: npm ci
-        working-directory: ./server
 
       - name: Apply database migrations
         run: npm run prisma:migrate:deploy
@@ -145,10 +151,6 @@ jobs:
           (echo > /dev/tcp/localhost/3001) >/dev/null 2>&1 \
             || { echo "Backend failed to start:"; cat /tmp/server.log; exit 1; }
         working-directory: ./server
-
-      - name: Install client dependencies
-        run: npm ci
-        working-directory: ./client
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
@@ -173,8 +175,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Audit backend dependencies
-        run: cd server && npm audit --audit-level=moderate || true
-
-      - name: Audit frontend dependencies
-        run: cd client && npm audit --audit-level=moderate || true
+      # Audit the whole workspace from the root lockfile.
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate || true
