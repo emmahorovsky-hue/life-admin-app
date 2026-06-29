@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
 import { Prisma } from '@prisma/client';
 import { extractSubscription } from '../services/aiService';
+import { withNextRenewal } from '../utils/renewal';
 
 /**
  * POST /api/subscriptions/extract
@@ -108,7 +109,7 @@ export const createSubscription = async (
       },
     });
 
-    res.status(201).json(subscription);
+    res.status(201).json(withNextRenewal(subscription));
   } catch (error) {
     console.error('Create subscription error:', error);
     res.status(500).json({
@@ -158,7 +159,20 @@ export const getSubscriptions = async (
       orderBy,
     });
 
-    res.status(200).json(subscriptions);
+    const now = new Date();
+    const withRenewal = subscriptions.map((sub) => withNextRenewal(sub, now));
+
+    // Sorting by renewalDate means the *next* occurrence, which Prisma can't
+    // express — re-sort the computed field in JS (other sorts keep Prisma order).
+    if (sort === 'renewalDate') {
+      const dir = order === 'desc' ? -1 : 1;
+      withRenewal.sort(
+        (a, b) =>
+          dir * (new Date(a.nextRenewalDate).getTime() - new Date(b.nextRenewalDate).getTime())
+      );
+    }
+
+    res.status(200).json(withRenewal);
   } catch (error) {
     console.error('Get subscriptions error:', error);
     res.status(500).json({
@@ -205,7 +219,7 @@ export const getSubscriptionById = async (
       return;
     }
 
-    res.status(200).json(subscription);
+    res.status(200).json(withNextRenewal(subscription));
   } catch (error) {
     console.error('Get subscription error:', error);
     res.status(500).json({
@@ -282,7 +296,7 @@ export const updateSubscription = async (
       data,
     });
 
-    res.status(200).json(subscription);
+    res.status(200).json(withNextRenewal(subscription));
   } catch (error) {
     console.error('Update subscription error:', error);
     res.status(500).json({

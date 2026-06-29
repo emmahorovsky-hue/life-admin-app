@@ -1,5 +1,8 @@
 const path = require('path');
 
+// Pin the timezone so date-sensitive tests are deterministic across machines/CI.
+process.env.TZ = 'UTC';
+
 // Load test environment variables before jest starts
 process.env.NODE_ENV = 'test';
 require('dotenv').config({ path: path.join(__dirname, '.env.test') });

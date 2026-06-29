@@ -193,7 +193,7 @@ export default function Subscriptions() {
                       </span>
                       <span>{sub.billingCycle}</span>
                       <span className="font-mono">
-                        Next: {format(new Date(sub.renewalDate), 'MMM d, yyyy')}
+                        Next: {format(new Date(sub.nextRenewalDate), 'MMM d, yyyy')}
                       </span>
                     </div>
 

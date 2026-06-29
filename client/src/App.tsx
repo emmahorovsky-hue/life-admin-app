@@ -19,6 +19,8 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Profile = lazy(() => import('./pages/Profile'));
 const DesignSystem = lazy(() => import('./pages/DesignSystem'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
 function App() {
   return (
@@ -72,7 +74,11 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/design-system" element={<DesignSystem />} />
+            {import.meta.env.DEV && (
+              <Route path="/design-system" element={<DesignSystem />} />
+            )}
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/" element={<Landing />} />
           </Routes>
         </Suspense>

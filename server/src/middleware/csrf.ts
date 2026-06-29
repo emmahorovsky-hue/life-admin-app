@@ -24,6 +24,9 @@ export function csrfMiddleware(req: Request, res: Response, next: NextFunction):
   // the middleware by overriding NODE_ENV. See csrf.test.ts.
   if (process.env.NODE_ENV === 'test') return next();
 
+  // Bearer token requests (mobile) are CSRF-safe by construction.
+  if (req.headers['authorization']?.startsWith('Bearer ')) return next();
+
   const isProduction = process.env.NODE_ENV === 'production';
 
   // Ensure a CSRF token exists. The cookie is intentionally NOT httpOnly, but

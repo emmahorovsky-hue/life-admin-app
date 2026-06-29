@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { subscriptionApi, categories, Subscription } from '@/lib/subscriptions';
 import { formatCurrency } from '@/lib/currency';
 import { getApiErrorMessage } from '@/lib/utils';
+import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 
 // Bucket ids in display order. Each subscription's renewalDate is assigned to the
 // first matching bucket; overdue and beyond-next-month renewals are dropped.
@@ -60,7 +61,7 @@ export default function Timeline() {
     const load = async () => {
       try {
         setLoading(true);
-        // getAll returns active subs sorted by renewalDate asc — already timeline order.
+        // getAll sorts by the computed next renewal asc — already timeline order.
         const data = await subscriptionApi.getAll({ sort: 'renewalDate', order: 'asc' });
         setSubscriptions(data);
         setError('');
@@ -106,7 +107,7 @@ export default function Timeline() {
     nextMonth: [],
   };
   for (const sub of subscriptions) {
-    const bucket = bucketFor(parseRenewalDate(sub.renewalDate), today);
+    const bucket = bucketFor(parseRenewalDate(sub.nextRenewalDate), today);
     if (bucket) buckets[bucket].push(sub);
   }
 
@@ -153,10 +154,11 @@ export default function Timeline() {
 
                 <div className="space-y-3">
                   {buckets[id].map((sub) => {
-                    const renewal = parseRenewalDate(sub.renewalDate);
+                    const renewal = parseRenewalDate(sub.nextRenewalDate);
                     const days = differenceInCalendarDays(renewal, today);
                     return (
-                      <div key={sub.id} className="flex items-baseline gap-1">
+                      <div key={sub.id} className="flex items-center gap-1">
+                        <SubscriptionLogo name={sub.name} category={sub.category} size={20} className="shrink-0" />
                         <span className="font-mono font-bold text-sm shrink-0">{sub.name}</span>
                         <span className="text-xs text-muted-foreground font-mono shrink-0 ml-2">
                           {format(renewal, 'MMM d')} · {categoryLabel(sub.category)}
