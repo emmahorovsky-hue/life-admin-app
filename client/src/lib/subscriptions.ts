@@ -7,8 +7,15 @@ export type {
   SubscriptionFormValues,
   SubscriptionCandidate,
   ExtractionResult,
+  SubscriptionStatus,
 } from '@life-admin/shared';
-export { defaultSubscriptionFormValues, categories, billingCycles, currencies } from '@life-admin/shared';
+export {
+  defaultSubscriptionFormValues,
+  categories,
+  billingCycles,
+  currencies,
+  getSubscriptionStatus,
+} from '@life-admin/shared';
 
 import type {
   Subscription,
@@ -44,6 +51,18 @@ export const subscriptionApi = {
 
   delete: async (id: string) => {
     await api.delete(`/subscriptions/${id}`);
+  },
+
+  // Stop the subscription renewing; it stays active until its period end.
+  cancel: async (id: string) => {
+    const response = await api.post<Subscription>(`/subscriptions/${id}/cancel`);
+    return response.data;
+  },
+
+  // Reverse a pending cancellation so the subscription renews again.
+  resume: async (id: string) => {
+    const response = await api.post<Subscription>(`/subscriptions/${id}/resume`);
+    return response.data;
   },
 
   // Upload a receipt/invoice and get back extracted subscription candidates.

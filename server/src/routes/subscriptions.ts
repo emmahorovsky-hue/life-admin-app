@@ -6,6 +6,8 @@ import {
   getSubscriptionById,
   updateSubscription,
   deleteSubscription,
+  cancelSubscription,
+  resumeSubscription,
   extractSubscriptionFromFile,
 } from '../controllers/subscriptionController';
 import { authenticateToken } from '../middleware/auth';
@@ -81,5 +83,11 @@ router.patch(
 
 // DELETE /api/subscriptions/:id
 router.delete('/:id', deleteSubscription);
+
+// POST /api/subscriptions/:id/cancel — stop renewal, keep until period end
+router.post('/:id/cancel', cancelSubscription);
+
+// POST /api/subscriptions/:id/resume — reverse a pending cancellation
+router.post('/:id/resume', resumeSubscription);
 
 export default router;

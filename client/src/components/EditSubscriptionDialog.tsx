@@ -13,8 +13,10 @@ import {
   Subscription,
   SubscriptionFormValues,
   defaultSubscriptionFormValues,
+  getSubscriptionStatus,
 } from '@/lib/subscriptions';
 import { getApiErrorMessage } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface EditSubscriptionDialogProps {
   open: boolean;
@@ -22,6 +24,8 @@ interface EditSubscriptionDialogProps {
   subscription: Subscription | null;
   onSuccess: () => void;
   onDelete: (id: string) => void;
+  onCancelRenewal: (id: string) => void;
+  onResume: (id: string) => void;
 }
 
 export default function EditSubscriptionDialog({
@@ -30,6 +34,8 @@ export default function EditSubscriptionDialog({
   subscription,
   onSuccess,
   onDelete,
+  onCancelRenewal,
+  onResume,
 }: EditSubscriptionDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -76,23 +82,68 @@ export default function EditSubscriptionDialog({
     }
   };
 
+  const handleCancelRenewal = () => {
+    if (!subscription) return;
+    const endDate = format(new Date(subscription.nextRenewalDate), 'MMM d, yyyy');
+    if (
+      window.confirm(
+        `${subscription.name} will stay active until ${endDate}, then it won't renew. You can resume any time before then.`
+      )
+    ) {
+      onCancelRenewal(subscription.id);
+      onOpenChange(false);
+    }
+  };
+
+  const handleResume = () => {
+    if (!subscription) return;
+    onResume(subscription.id);
+    onOpenChange(false);
+  };
+
   if (!subscription) return null;
+
+  const status = getSubscriptionStatus(subscription);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-2">
             <DialogTitle>Edit Subscription</DialogTitle>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-              disabled={loading}
-            >
-              Delete
-            </Button>
+            <div className="flex gap-2">
+              {status === 'active' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleCancelRenewal}
+                  disabled={loading}
+                  className="bg-warning text-white border-0 hover:bg-warning/90"
+                >
+                  Cancel subscription
+                </Button>
+              )}
+              {status === 'cancelling' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResume}
+                  disabled={loading}
+                >
+                  Resume subscription
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={loading}
+              >
+                Delete
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -112,7 +163,7 @@ export default function EditSubscriptionDialog({
               onClick={() => onOpenChange(false)}
               disabled={loading}
             >
-              Cancel
+              Close
             </Button>
             <Button type="submit" disabled={loading}>
               {loading ? 'Updating...' : 'Update'}

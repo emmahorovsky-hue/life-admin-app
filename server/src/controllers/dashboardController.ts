@@ -19,11 +19,13 @@ export const getDashboardSummary = async (
       return;
     }
 
-    // Get all active subscriptions
+    // Get all active subscriptions. Cancelled subs (cancelledAt set) won't renew,
+    // so they're excluded from spend totals and upcoming renewals.
     const subscriptions = await prisma.subscription.findMany({
       where: {
         userId: req.user.userId,
         isActive: true,
+        cancelledAt: null,
       },
     });
 
@@ -117,11 +119,13 @@ export const getUpcomingRenewals = async (
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
     // renewalDate is a stored anchor, so the next occurrence can't be filtered
-    // or sorted in Prisma — fetch active subs and roll forward in JS.
+    // or sorted in Prisma — fetch active subs and roll forward in JS. Cancelled
+    // subs won't renew, so they're excluded.
     const subscriptions = await prisma.subscription.findMany({
       where: {
         userId: req.user.userId,
         isActive: true,
+        cancelledAt: null,
       },
     });
 
