@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { subscriptionApi, categories } from '@/lib/subscriptions';
+import { subscriptionApi, categories, getSubscriptionStatus } from '@/lib/subscriptions';
 import type { Subscription } from '@/lib/subscriptions';
 import { formatCurrency } from '@/lib/currency';
 import { getApiErrorMessage } from '@/lib/utils';
@@ -74,6 +74,8 @@ export default function Timeline() {
     nextMonth: [],
   };
   for (const sub of subscriptions) {
+    // Cancelled subs won't be charged again — they're not "due", so skip them.
+    if (getSubscriptionStatus(sub) !== 'active') continue;
     const bucket = bucketFor(parseRenewalDate(sub.nextRenewalDate), today);
     if (bucket) buckets[bucket].push(sub);
   }

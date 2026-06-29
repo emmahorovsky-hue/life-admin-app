@@ -41,7 +41,8 @@ model Subscription {
   renewalDate  DateTime // Next billing date
   category     String   // "streaming" | "fitness" | "software" | "other"
   notes        String?  // Optional user notes
-  isActive     Boolean  @default(true) // Soft delete for cancelled subs
+  isActive     Boolean  @default(true) // Soft delete (hard "delete" from tracking)
+  cancelledAt  DateTime? // Set when the user stops renewal; null = will renew. Sub stays active until renewalDate, then is "ended".
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   

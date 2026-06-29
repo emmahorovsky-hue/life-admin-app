@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
 import { Prisma } from '@prisma/client';
 import { extractSubscription } from '../services/aiService';
-import { withNextRenewal } from '../utils/renewal';
+import { withNextRenewal, computeNextRenewal } from '../utils/renewal';
 
 /**
  * POST /api/subscriptions/extract
@@ -359,6 +359,118 @@ export const deleteSubscription = async (
       error: {
         message: 'Failed to delete subscription',
         code: 'DELETE_SUBSCRIPTION_FAILED',
+      },
+    });
+  }
+};
+
+/**
+ * POST /api/subscriptions/:id/cancel
+ * Stops the subscription renewing. Unlike delete, the subscription stays active
+ * (and visible) until its current renewalDate — it just won't renew after that.
+ * Idempotent: re-cancelling refreshes cancelledAt.
+ */
+export const cancelSubscription = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        error: { message: 'Not authenticated', code: 'NOT_AUTHENTICATED' },
+      });
+      return;
+    }
+
+    const { id } = req.params;
+    const subscriptionId = typeof id === 'string' ? id : id[0];
+
+    const existingSubscription = await prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId: req.user.userId },
+    });
+
+    if (!existingSubscription) {
+      res.status(404).json({
+        error: {
+          message: 'Subscription not found',
+          code: 'SUBSCRIPTION_NOT_FOUND',
+        },
+      });
+      return;
+    }
+
+    // Freeze the end of the current paid period into renewalDate so it stops
+    // rolling forward — the sub stays active until this date, then becomes "ended".
+    const now = new Date();
+    const periodEnd = computeNextRenewal(
+      existingSubscription.renewalDate,
+      existingSubscription.billingCycle,
+      now
+    );
+
+    const subscription = await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: { cancelledAt: now, renewalDate: periodEnd },
+    });
+
+    res.status(200).json(withNextRenewal(subscription, now));
+  } catch (error) {
+    console.error('Cancel subscription error:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to cancel subscription',
+        code: 'CANCEL_SUBSCRIPTION_FAILED',
+      },
+    });
+  }
+};
+
+/**
+ * POST /api/subscriptions/:id/resume
+ * Reverses a pending cancellation (clears cancelledAt) so the subscription will
+ * renew again. Only meaningful before the period ends, but harmless either way.
+ */
+export const resumeSubscription = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        error: { message: 'Not authenticated', code: 'NOT_AUTHENTICATED' },
+      });
+      return;
+    }
+
+    const { id } = req.params;
+    const subscriptionId = typeof id === 'string' ? id : id[0];
+
+    const existingSubscription = await prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId: req.user.userId },
+    });
+
+    if (!existingSubscription) {
+      res.status(404).json({
+        error: {
+          message: 'Subscription not found',
+          code: 'SUBSCRIPTION_NOT_FOUND',
+        },
+      });
+      return;
+    }
+
+    const subscription = await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: { cancelledAt: null },
+    });
+
+    res.status(200).json(withNextRenewal(subscription));
+  } catch (error) {
+    console.error('Resume subscription error:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to resume subscription',
+        code: 'RESUME_SUBSCRIPTION_FAILED',
       },
     });
   }
