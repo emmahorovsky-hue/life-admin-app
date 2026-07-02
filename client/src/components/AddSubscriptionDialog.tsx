@@ -1,13 +1,8 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import SubscriptionForm from '@/components/SubscriptionForm';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import SubscriptionModal, {
+  SUBSCRIPTION_MODAL_CONTENT_CLASS,
+} from '@/components/subscription-modal/SubscriptionModal';
 import {
   subscriptionApi,
   SubscriptionFormValues,
@@ -28,18 +23,23 @@ export default function AddSubscriptionDialog({
 }: AddSubscriptionDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
   const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError('');
     setLoading(true);
 
     try {
       await subscriptionApi.create(values);
       onSuccess();
-      onOpenChange(false);
-      setValues(defaultSubscriptionFormValues());
+      // Briefly show the success state before closing and resetting.
+      setSaved(true);
+      window.setTimeout(() => {
+        onOpenChange(false);
+        setSaved(false);
+        setValues(defaultSubscriptionFormValues());
+      }, 1200);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to add subscription'));
     } finally {
@@ -49,33 +49,18 @@ export default function AddSubscriptionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add Subscription</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <SubscriptionForm
-            values={values}
-            onChange={setValues}
-            disabled={loading}
-            error={error}
-          />
-
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Adding...' : 'Add Subscription'}
-            </Button>
-          </DialogFooter>
-        </form>
+      <DialogContent className={SUBSCRIPTION_MODAL_CONTENT_CLASS}>
+        <SubscriptionModal
+          mode="add"
+          title="Add subscription."
+          values={values}
+          onChange={setValues}
+          onSubmit={handleSubmit}
+          onDismiss={() => onOpenChange(false)}
+          loading={loading}
+          error={error}
+          saved={saved}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -93,13 +93,15 @@ describe('receipt upload -> review flow', () => {
     expect(mockedExtract.mock.calls[0][0]).toBeInstanceOf(File);
 
     // Review dialog opens with the candidate's values pre-filled.
-    await waitFor(() =>
-      expect(screen.getByText('Review Extracted Subscription')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Review subscription.')).toBeInTheDocument());
+    expect(screen.getByLabelText('Service name')).toHaveValue('Netflix');
+    expect(screen.getByLabelText('Cost')).toHaveValue(15.99);
+    // Billing cycle + category are segmented/tiled controls (aria-pressed on the active option).
+    expect(screen.getByRole('button', { name: 'Monthly' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Streaming' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
     );
-    expect(screen.getByLabelText('Service Name *')).toHaveValue('Netflix');
-    expect(screen.getByLabelText('Cost *')).toHaveValue(15.99);
-    expect(screen.getByLabelText('Billing Cycle *')).toHaveValue('monthly');
-    expect(screen.getByLabelText('Category')).toHaveValue('streaming');
     // uncertainFields flags cost for confirmation.
     expect(screen.getByText('AI-suggested — please confirm')).toBeInTheDocument();
   });
@@ -113,7 +115,7 @@ describe('receipt upload -> review flow', () => {
     expect(
       await screen.findByText(/couldn't read a subscription/i)
     ).toBeInTheDocument();
-    expect(screen.queryByText('Review Extracted Subscription')).not.toBeInTheDocument();
+    expect(screen.queryByText('Review subscription.')).not.toBeInTheDocument();
   });
 
   it('confirming the review creates the subscription with the edited values', async () => {
@@ -126,7 +128,7 @@ describe('receipt upload -> review flow', () => {
 
     const user = await uploadAndExtract();
 
-    const nameInput = await screen.findByLabelText('Service Name *');
+    const nameInput = await screen.findByLabelText('Service name');
     await user.clear(nameInput);
     await user.type(nameInput, 'Netflix Premium');
     await user.click(screen.getByRole('button', { name: /confirm & add/i }));
@@ -157,9 +159,9 @@ describe('receipt upload -> review flow', () => {
     // Escape hatch on the upload screen opens the empty manual form.
     await user.click(screen.getByRole('button', { name: /enter manually instead/i }));
 
-    const nameInput = await screen.findByLabelText('Service Name *');
+    const nameInput = await screen.findByLabelText('Service name');
     expect(nameInput).toHaveValue('');
-    expect(screen.queryByText('Review Extracted Subscription')).not.toBeInTheDocument();
+    expect(screen.queryByText('Review subscription.')).not.toBeInTheDocument();
 
     await user.type(nameInput, 'Spotify');
     await user.click(screen.getByRole('button', { name: /^add subscription$/i }));

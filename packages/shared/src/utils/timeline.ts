@@ -16,6 +16,17 @@ export function relativeDays(days: number): string {
   return `in ${days} days`;
 }
 
+// Like relativeDays but also describes past dates ("N days ago" / "yesterday").
+// Used where the target date can be in the past (e.g. an editing subscription's
+// next renewal that has already lapsed).
+export function relativeDaysSigned(days: number): string {
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days === -1) return 'yesterday';
+  if (days > 0) return `in ${days} days`;
+  return `${-days} days ago`;
+}
+
 export function bucketFor(renewal: Date, today: Date): BucketId | null {
   const days = differenceInCalendarDays(renewal, today);
   if (days < 0) return null;
