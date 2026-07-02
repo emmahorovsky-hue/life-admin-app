@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import EditSubscriptionDialog from './EditSubscriptionDialog';
@@ -39,19 +39,20 @@ function renderDialog(sub: Subscription) {
 }
 
 describe('EditSubscriptionDialog cancel / resume', () => {
-  beforeEach(() => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-  });
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('shows "Cancel subscription" for an active sub and calls onCancelRenewal', async () => {
+  it('shows "Cancel subscription" for an active sub and calls onCancelRenewal after confirming', async () => {
     const { onCancelRenewal, onResume } = renderDialog(activeSub);
     const button = screen.getByRole('button', { name: /cancel subscription/i });
     expect(screen.queryByRole('button', { name: /resume subscription/i })).toBeNull();
 
+    // Clicking opens the inline confirm — no action fires yet.
     await userEvent.click(button);
+    expect(onCancelRenewal).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: /yes, cancel it/i }));
     expect(onCancelRenewal).toHaveBeenCalledWith('s1');
     expect(onResume).not.toHaveBeenCalled();
   });
