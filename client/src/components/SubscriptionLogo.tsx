@@ -35,6 +35,9 @@ export function SubscriptionLogo({
   const style = { width: size, height: size };
 
   if (url && !failed) {
+    // Brand logos are transparent PNGs, so they sit on a plain white chip with
+    // a subtle border (the same in light and dark mode). Using bg-muted here
+    // tinted colored logos on the beige surface and hid dark logos in dark mode.
     return (
       <img
         src={url}
@@ -44,7 +47,7 @@ export function SubscriptionLogo({
         loading="lazy"
         draggable={false}
         onError={() => setFailed(true)}
-        className={cn(box, 'bg-muted object-contain')}
+        className={cn(box, 'bg-white object-contain ring-1 ring-border')}
         style={style}
       />
     );
