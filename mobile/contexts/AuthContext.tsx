@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import axios from 'axios';
 import { User, AuthResponse } from '@life-admin/shared';
 import { api } from '../lib/api';
 import { registerLogout } from '../lib/authBridge';
@@ -38,9 +39,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { data } = await api.get<{ user: User }>('/auth/me');
           if (isMounted) setUser(data.user);
         }
-      } catch {
-        // Remove the rejected token even if unmounted — only state updates need the guard
-        await tokenStorage.remove();
+      } catch (err) {
+        // Only a 401 means the token is actually invalid. Network failures, timeouts,
+        // and 5xx are transient and must not destroy a valid persisted session (e.g.
+        // opening the app while offline). Remove even if unmounted — only state needs the guard.
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          await tokenStorage.remove();
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
