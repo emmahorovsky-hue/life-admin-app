@@ -5,6 +5,7 @@ import {
   Subscription,
   SubscriptionCandidate,
   categories,
+  getSubscriptionStatus,
 } from '@/lib/subscriptions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,24 @@ export default function Subscriptions() {
       await loadSubscriptions();
     } catch (err) {
       alert(getApiErrorMessage(err, 'Failed to delete subscription'));
+    }
+  };
+
+  const handleCancelRenewal = async (id: string) => {
+    try {
+      await subscriptionApi.cancel(id);
+      await loadSubscriptions();
+    } catch (err) {
+      alert(getApiErrorMessage(err, 'Failed to cancel subscription'));
+    }
+  };
+
+  const handleResume = async (id: string) => {
+    try {
+      await subscriptionApi.resume(id);
+      await loadSubscriptions();
+    } catch (err) {
+      alert(getApiErrorMessage(err, 'Failed to resume subscription'));
     }
   };
 
@@ -170,12 +189,18 @@ export default function Subscriptions() {
       {/* Subscription List */}
       {!loading && filteredSubscriptions.length > 0 && (
         <div className="grid gap-4">
-          {filteredSubscriptions.map((sub) => (
-            <Card key={sub.id} className="hover:shadow-md transition-shadow">
+          {filteredSubscriptions.map((sub) => {
+            const status = getSubscriptionStatus(sub);
+            const endLabel = format(new Date(sub.nextRenewalDate), 'MMM d, yyyy');
+            return (
+            <Card
+              key={sub.id}
+              className={`hover:shadow-md transition-shadow ${status === 'ended' ? 'opacity-60' : ''}`}
+            >
               <CardContent className="p-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                   <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <SubscriptionLogo
                         name={sub.name}
                         category={sub.category}
@@ -185,16 +210,24 @@ export default function Subscriptions() {
                       <Badge variant="secondary">
                         {categories.find((c) => c.id === sub.category)?.name || sub.category}
                       </Badge>
+                      {status === 'cancelling' && (
+                        <Badge className="bg-warning text-white border-0">Ends {endLabel}</Badge>
+                      )}
+                      {status === 'ended' && (
+                        <Badge variant="destructive">Ended {endLabel}</Badge>
+                      )}
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                       <span className="font-medium text-foreground font-mono">
                         {sub.currency} {parseFloat(sub.cost).toFixed(2)}
                       </span>
                       <span>{sub.billingCycle}</span>
-                      <span className="font-mono">
-                        Next: {format(new Date(sub.nextRenewalDate), 'MMM d, yyyy')}
-                      </span>
+                      {status === 'active' && (
+                        <span className="font-mono">
+                          Next: {format(new Date(sub.nextRenewalDate), 'MMM d, yyyy')}
+                        </span>
+                      )}
                     </div>
 
                     {sub.notes && (
@@ -214,7 +247,8 @@ export default function Subscriptions() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -238,6 +272,8 @@ export default function Subscriptions() {
         subscription={selectedSubscription}
         onSuccess={loadSubscriptions}
         onDelete={handleDelete}
+        onCancelRenewal={handleCancelRenewal}
+        onResume={handleResume}
       />
 
       <UploadReceiptDialog

@@ -1,18 +1,14 @@
 import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import SubscriptionForm from '@/components/SubscriptionForm';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import SubscriptionModal, {
+  SUBSCRIPTION_MODAL_CONTENT_CLASS,
+} from '@/components/subscription-modal/SubscriptionModal';
 import {
   subscriptionApi,
   Subscription,
   SubscriptionFormValues,
   defaultSubscriptionFormValues,
+  getSubscriptionStatus,
 } from '@/lib/subscriptions';
 import { getApiErrorMessage } from '@/lib/utils';
 
@@ -22,6 +18,8 @@ interface EditSubscriptionDialogProps {
   subscription: Subscription | null;
   onSuccess: () => void;
   onDelete: (id: string) => void;
+  onCancelRenewal: (id: string) => void;
+  onResume: (id: string) => void;
 }
 
 export default function EditSubscriptionDialog({
@@ -30,9 +28,12 @@ export default function EditSubscriptionDialog({
   subscription,
   onSuccess,
   onDelete,
+  onCancelRenewal,
+  onResume,
 }: EditSubscriptionDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
   const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues);
 
   useEffect(() => {
@@ -48,20 +49,23 @@ export default function EditSubscriptionDialog({
         category: subscription.category,
         notes: subscription.notes || '',
       });
+      setError('');
     }
   }, [subscription]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!subscription) return;
-
     setError('');
     setLoading(true);
 
     try {
       await subscriptionApi.update(subscription.id, values);
       onSuccess();
-      onOpenChange(false);
+      setSaved(true);
+      window.setTimeout(() => {
+        onOpenChange(false);
+        setSaved(false);
+      }, 1200);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to update subscription'));
     } finally {
@@ -69,56 +73,37 @@ export default function EditSubscriptionDialog({
     }
   };
 
-  const handleDelete = () => {
-    if (subscription && window.confirm(`Delete ${subscription.name}? This action cannot be undone.`)) {
-      onDelete(subscription.id);
-      onOpenChange(false);
-    }
-  };
-
   if (!subscription) return null;
+
+  const status = getSubscriptionStatus(subscription);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <div className="flex justify-between items-center">
-            <DialogTitle>Edit Subscription</DialogTitle>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-              disabled={loading}
-            >
-              Delete
-            </Button>
-          </div>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <SubscriptionForm
-            values={values}
-            onChange={setValues}
-            disabled={loading}
-            renewalDateLabel="Next Renewal Date *"
-            error={error}
-          />
-
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Updating...' : 'Update'}
-            </Button>
-          </DialogFooter>
-        </form>
+      <DialogContent className={SUBSCRIPTION_MODAL_CONTENT_CLASS}>
+        <SubscriptionModal
+          mode="edit"
+          title="Edit subscription."
+          values={values}
+          onChange={setValues}
+          onSubmit={handleSubmit}
+          onDismiss={() => onOpenChange(false)}
+          loading={loading}
+          error={error}
+          saved={saved}
+          editStatus={status}
+          onCancelRenewal={() => {
+            onCancelRenewal(subscription.id);
+            onOpenChange(false);
+          }}
+          onResume={() => {
+            onResume(subscription.id);
+            onOpenChange(false);
+          }}
+          onDelete={() => {
+            onDelete(subscription.id);
+            onOpenChange(false);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

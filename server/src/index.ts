@@ -29,6 +29,14 @@ for (const varName of requiredEnvVars) {
 console.log('Environment validation passed. Starting server...');
 
 const app = express();
+
+// Railway (and most PaaS) terminate TLS at a single reverse-proxy hop and
+// forward the client IP in X-Forwarded-For. Trust exactly one hop so req.ip and
+// express-rate-limit key on the real client IP rather than the proxy's — without
+// this, every user shares one rate-limit bucket and rate-limit v7 warns about an
+// unexpected X-Forwarded-For header.
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 

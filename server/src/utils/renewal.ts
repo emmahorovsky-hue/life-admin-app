@@ -92,11 +92,19 @@ export function daysUntil(renewal: Date, from: Date = new Date()): number {
 
 // Attach the derived nextRenewalDate to a subscription-like row.
 export function withNextRenewal<
-  T extends { renewalDate: Date | string; billingCycle: string }
+  T extends {
+    renewalDate: Date | string;
+    billingCycle: string;
+    cancelledAt?: Date | string | null;
+  }
 >(sub: T, from: Date = new Date()): T & { nextRenewalDate: string } {
   const anchor = sub.renewalDate instanceof Date ? sub.renewalDate : new Date(sub.renewalDate);
+  // A cancelled subscription won't renew: its period end was frozen into
+  // renewalDate at cancel time, so don't roll it forward. That lets it lapse to
+  // "ended" once the date passes instead of perpetually advancing into the future.
+  const next = sub.cancelledAt ? anchor : computeNextRenewal(anchor, sub.billingCycle, from);
   return {
     ...sub,
-    nextRenewalDate: toRenewalIsoString(computeNextRenewal(anchor, sub.billingCycle, from)),
+    nextRenewalDate: toRenewalIsoString(next),
   };
 }

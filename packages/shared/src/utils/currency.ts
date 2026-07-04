@@ -7,6 +7,11 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 export const DEFAULT_CURRENCY = 'SGD';
 
+// Symbol for a currency code, falling back to the code itself when unknown.
+export function currencySymbol(code: string): string {
+  return CURRENCY_SYMBOLS[code] ?? code;
+}
+
 export function formatCurrency(amount: number, code: string): string {
   const symbol = CURRENCY_SYMBOLS[code];
   return symbol ? `${symbol}${amount.toFixed(2)}` : `${code} ${amount.toFixed(2)}`;

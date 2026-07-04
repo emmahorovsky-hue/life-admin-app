@@ -75,8 +75,9 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
     // Issue email verification token and send email. Await token creation
     // so tests and cleanup won't race with a background task. Sending the
     // actual email is handled inside the service and can fail independently.
+    const platform = req.headers['x-platform'] as string | undefined;
     try {
-      await issueEmailVerificationToken(user.id, user.email);
+      await issueEmailVerificationToken(user.id, user.email, platform);
     } catch (err) {
       console.error('Failed to send verification email:', err);
     }
@@ -241,27 +242,31 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 };
 
 export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void> => {
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  const isMobile = req.query.platform === 'mobile';
+  // Normalize so redirects survive env vars configured with or without trailing slashes
+  const webUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const mobileUrl = (process.env.MOBILE_URL || 'lifeadmin://').replace(/([^/])$/, '$1/');
+  const url = (path: string) => isMobile ? `${mobileUrl}${path}` : `${webUrl}/${path}`;
   try {
     const { token } = req.query;
 
     if (!token || typeof token !== 'string') {
-      res.redirect(`${clientUrl}/verify-email/error?reason=invalid`);
+      res.redirect(url('verify-email/error?reason=invalid'));
       return;
     }
 
     const result = await consumeEmailVerificationToken(token);
 
     if (!result.ok) {
-      res.redirect(`${clientUrl}/verify-email/error?reason=${result.reason}`);
+      res.redirect(url(`verify-email/error?reason=${result.reason}`));
       return;
     }
 
-    res.setHeader('Referrer-Policy', 'no-referrer');
-    res.redirect(`${clientUrl}/verify-email/success`);
+    res.redirect(url('verify-email/success'));
   } catch (error) {
     console.error('Verify email error:', error);
-    res.redirect(`${clientUrl}/verify-email/error?reason=invalid`);
+    res.redirect(url('verify-email/error?reason=invalid'));
   }
 };
 
@@ -282,7 +287,8 @@ export const forgotPassword = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    issuePasswordResetToken(user.id, user.email).catch((err) => {
+    const platform = req.headers['x-platform'] as string | undefined;
+    issuePasswordResetToken(user.id, user.email, platform).catch((err) => {
       console.error('Failed to send password reset email:', err);
     });
 
@@ -462,8 +468,9 @@ export const initiateEmailChangeHandler = async (req: AuthRequest, res: Response
     // confirmation link when the address is free; uniqueness is re-checked at
     // consume-time as the authoritative guard.
     const existing = await prisma.user.findUnique({ where: { email: newEmail } });
+    const platform = req.headers['x-platform'] as string | undefined;
     if (!existing) {
-      await initiateEmailChange(req.user.userId, newEmail);
+      await initiateEmailChange(req.user.userId, newEmail, platform);
     }
 
     res.status(200).json({ message: 'Confirmation email sent. Check your inbox to complete the change.' });
@@ -474,15 +481,18 @@ export const initiateEmailChangeHandler = async (req: AuthRequest, res: Response
 };
 
 export const verifyEmailChange = async (req: AuthRequest, res: Response): Promise<void> => {
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-  // The raw token rides in the query string, so prevent it leaking via Referer on
-  // every outcome, not just success.
+  // Prevent token leaking via Referer on every outcome
   res.setHeader('Referrer-Policy', 'no-referrer');
+  const isMobile = req.query.platform === 'mobile';
+  // Normalize so redirects survive env vars configured with or without trailing slashes
+  const webUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const mobileUrl = (process.env.MOBILE_URL || 'lifeadmin://').replace(/([^/])$/, '$1/');
+  const url = (path: string) => isMobile ? `${mobileUrl}${path}` : `${webUrl}/${path}`;
   try {
     const { token } = req.query;
 
     if (!token || typeof token !== 'string') {
-      res.redirect(`${clientUrl}/profile?error=invalid-token`);
+      res.redirect(url('profile?error=invalid-token'));
       return;
     }
 
@@ -490,14 +500,14 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
 
     if (!result.ok) {
       const errorParam = result.reason === 'email_taken' ? 'email-taken' : 'invalid-token';
-      res.redirect(`${clientUrl}/profile?error=${errorParam}`);
+      res.redirect(url(`profile?error=${errorParam}`));
       return;
     }
 
-    res.redirect(`${clientUrl}/profile?emailChanged=true`);
+    res.redirect(url('profile?emailChanged=true'));
   } catch (error) {
     console.error('Verify email change error:', error);
-    res.redirect(`${clientUrl}/profile?error=invalid-token`);
+    res.redirect(url('profile?error=invalid-token'));
   }
 };
 
@@ -528,7 +538,8 @@ export const resendVerification = async (req: AuthRequest, res: Response): Promi
     }
 
     // Issue new token and send email (don't block on failure)
-    issueEmailVerificationToken(user.id, user.email).catch((err) => {
+    const platform = req.headers['x-platform'] as string | undefined;
+    issueEmailVerificationToken(user.id, user.email, platform).catch((err) => {
       console.error('Failed to resend verification email:', err);
     });
 

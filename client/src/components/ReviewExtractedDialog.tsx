@@ -1,14 +1,8 @@
 import { useEffect, useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import SubscriptionForm from '@/components/SubscriptionForm';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import SubscriptionModal, {
+  SUBSCRIPTION_MODAL_CONTENT_CLASS,
+} from '@/components/subscription-modal/SubscriptionModal';
 import {
   subscriptionApi,
   SubscriptionCandidate,
@@ -46,6 +40,7 @@ export default function ReviewExtractedDialog({
 }: ReviewExtractedDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
   const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues);
 
   useEffect(() => {
@@ -57,11 +52,12 @@ export default function ReviewExtractedDialog({
 
   const hint = (field: keyof SubscriptionFormValues) =>
     candidate?.uncertainFields.includes(field) ? (
-      <p className="text-xs text-amber-600 dark:text-amber-500">AI-suggested — please confirm</p>
+      <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
+        AI-suggested — please confirm
+      </p>
     ) : null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError('');
     setLoading(true);
 
@@ -72,7 +68,11 @@ export default function ReviewExtractedDialog({
         notes: values.notes || undefined,
       });
       onSuccess();
-      onOpenChange(false);
+      setSaved(true);
+      window.setTimeout(() => {
+        onOpenChange(false);
+        setSaved(false);
+      }, 1200);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to add subscription'));
     } finally {
@@ -80,47 +80,37 @@ export default function ReviewExtractedDialog({
     }
   };
 
+  const banner = (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        We extracted these details from your receipt. Review and edit them before saving — nothing
+        is saved until you confirm.
+      </p>
+      {candidate?.isSubscription === false && (
+        <div className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-500">
+          This looks like a one-off purchase rather than a recurring subscription — add it anyway?
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Review Extracted Subscription</DialogTitle>
-          <DialogDescription>
-            We extracted these details from your receipt. Review and edit them
-            before saving — nothing is saved until you confirm.
-          </DialogDescription>
-        </DialogHeader>
-
-        {candidate?.isSubscription === false && (
-          <div className="text-sm text-amber-700 dark:text-amber-500 bg-amber-500/10 p-3 rounded-md">
-            This looks like a one-off purchase rather than a recurring
-            subscription — add it anyway?
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <SubscriptionForm
-            values={values}
-            onChange={setValues}
-            disabled={loading}
-            hint={hint}
-            error={error}
-          />
-
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Confirm & Add'}
-            </Button>
-          </DialogFooter>
-        </form>
+      <DialogContent className={SUBSCRIPTION_MODAL_CONTENT_CLASS}>
+        <SubscriptionModal
+          mode="add"
+          title="Review subscription."
+          submitLabel="Confirm & add"
+          values={values}
+          onChange={setValues}
+          onSubmit={handleSubmit}
+          onDismiss={() => onOpenChange(false)}
+          loading={loading}
+          error={error}
+          saved={saved}
+          banner={banner}
+          hint={hint}
+        />
       </DialogContent>
     </Dialog>
   );

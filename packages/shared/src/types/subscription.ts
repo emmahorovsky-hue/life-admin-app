@@ -11,6 +11,9 @@ export interface Subscription {
   category: string;
   notes: string | null;
   isActive: boolean;
+  // Set when the user stops renewal. The sub stays active until nextRenewalDate
+  // (frozen at cancel time), then is "ended". null = will renew normally.
+  cancelledAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
