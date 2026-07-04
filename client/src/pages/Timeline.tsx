@@ -127,11 +127,13 @@ export default function Timeline() {
                     const days = differenceInCalendarDays(renewal, today);
                     return (
                       <div key={sub.id} className="flex items-center gap-1">
-                        <SubscriptionLogo name={sub.name} category={sub.category} size={20} className="shrink-0" />
-                        <span className="font-mono font-bold text-sm shrink-0">{sub.name}</span>
-                        <span className="text-xs text-muted-foreground font-mono shrink-0 ml-2">
-                          {format(renewal, 'MMM d')} · {categoryLabel(sub.category)}
-                        </span>
+                        <div className="flex items-center gap-1 min-w-0">
+                          <SubscriptionLogo name={sub.name} category={sub.category} size={20} className="shrink-0" />
+                          <span className="font-mono font-bold text-sm min-w-0 truncate">{sub.name}</span>
+                          <span className="text-xs text-muted-foreground font-mono shrink-0 ml-2 whitespace-nowrap">
+                            {format(renewal, 'MMM d')} · {categoryLabel(sub.category)}
+                          </span>
+                        </div>
                         <div className="leader-dots flex-1 mx-2 mb-0.5" />
                         <span
                           className={`text-xs font-mono shrink-0 mr-3 ${
