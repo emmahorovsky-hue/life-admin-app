@@ -9,7 +9,7 @@ function hashToken(raw: string): string {
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
-export async function issueEmailVerificationToken(userId: string, email: string) {
+export async function issueEmailVerificationToken(userId: string, email: string, platform?: string) {
   // Invalidate prior unused tokens (keeps inbox clean & prevents token farming)
   await prisma.emailVerificationToken.updateMany({
     where: { userId, usedAt: null },
@@ -24,7 +24,7 @@ export async function issueEmailVerificationToken(userId: string, email: string)
     data: { userId, tokenHash, email, expiresAt },
   });
 
-  const verifyUrl = `${process.env.API_URL}/api/auth/verify-email?token=${raw}`;
+  const verifyUrl = `${process.env.API_URL}/api/auth/verify-email?token=${raw}${platform === 'mobile' ? '&platform=mobile' : ''}`;
   await sendVerificationEmail({ to: email, verifyUrl, expiresInHours: EXPIRY_HOURS });
 }
 

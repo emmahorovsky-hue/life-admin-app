@@ -9,7 +9,7 @@ function hashToken(raw: string): string {
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
-export async function issuePasswordResetToken(userId: string, email: string): Promise<void> {
+export async function issuePasswordResetToken(userId: string, email: string, platform?: string): Promise<void> {
   await prisma.passwordResetToken.updateMany({
     where: { userId, usedAt: null },
     data: { usedAt: new Date() },
@@ -24,7 +24,10 @@ export async function issuePasswordResetToken(userId: string, email: string): Pr
   });
 
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-  const resetUrl = `${clientUrl}/reset-password?token=${raw}`;
+  const mobileUrl = process.env.MOBILE_URL || 'lifeadmin://';
+  const resetUrl = platform === 'mobile'
+    ? `${mobileUrl}reset-password?token=${raw}`
+    : `${clientUrl}/reset-password?token=${raw}`;
   await sendPasswordResetEmail({ to: email, resetUrl, expiresInHours: EXPIRY_HOURS });
 }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
+import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginScreen() {
@@ -21,9 +22,8 @@ export default function LoginScreen() {
     try {
       await login(email, password);
       router.replace('/(app)/');
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error && (err as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message;
+    } catch (err) {
+      const msg = axios.isAxiosError(err) && err.response?.data?.error?.message;
       setError(msg || 'Login failed. Please try again.');
     } finally {
       setLoading(false);

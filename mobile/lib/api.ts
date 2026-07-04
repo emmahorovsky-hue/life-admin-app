@@ -1,6 +1,6 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
+import { callLogout } from './authBridge';
 import { tokenStorage } from './storage';
 
 const apiUrl =
@@ -9,7 +9,10 @@ const apiUrl =
 
 export const api = axios.create({
   baseURL: apiUrl,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Platform': 'mobile',
+  },
 });
 
 api.interceptors.request.use(async (config) => {
@@ -24,8 +27,8 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      await tokenStorage.remove();
-      router.replace('/(auth)/login');
+      // Clear auth state — layout guard handles navigation once user becomes null
+      await callLogout();
     }
     return Promise.reject(error);
   },

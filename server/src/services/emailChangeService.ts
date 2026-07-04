@@ -10,7 +10,7 @@ function hashToken(raw: string): string {
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
-export async function initiateEmailChange(userId: string, newEmail: string) {
+export async function initiateEmailChange(userId: string, newEmail: string, platform?: string) {
   // Invalidate any prior pending email-change tokens for this user
   await prisma.emailChangeToken.updateMany({
     where: { userId, usedAt: null },
@@ -25,7 +25,7 @@ export async function initiateEmailChange(userId: string, newEmail: string) {
     data: { userId, tokenHash, newEmail, expiresAt },
   });
 
-  const verifyUrl = `${process.env.API_URL}/api/auth/verify-email-change?token=${raw}`;
+  const verifyUrl = `${process.env.API_URL}/api/auth/verify-email-change?token=${raw}${platform === 'mobile' ? '&platform=mobile' : ''}`;
   await sendEmailChangeVerificationEmail({ to: newEmail, verifyUrl, expiresInHours: EXPIRY_HOURS });
 }
 

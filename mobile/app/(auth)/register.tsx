@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
 import { Link, useRouter } from 'expo-router';
+import axios from 'axios';
 import { isValidPassword } from '@life-admin/shared';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -31,9 +32,8 @@ export default function RegisterScreen() {
     try {
       await register(email, password);
       router.replace('/(app)/');
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error && (err as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message;
+    } catch (err) {
+      const msg = axios.isAxiosError(err) && err.response?.data?.error?.message;
       setError(msg || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
