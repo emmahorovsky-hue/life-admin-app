@@ -23,7 +23,18 @@ function RootLayoutNav() {
       // lifeadmin://verify-email/success → { hostname: 'verify-email', path: 'success' }
       const route = [parsed.hostname, parsed.path].filter(Boolean).join('/');
       if (route === 'verify-email/success') {
-        router.replace('/(auth)/login');
+        router.replace({
+          pathname: '/(auth)/login',
+          params: { notice: 'Email verified. You can now sign in.' },
+        });
+      } else if (route === 'verify-email/error') {
+        // Failed verification (expired/used/invalid) must not land silently — surface it on login.
+        const reason = parsed.queryParams?.reason;
+        const notice =
+          reason === 'expired'
+            ? 'That verification link has expired. Request a new one from your account.'
+            : 'That verification link is invalid or has already been used.';
+        router.replace({ pathname: '/(auth)/login', params: { notice } });
       } else if (route === 'reset-password' && parsed.queryParams?.token) {
         router.replace({
           pathname: '/(auth)/reset-password',

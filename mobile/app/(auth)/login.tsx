@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginScreen() {
+  const { notice } = useLocalSearchParams<{ notice?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -33,6 +34,8 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Sign In</Text>
+
+      {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
       <TextInput
         style={styles.input}
@@ -84,6 +87,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   error: { color: '#ef4444', marginBottom: 12 },
+  notice: { color: '#059669', marginBottom: 16 },
   button: {
     backgroundColor: '#3b82f6',
     padding: 14,
