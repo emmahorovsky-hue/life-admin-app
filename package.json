@@ -1,7 +1,7 @@
 {
   "name": "life-admin-app",
   "private": true,
-  "workspaces": ["packages/shared", "client", "server"],
+  "workspaces": ["packages/shared", "client", "server", "mobile"],
   "engines": {
     "npm": ">=11"
   }

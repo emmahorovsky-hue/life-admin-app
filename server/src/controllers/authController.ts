@@ -241,27 +241,30 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 };
 
 export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void> => {
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const isMobile = !req.headers.origin;
+  const baseUrl = isMobile
+    ? (process.env.MOBILE_URL || 'lifeadmin://')
+    : (process.env.CLIENT_URL || 'http://localhost:3000');
   try {
     const { token } = req.query;
 
     if (!token || typeof token !== 'string') {
-      res.redirect(`${clientUrl}/verify-email/error?reason=invalid`);
+      res.redirect(`${baseUrl}verify-email/error?reason=invalid`);
       return;
     }
 
     const result = await consumeEmailVerificationToken(token);
 
     if (!result.ok) {
-      res.redirect(`${clientUrl}/verify-email/error?reason=${result.reason}`);
+      res.redirect(`${baseUrl}verify-email/error?reason=${result.reason}`);
       return;
     }
 
     res.setHeader('Referrer-Policy', 'no-referrer');
-    res.redirect(`${clientUrl}/verify-email/success`);
+    res.redirect(`${baseUrl}verify-email/success`);
   } catch (error) {
     console.error('Verify email error:', error);
-    res.redirect(`${clientUrl}/verify-email/error?reason=invalid`);
+    res.redirect(`${baseUrl}verify-email/error?reason=invalid`);
   }
 };
 
@@ -474,7 +477,10 @@ export const initiateEmailChangeHandler = async (req: AuthRequest, res: Response
 };
 
 export const verifyEmailChange = async (req: AuthRequest, res: Response): Promise<void> => {
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const isMobile = !req.headers.origin;
+  const baseUrl = isMobile
+    ? (process.env.MOBILE_URL || 'lifeadmin://')
+    : (process.env.CLIENT_URL || 'http://localhost:3000');
   // The raw token rides in the query string, so prevent it leaking via Referer on
   // every outcome, not just success.
   res.setHeader('Referrer-Policy', 'no-referrer');
@@ -482,7 +488,7 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
     const { token } = req.query;
 
     if (!token || typeof token !== 'string') {
-      res.redirect(`${clientUrl}/profile?error=invalid-token`);
+      res.redirect(`${baseUrl}profile?error=invalid-token`);
       return;
     }
 
@@ -490,14 +496,14 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
 
     if (!result.ok) {
       const errorParam = result.reason === 'email_taken' ? 'email-taken' : 'invalid-token';
-      res.redirect(`${clientUrl}/profile?error=${errorParam}`);
+      res.redirect(`${baseUrl}profile?error=${errorParam}`);
       return;
     }
 
-    res.redirect(`${clientUrl}/profile?emailChanged=true`);
+    res.redirect(`${baseUrl}profile?emailChanged=true`);
   } catch (error) {
     console.error('Verify email change error:', error);
-    res.redirect(`${clientUrl}/profile?error=invalid-token`);
+    res.redirect(`${baseUrl}profile?error=invalid-token`);
   }
 };
 
