@@ -22,12 +22,17 @@ export type SubscriptionModalMode = 'add' | 'edit';
 export type EditStatus = 'active' | 'cancelling' | 'ended';
 
 /**
- * className for the shadcn <DialogContent> that hosts this two-pane modal:
- * widens to 800px, drops the default padding, clips the panes, and adds the
- * warm floating shadow (a one-off value — not a design-system token).
+ * className for the shadcn <DialogContent> that hosts this two-pane modal.
+ * Below 720px (same breakpoint as the pane stack) it's a full-screen sheet:
+ * fills the viewport with square corners so it sits flush to the edges. At
+ * ≥720px it becomes the centered floating card — widens to 800px, caps at
+ * 90dvh, rounds the corners, and gets the warm shadow (a one-off value — not
+ * a design-system token). `max-w-none` overrides the base `max-w-lg` so the
+ * mobile sheet fills the width on tablets too. Padding is dropped and panes
+ * clipped in both layouts.
  */
 export const SUBSCRIPTION_MODAL_CONTENT_CLASS =
-  'max-w-[800px] max-h-[90dvh] overflow-y-auto overflow-x-hidden p-0 shadow-[0_26px_58px_rgba(73,60,74,.32),0_6px_16px_rgba(40,33,20,.10)]';
+  'h-dvh w-full max-w-none rounded-none overflow-y-auto overflow-x-hidden p-0 shadow-[0_26px_58px_rgba(73,60,74,.32),0_6px_16px_rgba(40,33,20,.10)] min-[720px]:h-auto min-[720px]:max-h-[90dvh] min-[720px]:max-w-[800px] min-[720px]:rounded-lg';
 
 export interface SubscriptionModalProps {
   mode: SubscriptionModalMode;
