@@ -23,8 +23,9 @@ export async function issuePasswordResetToken(userId: string, email: string, pla
     data: { userId, tokenHash, expiresAt },
   });
 
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-  const mobileUrl = process.env.MOBILE_URL || 'lifeadmin://';
+  // Normalize so links survive env vars configured with or without trailing slashes
+  const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const mobileUrl = (process.env.MOBILE_URL || 'lifeadmin://').replace(/([^/])$/, '$1/');
   const resetUrl = platform === 'mobile'
     ? `${mobileUrl}reset-password?token=${raw}`
     : `${clientUrl}/reset-password?token=${raw}`;

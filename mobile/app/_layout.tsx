@@ -2,19 +2,29 @@ import { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider } from '../contexts/AuthContext';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const router = useRouter();
+  const { loading } = useAuth();
+
+  // Hide the splash here (not in a group layout) so it can't get stuck when an
+  // early navigation unmounts a group before auth loading resolves.
+  useEffect(() => {
+    if (!loading) SplashScreen.hideAsync();
+  }, [loading]);
 
   useEffect(() => {
     const handle = (url: string) => {
       const parsed = Linking.parse(url);
-      if (parsed.path === 'verify-email/success') {
+      // For custom schemes the first segment parses as hostname, not path:
+      // lifeadmin://verify-email/success → { hostname: 'verify-email', path: 'success' }
+      const route = [parsed.hostname, parsed.path].filter(Boolean).join('/');
+      if (route === 'verify-email/success') {
         router.replace('/(auth)/login');
-      } else if (parsed.path === 'reset-password' && parsed.queryParams?.token) {
+      } else if (route === 'reset-password' && parsed.queryParams?.token) {
         router.replace({
           pathname: '/(auth)/reset-password',
           params: { token: parsed.queryParams.token as string },
