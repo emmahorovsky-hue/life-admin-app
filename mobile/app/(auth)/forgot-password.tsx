@@ -1,23 +1,32 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
+import axios from 'axios';
 import { api } from '../../lib/api';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     if (!email) return;
+    setNetworkError(false);
     setLoading(true);
     try {
       await api.post('/auth/forgot-password', { email: email.toLowerCase() });
-    } catch {
-      // Server always returns 200 (anti-enumeration); swallow any network error
+      setSubmitted(true);
+    } catch (err) {
+      if (axios.isAxiosError(err) && !err.response) {
+        // Request never left the device (offline, DNS failure, etc.)
+        setNetworkError(true);
+      } else {
+        // Server responded — always show success for anti-enumeration
+        setSubmitted(true);
+      }
     } finally {
       setLoading(false);
-      setSubmitted(true);
     }
   };
 
@@ -50,6 +59,10 @@ export default function ForgotPasswordScreen() {
         autoComplete="email"
       />
 
+      {networkError ? (
+        <Text style={styles.error}>No connection. Check your network and try again.</Text>
+      ) : null}
+
       <Pressable onPress={handleSubmit} disabled={loading} style={styles.button}>
         {loading ? (
           <ActivityIndicator color="#fff" />
@@ -77,6 +90,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 16,
   },
+  error: { color: '#ef4444', marginBottom: 12 },
   button: {
     backgroundColor: '#3b82f6',
     padding: 14,

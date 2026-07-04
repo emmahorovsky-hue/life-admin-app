@@ -1,13 +1,14 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { User, AuthResponse } from '@life-admin/shared';
 import { api } from '../lib/api';
+import { registerLogout } from '../lib/authBridge';
 import { tokenStorage } from '../lib/storage';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
 }
@@ -18,21 +19,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(async () => {
+    await tokenStorage.remove();
+    setUser(null);
+  }, []);
+
+  // Register logout in the bridge so api.ts can call it on 401 without a circular import
   useEffect(() => {
+    registerLogout(logout);
+  }, [logout]);
+
+  useEffect(() => {
+    let isMounted = true;
     async function restoreSession() {
       try {
         const token = await tokenStorage.get();
         if (token) {
           const { data } = await api.get<{ user: User }>('/auth/me');
-          setUser(data.user);
+          if (isMounted) setUser(data.user);
         }
       } catch {
-        await tokenStorage.remove();
+        if (isMounted) await tokenStorage.remove();
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
     restoreSession();
+    return () => { isMounted = false; };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -40,23 +53,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: email.toLowerCase(),
       password,
     });
+    if (!data.token) throw new Error('No token in response');
     await tokenStorage.set(data.token);
     setUser(data.user);
   };
 
-  const register = async (email: string, password: string, name?: string) => {
+  const register = async (email: string, password: string) => {
     const { data } = await api.post<AuthResponse & { token: string }>('/auth/register', {
       email: email.toLowerCase(),
       password,
-      name,
     });
+    if (!data.token) throw new Error('No token in response');
     await tokenStorage.set(data.token);
     setUser(data.user);
-  };
-
-  const logout = async () => {
-    await tokenStorage.remove();
-    setUser(null);
   };
 
   const updateUser = (updatedUser: User) => setUser(updatedUser);
