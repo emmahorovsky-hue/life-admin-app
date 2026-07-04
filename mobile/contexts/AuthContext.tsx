@@ -39,7 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (isMounted) setUser(data.user);
         }
       } catch {
-        if (isMounted) await tokenStorage.remove();
+        // Remove the rejected token even if unmounted — only state updates need the guard
+        await tokenStorage.remove();
       } finally {
         if (isMounted) setLoading(false);
       }

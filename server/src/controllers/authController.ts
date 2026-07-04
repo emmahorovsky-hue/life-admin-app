@@ -244,8 +244,9 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void> => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   const isMobile = req.query.platform === 'mobile';
-  const webUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-  const mobileUrl = process.env.MOBILE_URL || 'lifeadmin://';
+  // Normalize so redirects survive env vars configured with or without trailing slashes
+  const webUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const mobileUrl = (process.env.MOBILE_URL || 'lifeadmin://').replace(/([^/])$/, '$1/');
   const url = (path: string) => isMobile ? `${mobileUrl}${path}` : `${webUrl}/${path}`;
   try {
     const { token } = req.query;
@@ -483,8 +484,9 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
   // Prevent token leaking via Referer on every outcome
   res.setHeader('Referrer-Policy', 'no-referrer');
   const isMobile = req.query.platform === 'mobile';
-  const webUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-  const mobileUrl = process.env.MOBILE_URL || 'lifeadmin://';
+  // Normalize so redirects survive env vars configured with or without trailing slashes
+  const webUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const mobileUrl = (process.env.MOBILE_URL || 'lifeadmin://').replace(/([^/])$/, '$1/');
   const url = (path: string) => isMobile ? `${mobileUrl}${path}` : `${webUrl}/${path}`;
   try {
     const { token } = req.query;

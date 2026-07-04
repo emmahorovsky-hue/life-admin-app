@@ -23,10 +23,15 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// 401s from credential submission are expected failures (wrong password),
+// not session expiry — don't clear auth state for them.
+const CREDENTIAL_PATHS = ['/auth/login', '/auth/register'];
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const path = error.config?.url ?? '';
+    if (error.response?.status === 401 && !CREDENTIAL_PATHS.includes(path)) {
       // Clear auth state — layout guard handles navigation once user becomes null
       await callLogout();
     }
