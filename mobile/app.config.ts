@@ -28,6 +28,7 @@ export default {
       'expo-secure-store',
       'expo-notifications',
       ['expo-image-picker', { cameraPermission: 'Allow Life Admin to scan receipts.' }],
+      '@react-native-community/datetimepicker',
     ],
     extra: {
       apiUrl: process.env.API_URL || 'http://localhost:3001/api',
