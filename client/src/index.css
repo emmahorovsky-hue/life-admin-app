@@ -122,6 +122,8 @@
   }
   .animate-roll-calm  { animation: paypr-roll 14s linear infinite; }
   .animate-roll-brisk { animation: paypr-roll 7s  linear infinite; }
+  /* Paused while the ticker is scrolled out of view (toggled from JS). */
+  .roll-paused { animation-play-state: paused; }
 
   /* Renewal Radar scrubber — native range input styled as a printer playhead.
      Thumb/track pseudo-elements can't be expressed with Tailwind utilities. */

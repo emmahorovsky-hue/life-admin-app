@@ -6,8 +6,9 @@
 // Rendered inside Landing.tsx's framed grid, between two <Rule /> dividers.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useRef } from 'react';
 import { Check } from 'lucide-react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { APP_NAME } from '@/lib/constants';
 
 const EXTRACTED_FIELDS = [
@@ -22,13 +23,18 @@ export default function ExtractionSection() {
   const prefersReducedMotion = useReducedMotion();
   const reduced = prefersReducedMotion ?? false;
 
+  // Gate the infinite scan-line sweep on visibility so it stops animating (and
+  // keeping the compositor busy) once the section is scrolled out of view.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const cardInView = useInView(cardRef);
+
   return (
     <section id="extraction" className="py-20 px-4 overflow-hidden">
       <div className="container mx-auto max-w-5xl">
         <div className="grid md:grid-cols-[0.85fr_1.15fr] gap-12 md:gap-14 items-center">
 
           {/* ── Left: receipt with sweeping scan line ───────────────────── */}
-          <div className="relative flex justify-center">
+          <div ref={cardRef} className="relative flex justify-center">
             <motion.div
               initial={reduced ? {} : { opacity: 0, y: 24, rotate: -1.5 }}
               whileInView={{ opacity: 1, y: 0, rotate: -1.5 }}
@@ -49,7 +55,7 @@ export default function ExtractionSection() {
                     boxShadow: '0 0 12px 1px hsl(var(--brand-orange) / 0.6)',
                   }}
                   initial={{ top: '0%', opacity: 0 }}
-                  animate={{ top: ['0%', '100%'], opacity: [0, 1, 1, 0] }}
+                  animate={cardInView ? { top: ['0%', '100%'], opacity: [0, 1, 1, 0] } : {}}
                   transition={{ duration: 3, ease: 'easeInOut', repeat: Infinity }}
                 />
               )}
