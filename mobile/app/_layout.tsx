@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -56,8 +58,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <BottomSheetModalProvider>
+          <RootLayoutNav />
+        </BottomSheetModalProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
