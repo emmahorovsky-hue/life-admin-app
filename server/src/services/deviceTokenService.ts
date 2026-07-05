@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../utils/db';
 
 export async function registerDeviceToken(
@@ -9,9 +10,22 @@ export async function registerDeviceToken(
   // different user later logs in on the same device and re-registers, this
   // reassigns ownership rather than erroring or leaving a stale row pointing
   // at the previous account.
-  await prisma.deviceToken.upsert({
-    where: { token },
-    create: { userId, token, platform },
-    update: { userId, platform },
-  });
+  try {
+    await prisma.deviceToken.upsert({
+      where: { token },
+      create: { userId, token, platform },
+      update: { userId, platform },
+    });
+  } catch (err) {
+    // upsert isn't atomic: two concurrent first-time registrations of the same
+    // token can race on the unique constraint. The row now exists — claim it.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      await prisma.deviceToken.update({
+        where: { token },
+        data: { userId, platform },
+      });
+      return;
+    }
+    throw err;
+  }
 }

@@ -211,6 +211,7 @@ router.patch(
 router.post(
   '/device-token',
   authenticateToken,
+  authLimiter,
   [
     body('token').isString().trim().notEmpty().withMessage('Token is required'),
     body('platform').isString().isIn(['ios', 'android']).withMessage('Platform must be "ios" or "android"'),
