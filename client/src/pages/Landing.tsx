@@ -470,8 +470,12 @@ export default function Landing() {
 
   const headline = ['Your', 'entire', 'paper', 'trail.'];
 
+  // Root uses overflow-x-clip (not -hidden): it clips the full-bleed rails/orbs
+  // horizontally WITHOUT making this wrapper a scroll container. `overflow-x: hidden`
+  // forces overflow-y to compute to `auto`, which turned the page into a second
+  // scroller that swallowed the first scroll gesture (the "double scroll" on the hero).
   return (
-    <div className="min-h-screen bg-background font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-background font-sans overflow-x-clip">
       {/* Scroll progress bar */}
       {!reduced && (
         <motion.div
