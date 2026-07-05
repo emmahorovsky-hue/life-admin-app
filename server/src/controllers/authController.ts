@@ -7,6 +7,7 @@ import { generateToken } from '../utils/jwt';
 import { issueEmailVerificationToken, consumeEmailVerificationToken } from '../services/emailVerificationService';
 import { issuePasswordResetToken, consumePasswordResetToken } from '../services/passwordResetService';
 import { initiateEmailChange, consumeEmailChangeToken } from '../services/emailChangeService';
+import { registerDeviceToken } from '../services/deviceTokenService';
 
 // The frontend (Vercel) and backend (Railway) are served from different sites
 // in production, so the auth cookie must be SameSite=None to be sent on the
@@ -443,6 +444,31 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ error: { message: 'Failed to change password', code: 'CHANGE_PASSWORD_FAILED' } });
+  }
+};
+
+export const registerDeviceTokenHandler = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        error: { message: 'Validation failed', code: 'VALIDATION_ERROR', details: errors.array() },
+      });
+      return;
+    }
+
+    if (!req.user) {
+      res.status(401).json({ error: { message: 'Not authenticated', code: 'NOT_AUTHENTICATED' } });
+      return;
+    }
+
+    const { token, platform } = req.body;
+    await registerDeviceToken(req.user.userId, token, platform);
+
+    res.status(200).json({ message: 'Device token registered successfully.' });
+  } catch (error) {
+    console.error('Register device token error:', error);
+    res.status(500).json({ error: { message: 'Failed to register device token', code: 'REGISTER_DEVICE_TOKEN_FAILED' } });
   }
 };
 

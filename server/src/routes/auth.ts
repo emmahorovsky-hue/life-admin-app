@@ -14,6 +14,7 @@ import {
   changePassword,
   initiateEmailChangeHandler,
   verifyEmailChange,
+  registerDeviceTokenHandler,
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -204,6 +205,17 @@ router.patch(
     body('surname').optional().trim(),
   ],
   updateProfile
+);
+
+// POST /api/auth/device-token
+router.post(
+  '/device-token',
+  authenticateToken,
+  [
+    body('token').isString().trim().notEmpty().withMessage('Token is required'),
+    body('platform').isString().isIn(['ios', 'android']).withMessage('Platform must be "ios" or "android"'),
+  ],
+  registerDeviceTokenHandler
 );
 
 // POST /api/auth/change-password

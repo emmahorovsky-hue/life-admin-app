@@ -31,6 +31,7 @@ async function cleanupTestData() {
     await prisma.emailVerificationToken.deleteMany({});
     await prisma.notificationLog.deleteMany({});
     await prisma.subscription.deleteMany({});
+    await prisma.deviceToken.deleteMany({});
     await prisma.user.deleteMany({});
   } catch (error) {
     console.warn('Warning during test data cleanup:', error);
