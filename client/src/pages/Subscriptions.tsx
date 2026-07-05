@@ -7,18 +7,27 @@ import {
   categories,
   getSubscriptionStatus,
 } from '@/lib/subscriptions';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import AddSubscriptionDialog from '@/components/AddSubscriptionDialog';
 import EditSubscriptionDialog from '@/components/EditSubscriptionDialog';
 import UploadReceiptDialog from '@/components/UploadReceiptDialog';
 import ReviewExtractedDialog from '@/components/ReviewExtractedDialog';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
+import { parseRenewalDate } from '@life-admin/shared';
+import { formatCurrency } from '@/lib/currency';
 import { getApiErrorMessage } from '@/lib/utils';
+
+// "Filed paper" treatment, mirrored from the landing page's
+// "Everything with a deadline, in one place" cards: warm cream tints, a layered
+// warm shadow, faint blue horizontal ruling and a soft red left margin rule.
+const PAPER_TINTS = ['#fbf8f1', '#fdfbf6', '#f9f6ee', '#fcf9f2', '#faf7ef', '#fdfaf4'];
+const PAPER_SHADOW =
+  '0 1px 2px rgba(40,33,20,0.04), 0 4px 10px rgba(40,33,20,0.05), 0 12px 26px rgba(40,33,20,0.06)';
+const PAPER_RULING =
+  'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(212 55% 55% / 0.10) 31px, hsl(212 55% 55% / 0.10) 32px)';
 
 export default function Subscriptions() {
   const location = useLocation();
@@ -103,35 +112,44 @@ export default function Subscriptions() {
     return matchesSearch && matchesCategory;
   });
 
+  // Sort by soonest renewal first — the whole grid reads as a "what's due next" file.
+  const today = new Date();
+  const sortedSubscriptions = [...filteredSubscriptions].sort(
+    (a, b) => parseRenewalDate(a.nextRenewalDate).getTime() - parseRenewalDate(b.nextRenewalDate).getTime()
+  );
+
+  const isFiltered = searchTerm !== '' || categoryFilter !== 'all';
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold">All Subscriptions<span className="text-brand-orange">.</span></h2>
-        <Button onClick={() => setUploadDialogOpen(true)}>
-          Add Subscription
-        </Button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Input
-          placeholder="Search subscriptions..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-        />
-        <Select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="max-w-xs"
-        >
-          <option value="all">All Categories</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </Select>
+      {/* Header + controls */}
+      <div className="flex justify-between items-end gap-4 flex-wrap">
+        <div>
+          <h2 className="font-sans font-extrabold text-3xl tracking-tight">
+            Subscriptions<span className="text-brand-orange">.</span>
+          </h2>
+        </div>
+        <div className="flex gap-2.5 items-center">
+          <Input
+            placeholder="Search…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-44"
+          />
+          <Select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="w-36"
+          >
+            <option value="all">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </Select>
+          <Button onClick={() => setUploadDialogOpen(true)}>+ Add</Button>
+        </div>
       </div>
 
       {/* Error */}
@@ -143,120 +161,129 @@ export default function Subscriptions() {
 
       {/* Loading */}
       {loading && (
-        <div className="grid gap-4" role="status" aria-label="Loading subscriptions">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-3 animate-pulse">
-                      <div className="h-8 w-8 bg-muted rounded" />
-                      <div className="h-6 bg-muted rounded w-40" />
-                      <div className="h-5 bg-muted rounded w-16" />
-                    </div>
-                    <div className="flex gap-4 animate-pulse">
-                      <div className="h-4 bg-muted rounded w-20" />
-                      <div className="h-4 bg-muted rounded w-16" />
-                      <div className="h-4 bg-muted rounded w-32" />
-                    </div>
-                  </div>
-                  <div className="h-8 w-14 bg-muted rounded animate-pulse" />
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 gap-5"
+          role="status"
+          aria-label="Loading subscriptions"
+        >
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="rounded-lg border border-border bg-card pt-5 pr-[22px] pb-[18px] pl-[46px] [transform:rotate(-0.5deg)]"
+            >
+              <div className="flex items-center gap-[11px] mb-3 animate-pulse">
+                <div className="w-10 h-10 rounded-md bg-muted" />
+                <div className="flex flex-col gap-2">
+                  <div className="h-4 w-28 bg-muted rounded" />
+                  <div className="h-3 w-16 bg-muted rounded" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="h-6 w-24 bg-muted rounded mb-3.5 animate-pulse" />
+              <div className="h-3 w-full bg-muted rounded animate-pulse" />
+            </div>
           ))}
         </div>
       )}
 
       {/* Empty State */}
-      {!loading && filteredSubscriptions.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <p className="text-muted-foreground mb-4">
-              {searchTerm || categoryFilter !== 'all'
-                ? 'No subscriptions match your filters'
-                : 'No subscriptions yet'}
-            </p>
-            {!searchTerm && categoryFilter === 'all' && (
+      {!loading && sortedSubscriptions.length === 0 && (
+        <div className="space-y-4">
+          <div className="py-10 text-center border border-dashed border-border rounded-lg font-mono text-xs uppercase tracking-[0.1em] text-muted-foreground">
+            {isFiltered ? 'No subscriptions match your filters' : 'No subscriptions yet'}
+          </div>
+          {!isFiltered && (
+            <div className="text-center">
               <Button onClick={() => setUploadDialogOpen(true)}>
                 Add Your First Subscription
               </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Subscription List */}
-      {!loading && filteredSubscriptions.length > 0 && (
-        <div className="grid gap-4">
-          {filteredSubscriptions.map((sub) => {
-            const status = getSubscriptionStatus(sub);
-            const endLabel = format(new Date(sub.nextRenewalDate), 'MMM d, yyyy');
-            return (
-            <Card
-              key={sub.id}
-              className={`hover:shadow-md transition-shadow ${status === 'ended' ? 'opacity-60' : ''}`}
-            >
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <SubscriptionLogo
-                        name={sub.name}
-                        category={sub.category}
-                        size={32}
-                      />
-                      <h3 className="text-xl font-semibold">{sub.name}</h3>
-                      <Badge variant="secondary">
-                        {categories.find((c) => c.id === sub.category)?.name || sub.category}
-                      </Badge>
-                      {status === 'cancelling' && (
-                        <Badge className="bg-warning text-white border-0">Ends {endLabel}</Badge>
-                      )}
-                      {status === 'ended' && (
-                        <Badge variant="destructive">Ended {endLabel}</Badge>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      <span className="font-medium text-foreground font-mono">
-                        {sub.currency} {parseFloat(sub.cost).toFixed(2)}
-                      </span>
-                      <span>{sub.billingCycle}</span>
-                      {status === 'active' && (
-                        <span className="font-mono">
-                          Next: {format(new Date(sub.nextRenewalDate), 'MMM d, yyyy')}
-                        </span>
-                      )}
-                    </div>
-
-                    {sub.notes && (
-                      <p className="text-sm text-muted-foreground">{sub.notes}</p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(sub)}
-                    >
-                      Edit
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            );
-          })}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Showing count */}
-      {!loading && filteredSubscriptions.length > 0 && (
-        <p className="text-sm text-muted-foreground text-center">
-          Showing {filteredSubscriptions.length} of {subscriptions.length} subscriptions
-        </p>
+      {/* Card grid */}
+      {!loading && sortedSubscriptions.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {sortedSubscriptions.map((sub, i) => {
+            const status = getSubscriptionStatus(sub);
+            const renewal = parseRenewalDate(sub.nextRenewalDate);
+            const days = differenceInCalendarDays(renewal, today);
+            const isUrgent = status === 'cancelling' || days <= 7;
+            const stampText = status === 'cancelling' ? 'Ending' : `Due · ${days}d`;
+            const categoryName =
+              categories.find((c) => c.id === sub.category)?.name || sub.category;
+
+            return (
+              <button
+                key={sub.id}
+                type="button"
+                onClick={() => handleEdit(sub)}
+                aria-label={`Edit ${sub.name}`}
+                style={{ backgroundColor: PAPER_TINTS[i % PAPER_TINTS.length], boxShadow: PAPER_SHADOW }}
+                className={`group relative w-full text-left overflow-hidden rounded-[3px] border border-black/[0.06] cursor-pointer pt-5 pr-[22px] pb-[18px] pl-[46px] [transform:rotate(-0.5deg)] transition-[transform,box-shadow] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] hover:[transform:rotate(0deg)_translateY(-3px)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:hover:[transform:rotate(-0.5deg)] ${
+                  status === 'ended' ? 'opacity-60' : ''
+                }`}
+              >
+                {/* Horizontal paper ruling */}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ backgroundImage: PAPER_RULING, backgroundPosition: '0 76px' }}
+                />
+                {/* Left margin rule */}
+                <span
+                  aria-hidden="true"
+                  className="absolute left-[30px] top-0 bottom-0 w-px"
+                  style={{ background: 'hsl(2 65% 58% / 0.30)' }}
+                />
+
+                {/* Content sits above the ruling */}
+                <div className="relative">
+                {/* Top row: logo + name/category, urgent stamp */}
+                <div className="flex justify-between items-start gap-3 mb-3">
+                  <div className="flex items-center gap-[11px] min-w-0">
+                    <SubscriptionLogo name={sub.name} category={sub.category} size={40} />
+                    <div className="flex flex-col gap-[5px] min-w-0">
+                      <span className="font-sans font-extrabold text-lg tracking-tight text-foreground truncate">
+                        {sub.name}
+                      </span>
+                      <span className="font-mono text-[11px] tracking-[0.14em] uppercase text-muted-foreground truncate">
+                        {categoryName}
+                      </span>
+                    </div>
+                  </div>
+                  {isUrgent && (
+                    <span className="shrink-0 inline-block [transform:rotate(-5deg)] font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-brand-orange border-[1.5px] border-brand-orange rounded-[2px] px-1.5 py-0.5 whitespace-nowrap">
+                      {stampText}
+                    </span>
+                  )}
+                </div>
+
+                {/* Price row */}
+                <div className="flex items-baseline gap-1.5 mb-3.5">
+                  <span className="font-mono font-bold text-[26px] tabular-nums text-foreground">
+                    {formatCurrency(parseFloat(sub.cost), sub.currency)}
+                  </span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    / {sub.billingCycle.toLowerCase()}
+                  </span>
+                </div>
+
+                {/* Renewal row with dotted leader */}
+                <div className="flex items-baseline gap-1">
+                  <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-muted-foreground shrink-0">
+                    Renews {format(renewal, 'MMM d')}
+                  </span>
+                  <span aria-hidden="true" className="leader-dots flex-1 mx-2 mb-[3px]" />
+                  <span className="font-mono text-[11px] font-bold tracking-[0.04em] text-foreground shrink-0">
+                    {days}d left
+                  </span>
+                </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       )}
 
       {/* Dialogs */}

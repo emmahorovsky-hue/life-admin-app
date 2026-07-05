@@ -9,7 +9,6 @@ import {
 import {
   motion,
   useScroll,
-  useSpring,
   useInView,
   useReducedMotion,
 } from 'framer-motion';
@@ -374,6 +373,10 @@ function ReceiptGlyph() {
 // handled by the global prefers-reduced-motion rule in index.css.
 function ReceiptTicker({ speed = 'calm' }: { speed?: 'calm' | 'brisk' }) {
   const rollClass = speed === 'brisk' ? 'animate-roll-brisk' : 'animate-roll-calm';
+  // Pause the infinite roll while the cell is off-screen so it stops driving the
+  // compositor when it can't be seen.
+  const windowRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(windowRef);
   return (
     <div className="md:col-span-2 bg-background p-6 md:p-8 flex flex-col">
       {/* Header */}
@@ -388,7 +391,7 @@ function ReceiptTicker({ speed = 'calm' }: { speed?: 'calm' | 'brisk' }) {
       </div>
 
       {/* Receipt window */}
-      <div className="relative mt-5 min-h-[230px] flex-1 overflow-hidden rounded-[2px] border border-foreground/15 bg-white">
+      <div ref={windowRef} className="relative mt-5 min-h-[230px] flex-1 overflow-hidden rounded-[2px] border border-foreground/15 bg-white">
         {/* perforated top edge */}
         <div
           className="absolute left-0 right-0 top-0 z-20 h-[10px]"
@@ -401,7 +404,7 @@ function ReceiptTicker({ speed = 'calm' }: { speed?: 'calm' | 'brisk' }) {
         <div className="pointer-events-none absolute left-0 right-0 top-[10px] z-10 h-8" style={{ background: 'linear-gradient(#fff, transparent)' }} />
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-8" style={{ background: 'linear-gradient(transparent, #fff)' }} />
         {/* rolling lines (rendered twice for a seamless loop) */}
-        <div className={`absolute left-0 right-0 top-[14px] ${rollClass}`}>
+        <div className={`absolute left-0 right-0 top-[14px] ${rollClass} ${inView ? '' : 'roll-paused'}`}>
           {[...RECEIPT_LINES, ...RECEIPT_LINES].map((line, i) => (
             <div key={i} className="flex items-center gap-2 px-4 py-2 font-mono text-[11px]">
               <span className="whitespace-nowrap text-foreground">{line.name}</span>
@@ -445,11 +448,19 @@ export default function Landing() {
   const prefersReducedMotion = useReducedMotion();
   const reduced = prefersReducedMotion ?? false;
 
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+  // Bind the progress bar's scaleX directly to scroll — no spring. A spring eases
+  // to a settle, which lags and overshoots on scroll-up (the reported "scroll up
+  // isn't smooth") and runs per-frame spring math every frame. Direct binding
+  // tracks scroll exactly with zero lag.
+  const { scrollYProgress: scaleX } = useScroll();
 
   // Frame element for the Features bento's cursor-magnetic registration marks.
   const featuresFrameRef = useRef<HTMLDivElement>(null);
+
+  // Hero visibility gate — the gradient orbs animate forever, so idle them once
+  // the hero scrolls out of view to keep the compositor free for scroll frames.
+  const heroRef = useRef<HTMLElement>(null);
+  const heroInView = useInView(heroRef);
 
   // Public marketing page — render immediately rather than waiting on the auth check.
   // Once auth resolves, logged-in visitors get redirected to the dashboard.
@@ -459,8 +470,12 @@ export default function Landing() {
 
   const headline = ['Your', 'entire', 'paper', 'trail.'];
 
+  // Root uses overflow-x-clip (not -hidden): it clips the full-bleed rails/orbs
+  // horizontally WITHOUT making this wrapper a scroll container. `overflow-x: hidden`
+  // forces overflow-y to compute to `auto`, which turned the page into a second
+  // scroller that swallowed the first scroll gesture (the "double scroll" on the hero).
   return (
-    <div className="min-h-screen bg-background font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-background font-sans overflow-x-clip">
       {/* Scroll progress bar */}
       {!reduced && (
         <motion.div
@@ -495,7 +510,7 @@ export default function Landing() {
       <div className="relative mx-auto w-full max-w-[1200px] border-x border-border/50">
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-[calc(100vh-65px)] flex items-center py-20 px-4 overflow-hidden">
+      <section ref={heroRef} className="relative min-h-[calc(100dvh-65px)] flex items-center py-20 px-4 overflow-hidden">
         {/* Background gradient orbs */}
         {!reduced && (
           <>
@@ -513,7 +528,7 @@ export default function Landing() {
                 willChange: 'transform',
                 transform: 'translateZ(0)',
               }}
-              animate={{ x: [0, 24, 0], y: [0, -18, 0] }}
+              animate={heroInView ? { x: [0, 24, 0], y: [0, -18, 0] } : {}}
               transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
             />
             <motion.div
@@ -527,7 +542,7 @@ export default function Landing() {
                 willChange: 'transform',
                 transform: 'translateZ(0)',
               }}
-              animate={{ x: [0, -18, 0], y: [0, 22, 0] }}
+              animate={heroInView ? { x: [0, -18, 0], y: [0, 22, 0] } : {}}
               transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
             />
           </>
