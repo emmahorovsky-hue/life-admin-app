@@ -22,12 +22,12 @@ interface LayoutProps {
 /**
  * "Filed receipt" navigation (design 1a).
  *
- * Reads like a receipt: a mono "MAIN MENU" kicker, a perforated (dashed)
- * divider under it, an ink-filled active row, mono count/status badges flush
- * right, and the account docked beneath a double-hairline rule with the P. mark.
+ * Reads like a receipt: a wordmark row, a perforated (dashed) divider under it,
+ * icon-led nav rows where the active row gets a Sand fill with a 3px orange left
+ * rail, and the account docked beneath a double-hairline rule with the P. mark.
  *
  * The same content renders in the desktop sidebar and the mobile full-screen
- * overlay; `size` scales the rows, icons, badges, and account tile up on mobile.
+ * overlay; `size` scales the rows, icons, and account tile up on mobile.
  */
 interface NavItem {
   path: string;
@@ -225,7 +225,7 @@ export default function Layout({ children }: LayoutProps) {
             <aside
               role="dialog"
               aria-modal="true"
-              className="md:hidden fixed inset-0 z-50 bg-card flex flex-col"
+              className="md:hidden fixed inset-0 z-50 bg-card flex flex-col overflow-y-auto"
             >
               <SidebarContent
                 currentPath={location.pathname}
