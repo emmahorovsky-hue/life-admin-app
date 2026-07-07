@@ -169,17 +169,24 @@ export default function Subscriptions() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="rounded-lg border border-border bg-card pt-5 pr-[22px] pb-[18px] pl-[46px] [transform:rotate(-0.5deg)]"
+              style={{ backgroundColor: PAPER_TINTS[i % PAPER_TINTS.length], boxShadow: PAPER_SHADOW }}
+              className="relative overflow-hidden rounded-[3px] border border-black/[0.06] pt-5 pr-[22px] pb-[18px] pl-[46px] [transform:rotate(-0.5deg)]"
             >
+              {/* Left margin rule — matches the loaded card */}
+              <span
+                aria-hidden="true"
+                className="absolute left-[30px] top-0 bottom-0 w-px"
+                style={{ background: 'hsl(2 65% 58% / 0.30)' }}
+              />
               <div className="flex items-center gap-[11px] mb-3 animate-pulse">
-                <div className="w-10 h-10 rounded-md bg-muted" />
+                <div className="w-10 h-10 rounded-md bg-black/[0.07]" />
                 <div className="flex flex-col gap-2">
-                  <div className="h-4 w-28 bg-muted rounded" />
-                  <div className="h-3 w-16 bg-muted rounded" />
+                  <div className="h-4 w-28 bg-black/[0.07] rounded" />
+                  <div className="h-3 w-16 bg-black/[0.07] rounded" />
                 </div>
               </div>
-              <div className="h-6 w-24 bg-muted rounded mb-3.5 animate-pulse" />
-              <div className="h-3 w-full bg-muted rounded animate-pulse" />
+              <div className="h-6 w-24 bg-black/[0.07] rounded mb-3.5 animate-pulse" />
+              <div className="h-3 w-full bg-black/[0.07] rounded animate-pulse" />
             </div>
           ))}
         </div>

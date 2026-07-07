@@ -16,6 +16,13 @@ const BUCKET_LABELS: Record<BucketId, string> = {
   nextMonth: 'Next Month',
 };
 
+// "Filed paper" treatment, mirrored from the Subscriptions card grid: a warm
+// cream sheet with a layered warm shadow, a soft red left margin rule and a
+// faint blue horizontal ruling — so the timeline reads as one filed statement.
+const PAPER_TINT = '#fbf8f1';
+const PAPER_SHADOW =
+  '0 1px 2px rgba(40,33,20,0.04), 0 4px 10px rgba(40,33,20,0.05), 0 12px 26px rgba(40,33,20,0.06)';
+
 const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
 
 export default function Timeline() {
@@ -45,12 +52,30 @@ export default function Timeline() {
     return (
       <div className="space-y-6 max-w-3xl">
         <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-1/3" />
+          <div className="h-9 bg-muted rounded w-1/3" />
         </div>
-        <div className="space-y-3 pt-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-5 bg-muted rounded animate-pulse" />
-          ))}
+        <div
+          className="relative overflow-hidden rounded-[3px] border border-black/[0.06] pt-7 pr-7 pb-7 pl-12"
+          style={{ backgroundColor: PAPER_TINT, boxShadow: PAPER_SHADOW }}
+        >
+          {/* Left margin rule — matches the loaded sheet */}
+          <span
+            aria-hidden="true"
+            className="absolute left-8 top-0 bottom-0 w-px"
+            style={{ background: 'hsl(2 65% 58% / 0.30)' }}
+          />
+          <div className="relative space-y-5">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3.5 animate-pulse">
+                <div className="w-9 h-9 rounded-md bg-black/[0.07] shrink-0" />
+                <div className="flex flex-col gap-2 flex-1">
+                  <div className="h-4 w-32 bg-black/[0.07] rounded" />
+                  <div className="h-3 w-20 bg-black/[0.07] rounded" />
+                </div>
+                <div className="h-5 w-16 bg-black/[0.07] rounded" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -86,7 +111,9 @@ export default function Timeline() {
     <div className="space-y-6 max-w-3xl">
       {/* Header — consistent with the other pages */}
       <div>
-        <h2 className="text-3xl font-bold">What's due next<span className="text-brand-orange">.</span></h2>
+        <h2 className="font-sans font-extrabold text-3xl tracking-tight">
+          What's due next<span className="text-brand-orange">.</span>
+        </h2>
       </div>
 
       {!hasAny ? (
@@ -97,63 +124,83 @@ export default function Timeline() {
           </Button>
         </div>
       ) : (
-        (Object.keys(buckets) as BucketId[])
-          .filter((id) => buckets[id].length > 0)
-          .map((id) => {
-            const isThisWeek = id === 'thisWeek';
-            return (
-              <section key={id}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2
-                    className={`text-xs font-mono uppercase tracking-widest ${
-                      isThisWeek ? 'text-brand-orange' : 'text-muted-foreground'
-                    }`}
-                  >
-                    {BUCKET_LABELS[id]}
-                  </h2>
-                  {isThisWeek && (
-                    <span
-                      className="text-xs font-mono uppercase tracking-widest text-brand-orange border border-brand-orange px-2 py-0.5"
-                      style={{ transform: 'rotate(-4deg)', display: 'inline-block' }}
-                    >
-                      Due Soon
-                    </span>
-                  )}
-                </div>
+        <div
+          className="relative overflow-hidden rounded-[3px] border border-black/[0.06] pt-7 pr-7 pb-7 pl-12 [transform:rotate(-0.4deg)]"
+          style={{ backgroundColor: PAPER_TINT, boxShadow: PAPER_SHADOW }}
+        >
+          {/* Left margin rule */}
+          <span
+            aria-hidden="true"
+            className="absolute left-8 top-0 bottom-0 w-px"
+            style={{ background: 'hsl(2 65% 58% / 0.30)' }}
+          />
 
-                <div className="space-y-3">
-                  {buckets[id].map((sub) => {
-                    const renewal = parseRenewalDate(sub.nextRenewalDate);
-                    const days = differenceInCalendarDays(renewal, today);
-                    return (
-                      <div key={sub.id} className="flex items-center gap-1">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <SubscriptionLogo name={sub.name} category={sub.category} size={20} className="shrink-0" />
-                          <span className="font-mono font-bold text-sm min-w-0 truncate">{sub.name}</span>
-                          <span className="text-xs text-muted-foreground font-mono shrink-0 ml-2 whitespace-nowrap">
-                            {format(renewal, 'MMM d')} · {categoryLabel(sub.category)}
-                          </span>
-                        </div>
-                        <div className="leader-dots flex-1 mx-2 mb-0.5" />
+          <div className="relative space-y-9">
+            {(Object.keys(buckets) as BucketId[])
+              .filter((id) => buckets[id].length > 0)
+              .map((id) => {
+                const isThisWeek = id === 'thisWeek';
+                return (
+                  <section key={id}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3
+                        className={`text-xs font-mono uppercase tracking-widest ${
+                          isThisWeek ? 'text-brand-orange' : 'text-muted-foreground'
+                        }`}
+                      >
+                        {BUCKET_LABELS[id]}
+                      </h3>
+                      {isThisWeek && (
                         <span
-                          className={`text-xs font-mono shrink-0 mr-3 ${
-                            isThisWeek ? 'text-brand-orange' : 'text-muted-foreground'
-                          }`}
+                          className="text-[10px] font-mono uppercase tracking-widest text-brand-orange border-[1.5px] border-brand-orange rounded-[2px] px-2 py-0.5"
+                          style={{ transform: 'rotate(-4deg)', display: 'inline-block' }}
                         >
-                          {relativeDays(days)}
+                          Due Soon
                         </span>
-                        <span className="font-mono font-bold text-sm shrink-0">
-                          {formatCurrency(parseFloat(sub.cost), sub.currency)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                      )}
+                    </div>
 
-                <div className="border-perf mt-6" />
-              </section>
-            );
-          })
+                    <div className="divide-y divide-dashed divide-black/[0.08]">
+                      {buckets[id].map((sub) => {
+                        const renewal = parseRenewalDate(sub.nextRenewalDate);
+                        const days = differenceInCalendarDays(renewal, today);
+                        return (
+                          <div key={sub.id} className="flex items-center gap-3.5 py-3 first:pt-0 last:pb-0">
+                            <SubscriptionLogo
+                              name={sub.name}
+                              category={sub.category}
+                              size={36}
+                              className="shrink-0"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-sans font-bold text-base tracking-tight text-foreground truncate">
+                                {sub.name}
+                              </div>
+                              <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground truncate">
+                                {format(renewal, 'MMM d')} · {categoryLabel(sub.category)}
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <div className="font-mono font-bold text-base tabular-nums text-foreground">
+                                {formatCurrency(parseFloat(sub.cost), sub.currency)}
+                              </div>
+                              <div
+                                className={`font-mono text-[11px] tracking-[0.04em] ${
+                                  isThisWeek ? 'text-brand-orange' : 'text-muted-foreground'
+                                }`}
+                              >
+                                {relativeDays(days)}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+          </div>
+        </div>
       )}
     </div>
   );
