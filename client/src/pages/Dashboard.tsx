@@ -243,10 +243,20 @@ export default function Dashboard() {
 
         {/* Category breakdown chart */}
         <Card>
-          <CardHeader>
-            <CardTitle>Spending by Category</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
+            {/* Header — mirrors the renewals card's mono column labels */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                Spending by Category
+              </span>
+              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                Monthly
+              </span>
+            </div>
+
+            {/* Perforated separator */}
+            <div className="border-perf mb-4" />
+
             {categoryData.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <p className="text-muted-foreground mb-4">No subscriptions yet</p>
@@ -256,26 +266,42 @@ export default function Dashboard() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={categoryData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <BarChart data={categoryData} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
+                  <CartesianGrid
+                    vertical={false}
+                    strokeDasharray="2 4"
+                    stroke="hsl(var(--border))"
+                  />
                   <XAxis
                     dataKey="name"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={{ stroke: 'hsl(var(--border))' }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontFamily: 'Space Mono, monospace', fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
                   />
                   <YAxis
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={{ stroke: 'hsl(var(--border))' }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontFamily: 'Space Mono, monospace', fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={44}
                   />
                   <Tooltip
+                    cursor={{ fill: 'hsl(var(--brand-orange) / 0.08)' }}
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '2px',
+                      fontFamily: 'Space Mono, monospace',
+                      fontSize: 12,
                     }}
                     formatter={(value: number) => [formatCurrency(value, displayCurrency), 'Monthly']}
                   />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
+                  <Bar
+                    dataKey="total"
+                    fill="hsl(var(--accent))"
+                    activeBar={{ fill: 'hsl(var(--brand-orange))' }}
+                    radius={[2, 2, 0, 0]}
+                    maxBarSize={56}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
