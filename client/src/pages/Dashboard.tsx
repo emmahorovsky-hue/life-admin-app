@@ -12,6 +12,13 @@ import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+// "Filed paper" treatment, shared with the Timeline sheet and Subscriptions
+// cards: a warm cream surface with a layered warm shadow and a soft-red left
+// margin rule, so the receipt reads as one filed statement.
+const PAPER_TINT = '#fbf8f1';
+const PAPER_SHADOW =
+  '0 1px 2px rgba(40,33,20,0.04), 0 4px 10px rgba(40,33,20,0.05), 0 12px 26px rgba(40,33,20,0.06)';
+
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -158,9 +165,18 @@ export default function Dashboard() {
 
       {/* Two columns: receipt table + category chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming renewals — receipt style */}
-        <Card>
-          <CardContent className="p-6">
+        {/* Upcoming renewals — filed-paper receipt (matches Timeline / Subscriptions) */}
+        <div
+          className="relative overflow-hidden rounded-[3px] border border-black/[0.06] pt-6 pr-6 pb-6 pl-12"
+          style={{ backgroundColor: PAPER_TINT, boxShadow: PAPER_SHADOW }}
+        >
+          {/* Left margin rule */}
+          <span
+            aria-hidden="true"
+            className="absolute left-8 top-0 bottom-0 w-px"
+            style={{ background: 'hsl(2 65% 58% / 0.30)' }}
+          />
+          <div className="relative">
             {summary.upcomingRenewals.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4">
                 No renewals in the next 30 days
@@ -196,16 +212,16 @@ export default function Dashboard() {
                 <div className="border-perf mb-4" />
 
                 {/* Renewal rows */}
-                <div className="space-y-3">
+                <div className="space-y-3.5">
                   {shownRenewals.map((renewal) => (
-                    <div key={renewal.id} className="flex items-center gap-1">
-                      <SubscriptionLogo name={renewal.name} category={renewal.category} size={20} className="shrink-0" />
-                      <span className="font-mono font-bold text-sm shrink-0">{renewal.name}</span>
+                    <div key={renewal.id} className="flex items-center gap-2">
+                      <SubscriptionLogo name={renewal.name} category={renewal.category} size={28} className="shrink-0" />
+                      <span className="font-mono font-bold text-sm text-foreground shrink-0">{renewal.name}</span>
                       <span className="text-xs text-muted-foreground font-mono shrink-0 ml-1">
                         {format(new Date(renewal.nextRenewalDate), 'MMM d')}
                       </span>
                       <div className="leader-dots flex-1 mx-2 mb-0.5" />
-                      <span className="font-mono font-bold text-sm shrink-0">
+                      <span className="font-mono font-bold text-sm text-foreground shrink-0">
                         {formatCurrency(parseFloat(renewal.cost), currencyById.get(renewal.id) ?? displayCurrency)}
                       </span>
                     </div>
@@ -221,7 +237,7 @@ export default function Dashboard() {
                   <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
                     Total
                   </span>
-                  <span className="font-mono font-bold text-2xl">
+                  <span className="font-mono font-bold text-2xl text-foreground">
                     {formatCurrency(renewalTotal, displayCurrency)}
                   </span>
                 </div>
@@ -238,8 +254,8 @@ export default function Dashboard() {
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Category breakdown chart */}
         <Card>
