@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
+import { PaperSheet } from '@/components/PaperSheet';
+import { PAPER_TINTS, PAPER_SHADOW, PAPER_RULING } from '@/lib/paper';
 import AddSubscriptionDialog from '@/components/AddSubscriptionDialog';
 import EditSubscriptionDialog from '@/components/EditSubscriptionDialog';
 import UploadReceiptDialog from '@/components/UploadReceiptDialog';
@@ -19,15 +21,6 @@ import { format, differenceInCalendarDays } from 'date-fns';
 import { parseRenewalDate } from '@life-admin/shared';
 import { formatCurrency } from '@/lib/currency';
 import { getApiErrorMessage } from '@/lib/utils';
-
-// "Filed paper" treatment, mirrored from the landing page's
-// "Everything with a deadline, in one place" cards: warm cream tints, a layered
-// warm shadow, faint blue horizontal ruling and a soft red left margin rule.
-const PAPER_TINTS = ['#fbf8f1', '#fdfbf6', '#f9f6ee', '#fcf9f2', '#faf7ef', '#fdfaf4'];
-const PAPER_SHADOW =
-  '0 1px 2px rgba(40,33,20,0.04), 0 4px 10px rgba(40,33,20,0.05), 0 12px 26px rgba(40,33,20,0.06)';
-const PAPER_RULING =
-  'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(212 55% 55% / 0.10) 31px, hsl(212 55% 55% / 0.10) 32px)';
 
 export default function Subscriptions() {
   const location = useLocation();
@@ -167,17 +160,12 @@ export default function Subscriptions() {
           aria-label="Loading subscriptions"
         >
           {[1, 2, 3, 4].map((i) => (
-            <div
+            <PaperSheet
               key={i}
-              style={{ backgroundColor: PAPER_TINTS[i % PAPER_TINTS.length], boxShadow: PAPER_SHADOW }}
-              className="relative overflow-hidden rounded-[3px] border border-black/[0.06] pt-5 pr-[22px] pb-[18px] pl-[46px] [transform:rotate(-0.5deg)]"
+              tint={PAPER_TINTS[i % PAPER_TINTS.length]}
+              marginRuleClassName="left-[30px]"
+              className="pt-5 pr-[22px] pb-[18px] pl-[46px] [transform:rotate(-0.5deg)]"
             >
-              {/* Left margin rule — matches the loaded card */}
-              <span
-                aria-hidden="true"
-                className="absolute left-[30px] top-0 bottom-0 w-px"
-                style={{ background: 'hsl(2 65% 58% / 0.30)' }}
-              />
               <div className="flex items-center gap-[11px] mb-3 animate-pulse">
                 <div className="w-10 h-10 rounded-md bg-black/[0.07]" />
                 <div className="flex flex-col gap-2">
@@ -187,7 +175,7 @@ export default function Subscriptions() {
               </div>
               <div className="h-6 w-24 bg-black/[0.07] rounded mb-3.5 animate-pulse" />
               <div className="h-3 w-full bg-black/[0.07] rounded animate-pulse" />
-            </div>
+            </PaperSheet>
           ))}
         </div>
       )}

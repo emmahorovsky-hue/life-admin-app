@@ -9,15 +9,9 @@ import { subscriptionApi, categories } from '@/lib/subscriptions';
 import { formatCurrency, dominantCurrency, DEFAULT_CURRENCY } from '@/lib/currency';
 import { normalizeToMonthlyCost } from '@life-admin/shared';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
+import { PaperSheet } from '@/components/PaperSheet';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-// "Filed paper" treatment, shared with the Timeline sheet and Subscriptions
-// cards: a warm cream surface with a layered warm shadow and a soft-red left
-// margin rule, so the receipt reads as one filed statement.
-const PAPER_TINT = '#fbf8f1';
-const PAPER_SHADOW =
-  '0 1px 2px rgba(40,33,20,0.04), 0 4px 10px rgba(40,33,20,0.05), 0 12px 26px rgba(40,33,20,0.06)';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -166,18 +160,8 @@ export default function Dashboard() {
       {/* Two columns: receipt table + category chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upcoming renewals — filed-paper receipt (matches Timeline / Subscriptions) */}
-        <div
-          className="relative overflow-hidden rounded-[3px] border border-black/[0.06] pt-6 pr-6 pb-6 pl-12"
-          style={{ backgroundColor: PAPER_TINT, boxShadow: PAPER_SHADOW }}
-        >
-          {/* Left margin rule */}
-          <span
-            aria-hidden="true"
-            className="absolute left-8 top-0 bottom-0 w-px"
-            style={{ background: 'hsl(2 65% 58% / 0.30)' }}
-          />
-          <div className="relative">
-            {summary.upcomingRenewals.length === 0 ? (
+        <PaperSheet className="pt-6 pr-6 pb-6 pl-12">
+          {summary.upcomingRenewals.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4">
                 No renewals in the next 30 days
               </p>
@@ -254,8 +238,7 @@ export default function Dashboard() {
                 )}
               </>
             )}
-          </div>
-        </div>
+        </PaperSheet>
 
         {/* Category breakdown chart */}
         <Card>
