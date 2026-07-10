@@ -114,7 +114,9 @@ export default function Dashboard() {
   const dueSoonTotals = totalsByCurrency(dueSoonRenewals);
 
   const shownRenewals = summary.upcomingRenewals.slice(0, 5);
-  const renewalTotals = totalsByCurrency(shownRenewals);
+  // Total covers every upcoming renewal, not just the 5 rows shown — the
+  // label calls that out below when the list is truncated.
+  const renewalTotals = totalsByCurrency(summary.upcomingRenewals);
 
   return (
     <div className="space-y-6">
@@ -238,7 +240,9 @@ export default function Dashboard() {
                     different currencies can't be added together */}
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                    Total
+                    Total{summary.upcomingRenewals.length > shownRenewals.length
+                      ? ` · all ${summary.upcomingRenewals.length}`
+                      : ''}
                   </span>
                   <div className="text-right">
                     {renewalTotals.map(([currency, amount]) => (
