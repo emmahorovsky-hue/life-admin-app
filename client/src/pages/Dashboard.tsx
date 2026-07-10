@@ -97,12 +97,26 @@ export default function Dashboard() {
   const dueSoonRenewals = summary.upcomingRenewals.filter(
     r => new Date(r.nextRenewalDate).getTime() - Date.now() <= sevenDaysMs
   );
-  const dueSoonTotal = dueSoonRenewals.reduce((sum, r) => sum + parseFloat(r.cost), 0);
+
+  // Renewals can be in different currencies, so a single summed figure would
+  // silently add e.g. USD + EUR. Total per currency instead, displayCurrency
+  // first, then descending amount.
+  const totalsByCurrency = (renewals: typeof summary.upcomingRenewals): [string, number][] => {
+    const totals = new Map<string, number>();
+    for (const r of renewals) {
+      const currency = currencyById.get(r.id) ?? displayCurrency;
+      totals.set(currency, (totals.get(currency) ?? 0) + parseFloat(r.cost));
+    }
+    return [...totals.entries()].sort((a, b) =>
+      a[0] === displayCurrency ? -1 : b[0] === displayCurrency ? 1 : b[1] - a[1]
+    );
+  };
+  const dueSoonTotals = totalsByCurrency(dueSoonRenewals);
 
   const shownRenewals = summary.upcomingRenewals.slice(0, 5);
   // Total covers every upcoming renewal, not just the 5 rows shown — the
   // label calls that out below when the list is truncated.
-  const renewalTotal = summary.upcomingRenewals.reduce((sum, r) => sum + parseFloat(r.cost), 0);
+  const renewalTotals = totalsByCurrency(summary.upcomingRenewals);
 
   return (
     <div className="space-y-6">
@@ -147,8 +161,12 @@ export default function Dashboard() {
             <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">
               Due in 7 days
             </p>
-            <div className="text-4xl font-bold font-mono tracking-tight">
-              {formatCurrency(dueSoonTotal, displayCurrency)}
+            <div className={`font-bold font-mono tracking-tight ${dueSoonTotals.length > 1 ? 'text-2xl space-y-1' : 'text-4xl'}`}>
+              {dueSoonTotals.length === 0
+                ? formatCurrency(0, displayCurrency)
+                : dueSoonTotals.map(([currency, amount]) => (
+                    <div key={currency}>{formatCurrency(amount, currency)}</div>
+                  ))}
             </div>
             {dueSoonRenewals.length > 0 && (
               <p className="text-sm text-muted-foreground mt-3">
@@ -218,16 +236,24 @@ export default function Dashboard() {
                 <div className="mt-4 mb-1 h-px bg-foreground" />
                 <div className="mb-3 h-px bg-foreground" />
 
-                {/* Total due */}
+                {/* Total due — one line per currency, since amounts in
+                    different currencies can't be added together */}
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
                     Total{summary.upcomingRenewals.length > shownRenewals.length
                       ? ` · all ${summary.upcomingRenewals.length}`
                       : ''}
                   </span>
-                  <span className="font-mono font-bold text-2xl text-foreground">
-                    {formatCurrency(renewalTotal, displayCurrency)}
-                  </span>
+                  <div className="text-right">
+                    {renewalTotals.map(([currency, amount]) => (
+                      <div
+                        key={currency}
+                        className={`font-mono font-bold text-foreground ${renewalTotals.length > 1 ? 'text-xl' : 'text-2xl'}`}
+                      >
+                        {formatCurrency(amount, currency)}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {summary.upcomingRenewals.length > 5 && (
