@@ -44,12 +44,19 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 // Vercel reserves across accounts). Only origins ending with this suffix are
 // allowed; unset means preview origins get no CORS access. A value without a
 // leading separator would also match lookalike hostnames that any Vercel user
-// could register ("evilbeta-flame.vercel.app"), so normalize one on.
+// could register ("evilbeta-flame.vercel.app"), so normalize one on. A value
+// starting with "." (e.g. ".vercel.app") would trust every Vercel customer's
+// deployments, so fail closed and ignore it.
 const rawPreviewSuffix = process.env.VERCEL_PREVIEW_HOST_SUFFIX || '';
-const VERCEL_PREVIEW_HOST_SUFFIX =
-  rawPreviewSuffix && !rawPreviewSuffix.startsWith('-') && !rawPreviewSuffix.startsWith('.')
-    ? `-${rawPreviewSuffix}`
-    : rawPreviewSuffix;
+let VERCEL_PREVIEW_HOST_SUFFIX = '';
+if (rawPreviewSuffix.startsWith('.')) {
+  console.warn(
+    'VERCEL_PREVIEW_HOST_SUFFIX must be a scope-slug suffix like "-beta-flame.vercel.app", ' +
+      `not a bare domain suffix like "${rawPreviewSuffix}" — ignoring it (preview origins will be rejected).`
+  );
+} else if (rawPreviewSuffix) {
+  VERCEL_PREVIEW_HOST_SUFFIX = rawPreviewSuffix.startsWith('-') ? rawPreviewSuffix : `-${rawPreviewSuffix}`;
+}
 
 // CORS configuration to allow Vercel preview deployments
 const corsOptions = {
@@ -76,8 +83,11 @@ const corsOptions = {
     
     // Allow this project's Vercel preview deployments. Trusting all of
     // *.vercel.app would make any Vercel customer's page an allowed
-    // credentialed origin, able to read authenticated API responses; the
-    // scope suffix can't appear in another account's deployment hostnames.
+    // credentialed origin, able to read authenticated API responses. Note the
+    // suffix match is not airtight: scope slugs are free-form, so an account
+    // named e.g. "evil-beta-flame" would also produce hostnames ending in
+    // "-beta-flame.vercel.app" — a deliberate, targeted registration, but
+    // possible. If that risk matters, move to an explicit origin allowlist.
     if (VERCEL_PREVIEW_HOST_SUFFIX) {
       try {
         const { protocol, hostname } = new URL(origin);
