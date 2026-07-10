@@ -100,7 +100,9 @@ export default function Dashboard() {
   const dueSoonTotal = dueSoonRenewals.reduce((sum, r) => sum + parseFloat(r.cost), 0);
 
   const shownRenewals = summary.upcomingRenewals.slice(0, 5);
-  const renewalTotal = shownRenewals.reduce((sum, r) => sum + parseFloat(r.cost), 0);
+  // Total covers every upcoming renewal, not just the 5 rows shown — the
+  // label calls that out below when the list is truncated.
+  const renewalTotal = summary.upcomingRenewals.reduce((sum, r) => sum + parseFloat(r.cost), 0);
 
   return (
     <div className="space-y-6">
@@ -219,7 +221,9 @@ export default function Dashboard() {
                 {/* Total due */}
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                    Total
+                    Total{summary.upcomingRenewals.length > shownRenewals.length
+                      ? ` · all ${summary.upcomingRenewals.length}`
+                      : ''}
                   </span>
                   <span className="font-mono font-bold text-2xl text-foreground">
                     {formatCurrency(renewalTotal, displayCurrency)}
