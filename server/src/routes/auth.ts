@@ -29,20 +29,34 @@ if (process.env.DISABLE_AUTH_RATE_LIMIT === 'true') {
 
 const isTestEnv = process.env.NODE_ENV === 'test' || process.env.DISABLE_AUTH_RATE_LIMIT === 'true';
 
-// Rate limiter for auth endpoints (5 requests per 15 minutes)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
-  skip: () => isTestEnv,
-  message: {
-    error: {
-      message: 'Too many requests, please try again later',
-      code: 'RATE_LIMIT_EXCEEDED',
+// Per-endpoint rate limiters. Each rateLimit() call owns its own counter
+// store, so every endpoint gets an independent budget — a single shared
+// instance would pool unrelated endpoints into one 5-requests/15-min bucket,
+// letting a normal login → device-token → change-password flow rate-limit
+// itself, and making users behind shared NAT collide with each other.
+const createAuthLimiter = (max: number) =>
+  rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max,
+    skip: () => isTestEnv,
+    message: {
+      error: {
+        message: 'Too many requests, please try again later',
+        code: 'RATE_LIMIT_EXCEEDED',
+      },
     },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+const registerLimiter = createAuthLimiter(5);
+const loginLimiter = createAuthLimiter(5);
+const resetPasswordLimiter = createAuthLimiter(5);
+const changePasswordLimiter = createAuthLimiter(5);
+const changeEmailLimiter = createAuthLimiter(5);
+// Registered on every app launch/login (authenticated, idempotent upsert), and
+// NAT peers share the IP bucket — needs more headroom than credential endpoints.
+const deviceTokenLimiter = createAuthLimiter(30);
 
 // Rate limiters for resend-verification (anti-enumeration: always return 200)
 const genericResponse = {
@@ -115,7 +129,7 @@ const resendPerIpLimiter = rateLimit({
 // POST /api/auth/register
 router.post(
   '/register',
-  authLimiter,
+  registerLimiter,
   [
     body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
     body('password')
@@ -134,7 +148,7 @@ router.post(
 // POST /api/auth/login
 router.post(
   '/login',
-  authLimiter,
+  loginLimiter,
   [
     body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
     // Login intentionally uses .notEmpty() rather than isStrongPassword() so that
@@ -181,7 +195,7 @@ router.post(
 // POST /api/auth/reset-password
 router.post(
   '/reset-password',
-  authLimiter,
+  resetPasswordLimiter,
   [
     body('token').notEmpty().withMessage('Reset token is required'),
     body('password')
@@ -211,7 +225,7 @@ router.patch(
 router.post(
   '/device-token',
   authenticateToken,
-  authLimiter,
+  deviceTokenLimiter,
   [
     body('token').isString().trim().notEmpty().withMessage('Token is required'),
     body('platform').isString().isIn(['ios', 'android']).withMessage('Platform must be "ios" or "android"'),
@@ -223,7 +237,7 @@ router.post(
 router.post(
   '/change-password',
   authenticateToken,
-  authLimiter,
+  changePasswordLimiter,
   [
     body('currentPassword').notEmpty().withMessage('Current password is required'),
     body('newPassword')
@@ -242,7 +256,7 @@ router.post(
 router.post(
   '/change-email',
   authenticateToken,
-  authLimiter,
+  changeEmailLimiter,
   [
     body('email').isEmail().normalizeEmail().withMessage('Invalid email address'),
   ],
