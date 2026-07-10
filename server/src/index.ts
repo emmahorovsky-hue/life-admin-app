@@ -39,6 +39,10 @@ app.set('trust proxy', 1);
 
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+// Vercel preview deployments share the project's scope suffix (e.g.
+// "-beta-flame.vercel.app"). Only origins ending with this suffix are allowed;
+// unset means preview origins get no CORS access.
+const VERCEL_PREVIEW_HOST_SUFFIX = process.env.VERCEL_PREVIEW_HOST_SUFFIX || '';
 
 // CORS configuration to allow Vercel preview deployments
 const corsOptions = {
@@ -53,9 +57,19 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    // Allow any Vercel deployment
-    if (origin.endsWith('.vercel.app')) {
-      return callback(null, true);
+    // Allow this project's Vercel preview deployments. Trusting all of
+    // *.vercel.app would make any Vercel customer's page an allowed
+    // credentialed origin, able to read authenticated API responses; the
+    // scope suffix can't appear in another account's deployment hostnames.
+    if (VERCEL_PREVIEW_HOST_SUFFIX) {
+      try {
+        const { protocol, hostname } = new URL(origin);
+        if (protocol === 'https:' && hostname.endsWith(VERCEL_PREVIEW_HOST_SUFFIX)) {
+          return callback(null, true);
+        }
+      } catch {
+        // Malformed Origin header — fall through to the remaining checks.
+      }
     }
     
     // Allow the configured CLIENT_URL
