@@ -48,9 +48,19 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    // Allow localhost for development
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return callback(null, true);
+    // Allow localhost for development. Compare the parsed hostname exactly —
+    // a substring test would also match origins like https://localhost.evil.com,
+    // which with credentialed CORS would let an attacker's page read API
+    // responses. Production traffic must come via CLIENT_URL or Vercel.
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        const { hostname } = new URL(origin);
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') {
+          return callback(null, true);
+        }
+      } catch {
+        // Malformed Origin header — fall through to the remaining checks.
+      }
     }
     
     // Allow any Vercel deployment
