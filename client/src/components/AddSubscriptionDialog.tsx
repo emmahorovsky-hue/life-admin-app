@@ -9,6 +9,7 @@ import {
   defaultSubscriptionFormValues,
 } from '@/lib/subscriptions';
 import { getApiErrorMessage } from '@/lib/utils';
+import { useUnmountSafeTimeout } from '@/hooks/useUnmountSafeTimeout';
 
 interface AddSubscriptionDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ export default function AddSubscriptionDialog({
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues);
+  const scheduleTimeout = useUnmountSafeTimeout();
 
   const handleSubmit = async () => {
     setError('');
@@ -35,7 +37,7 @@ export default function AddSubscriptionDialog({
       onSuccess();
       // Briefly show the success state before closing and resetting.
       setSaved(true);
-      window.setTimeout(() => {
+      scheduleTimeout(() => {
         onOpenChange(false);
         setSaved(false);
         setValues(defaultSubscriptionFormValues());
