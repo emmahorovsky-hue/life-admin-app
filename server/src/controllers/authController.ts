@@ -8,6 +8,7 @@ import { issueEmailVerificationToken, consumeEmailVerificationToken } from '../s
 import { issuePasswordResetToken, consumePasswordResetToken } from '../services/passwordResetService';
 import { initiateEmailChange, consumeEmailChangeToken } from '../services/emailChangeService';
 import { registerDeviceToken } from '../services/deviceTokenService';
+import { reportServerError } from '../utils/reportError';
 
 // The frontend (Vercel) and backend (Railway) are served from different sites
 // in production, so the auth cookie must be SameSite=None to be sent on the
@@ -80,7 +81,7 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
     try {
       await issueEmailVerificationToken(user.id, user.email, platform);
     } catch (err) {
-      console.error('Failed to send verification email:', err);
+      reportServerError('Failed to send verification email', err);
     }
 
     // Generate JWT
@@ -95,7 +96,7 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
       user,
     });
   } catch (error) {
-    console.error('Register error:', error);
+    reportServerError('Register error', error);
     res.status(500).json({
       error: {
         message: 'Failed to register user',
@@ -171,7 +172,7 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    reportServerError('Login error', error);
     res.status(500).json({
       error: {
         message: 'Failed to login',
@@ -232,7 +233,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 
     res.status(200).json({ user });
   } catch (error) {
-    console.error('GetMe error:', error);
+    reportServerError('GetMe error', error);
     res.status(500).json({
       error: {
         message: 'Failed to fetch user',
@@ -266,7 +267,7 @@ export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void
 
     res.redirect(url('verify-email/success'));
   } catch (error) {
-    console.error('Verify email error:', error);
+    reportServerError('Verify email error', error);
     res.redirect(url('verify-email/error?reason=invalid'));
   }
 };
@@ -290,12 +291,12 @@ export const forgotPassword = async (req: AuthRequest, res: Response): Promise<v
 
     const platform = req.headers['x-platform'] as string | undefined;
     issuePasswordResetToken(user.id, user.email, platform).catch((err) => {
-      console.error('Failed to send password reset email:', err);
+      reportServerError('Failed to send password reset email', err);
     });
 
     res.status(200).json(genericResponse);
   } catch (error) {
-    console.error('Forgot password error:', error);
+    reportServerError('Forgot password error', error);
     res.status(200).json(genericResponse);
   }
 };
@@ -341,7 +342,7 @@ export const resetPassword = async (req: AuthRequest, res: Response): Promise<vo
 
     res.status(200).json({ message: 'Password reset successfully.' });
   } catch (error) {
-    console.error('Reset password error:', error);
+    reportServerError('Reset password error', error);
     res.status(500).json({
       error: { message: 'Failed to reset password', code: 'RESET_PASSWORD_FAILED' },
     });
@@ -382,7 +383,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
 
     res.status(200).json({ user });
   } catch (error) {
-    console.error('Update profile error:', error);
+    reportServerError('Update profile error', error);
     res.status(500).json({ error: { message: 'Failed to update profile', code: 'UPDATE_PROFILE_FAILED' } });
   }
 };
@@ -442,7 +443,7 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
       ...(isBearer && { token }),
     });
   } catch (error) {
-    console.error('Change password error:', error);
+    reportServerError('Change password error', error);
     res.status(500).json({ error: { message: 'Failed to change password', code: 'CHANGE_PASSWORD_FAILED' } });
   }
 };
@@ -467,7 +468,7 @@ export const registerDeviceTokenHandler = async (req: AuthRequest, res: Response
 
     res.status(200).json({ message: 'Device token registered successfully.' });
   } catch (error) {
-    console.error('Register device token error:', error);
+    reportServerError('Register device token error', error);
     res.status(500).json({ error: { message: 'Failed to register device token', code: 'REGISTER_DEVICE_TOKEN_FAILED' } });
   }
 };
@@ -501,7 +502,7 @@ export const initiateEmailChangeHandler = async (req: AuthRequest, res: Response
 
     res.status(200).json({ message: 'Confirmation email sent. Check your inbox to complete the change.' });
   } catch (error) {
-    console.error('Initiate email change error:', error);
+    reportServerError('Initiate email change error', error);
     res.status(500).json({ error: { message: 'Failed to initiate email change', code: 'EMAIL_CHANGE_FAILED' } });
   }
 };
@@ -532,7 +533,7 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
 
     res.redirect(url('profile?emailChanged=true'));
   } catch (error) {
-    console.error('Verify email change error:', error);
+    reportServerError('Verify email change error', error);
     res.redirect(url('profile?error=invalid-token'));
   }
 };
@@ -566,12 +567,12 @@ export const resendVerification = async (req: AuthRequest, res: Response): Promi
     // Issue new token and send email (don't block on failure)
     const platform = req.headers['x-platform'] as string | undefined;
     issueEmailVerificationToken(user.id, user.email, platform).catch((err) => {
-      console.error('Failed to resend verification email:', err);
+      reportServerError('Failed to resend verification email', err);
     });
 
     res.status(200).json(genericResponse);
   } catch (error) {
-    console.error('Resend verification error:', error);
+    reportServerError('Resend verification error', error);
     res.status(200).json({
       message: "If that email is registered and unverified, we've sent a verification link.",
     });
