@@ -5,6 +5,7 @@ import prisma from '../utils/db';
 import { Prisma } from '@prisma/client';
 import { extractSubscription } from '../services/aiService';
 import { withNextRenewal, computeNextRenewal } from '../utils/renewal';
+import { reportServerError } from '../utils/reportError';
 
 /**
  * POST /api/subscriptions/extract
@@ -56,7 +57,7 @@ export const extractSubscriptionFromFile = async (
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('Extract subscription error:', error);
+    reportServerError('Extract subscription error', error);
     res.status(500).json({
       error: {
         message: 'Failed to extract subscription from file',
@@ -111,7 +112,7 @@ export const createSubscription = async (
 
     res.status(201).json(withNextRenewal(subscription));
   } catch (error) {
-    console.error('Create subscription error:', error);
+    reportServerError('Create subscription error', error);
     res.status(500).json({
       error: {
         message: 'Failed to create subscription',
@@ -174,7 +175,7 @@ export const getSubscriptions = async (
 
     res.status(200).json(withRenewal);
   } catch (error) {
-    console.error('Get subscriptions error:', error);
+    reportServerError('Get subscriptions error', error);
     res.status(500).json({
       error: {
         message: 'Failed to fetch subscriptions',
@@ -221,7 +222,7 @@ export const getSubscriptionById = async (
 
     res.status(200).json(withNextRenewal(subscription));
   } catch (error) {
-    console.error('Get subscription error:', error);
+    reportServerError('Get subscription error', error);
     res.status(500).json({
       error: {
         message: 'Failed to fetch subscription',
@@ -298,7 +299,7 @@ export const updateSubscription = async (
 
     res.status(200).json(withNextRenewal(subscription));
   } catch (error) {
-    console.error('Update subscription error:', error);
+    reportServerError('Update subscription error', error);
     res.status(500).json({
       error: {
         message: 'Failed to update subscription',
@@ -354,7 +355,7 @@ export const deleteSubscription = async (
       message: 'Subscription deleted successfully',
     });
   } catch (error) {
-    console.error('Delete subscription error:', error);
+    reportServerError('Delete subscription error', error);
     res.status(500).json({
       error: {
         message: 'Failed to delete subscription',
@@ -415,7 +416,7 @@ export const cancelSubscription = async (
 
     res.status(200).json(withNextRenewal(subscription, now));
   } catch (error) {
-    console.error('Cancel subscription error:', error);
+    reportServerError('Cancel subscription error', error);
     res.status(500).json({
       error: {
         message: 'Failed to cancel subscription',
@@ -466,7 +467,7 @@ export const resumeSubscription = async (
 
     res.status(200).json(withNextRenewal(subscription));
   } catch (error) {
-    console.error('Resume subscription error:', error);
+    reportServerError('Resume subscription error', error);
     res.status(500).json({
       error: {
         message: 'Failed to resume subscription',

@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
 import { Prisma } from '@prisma/client';
 import { computeNextRenewal, toRenewalIsoString, daysUntil } from '../utils/renewal';
+import { reportServerError } from '../utils/reportError';
 
 export const getDashboardSummary = async (
   req: AuthRequest,
@@ -89,7 +90,7 @@ export const getDashboardSummary = async (
       upcomingRenewals,
     });
   } catch (error) {
-    console.error('Get dashboard summary error:', error);
+    reportServerError('Get dashboard summary error', error);
     res.status(500).json({
       error: {
         message: 'Failed to fetch dashboard summary',
@@ -141,7 +142,7 @@ export const getUpcomingRenewals = async (
 
     res.status(200).json(upcomingRenewals);
   } catch (error) {
-    console.error('Get upcoming renewals error:', error);
+    reportServerError('Get upcoming renewals error', error);
     res.status(500).json({
       error: {
         message: 'Failed to fetch upcoming renewals',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { resendVerification } from '@/lib/api';
 
@@ -13,6 +13,12 @@ export const UnverifiedEmailBanner: React.FC = () => {
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const countdownIntervalRef = useRef<number | undefined>(undefined);
+
+  // Stop a running countdown if the banner unmounts mid-count (navigation, or
+  // emailVerified flipping) — otherwise the interval keeps firing setCountdown
+  // against an unmounted component for up to 60 seconds.
+  useEffect(() => () => clearInterval(countdownIntervalRef.current), []);
 
   if (!user || user.emailVerified) {
     return null;
@@ -35,10 +41,10 @@ export const UnverifiedEmailBanner: React.FC = () => {
       setCountdown(60);
 
       // Countdown timer
-      const interval = setInterval(() => {
+      countdownIntervalRef.current = window.setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
-            clearInterval(interval);
+            clearInterval(countdownIntervalRef.current);
             return 0;
           }
           return prev - 1;
