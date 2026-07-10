@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { CATEGORIES } from '../constants/subscriptions';
+import { reportServerError } from '../utils/reportError';
 
 export const getCategories = async (
   req: Request,
@@ -8,7 +9,7 @@ export const getCategories = async (
   try {
     res.status(200).json(CATEGORIES);
   } catch (error) {
-    console.error('Get categories error:', error);
+    reportServerError('Get categories error', error);
     res.status(500).json({
       error: {
         message: 'Failed to fetch categories',
