@@ -39,10 +39,17 @@ app.set('trust proxy', 1);
 
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-// Vercel preview deployments share the project's scope suffix (e.g.
-// "-beta-flame.vercel.app"). Only origins ending with this suffix are allowed;
-// unset means preview origins get no CORS access.
-const VERCEL_PREVIEW_HOST_SUFFIX = process.env.VERCEL_PREVIEW_HOST_SUFFIX || '';
+// Vercel preview deployments share the account's scope suffix (e.g.
+// "-beta-flame.vercel.app" — use the team/user slug, the only hostname part
+// Vercel reserves across accounts). Only origins ending with this suffix are
+// allowed; unset means preview origins get no CORS access. A value without a
+// leading separator would also match lookalike hostnames that any Vercel user
+// could register ("evilbeta-flame.vercel.app"), so normalize one on.
+const rawPreviewSuffix = process.env.VERCEL_PREVIEW_HOST_SUFFIX || '';
+const VERCEL_PREVIEW_HOST_SUFFIX =
+  rawPreviewSuffix && !rawPreviewSuffix.startsWith('-') && !rawPreviewSuffix.startsWith('.')
+    ? `-${rawPreviewSuffix}`
+    : rawPreviewSuffix;
 
 // CORS configuration to allow Vercel preview deployments
 const corsOptions = {

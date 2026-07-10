@@ -86,7 +86,7 @@ Have ready:
 | `NODE_ENV` | `production` | Enables production mode |
 | `JWT_SECRET` | Generate strong secret | Use: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `CLIENT_URL` | Your Vercel domain | CORS allowlist — e.g., `https://client-beta-flame.vercel.app` |
-| `VERCEL_PREVIEW_HOST_SUFFIX` | `-beta-flame.vercel.app` | Optional — grants CORS access to this project's Vercel preview deployments (hostname suffix match). Leave unset to disallow preview origins. |
+| `VERCEL_PREVIEW_HOST_SUFFIX` | `-beta-flame.vercel.app` | Optional — grants CORS access to this project's Vercel preview deployments (hostname suffix match). Use your Vercel **team/user scope slug** with a leading dash — the scope slug is the only hostname part Vercel reserves across accounts, so anything else (like a project name) could be impersonated by another user. A missing leading separator is normalized to `-`. Leave unset to disallow preview origins. |
 | `API_URL` | Your Railway backend URL | Base URL embedded in verification email links — e.g., `https://your-railway-url` |
 | `ANTHROPIC_API_KEY` | `sk-ant-...` | Optional — enables AI receipt/invoice extraction. Without it the feature degrades to manual entry (the extract endpoint returns 503). **Read at process start, so a redeploy/restart is required after setting it.** |
 | `AI_MODEL` | `claude-haiku-4-5` | Optional — defaults to `claude-haiku-4-5`. Bump to `claude-sonnet-4-6` / `claude-opus-4-8` for higher extraction accuracy. |
