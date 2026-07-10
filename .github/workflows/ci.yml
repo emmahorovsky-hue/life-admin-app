@@ -8,7 +8,7 @@ on:
 
 jobs:
   backend-lint-test:
-    name: Backend Test
+    name: Backend Lint & Test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -64,7 +64,7 @@ jobs:
         run: npx tsc --noEmit
 
   frontend-lint-test:
-    name: Frontend Lint, Test & Build
+    name: Frontend Lint & Test
     runs-on: ubuntu-latest
     defaults:
       run:
