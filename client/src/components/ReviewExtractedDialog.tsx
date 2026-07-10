@@ -10,6 +10,7 @@ import {
   defaultSubscriptionFormValues,
 } from '@/lib/subscriptions';
 import { getApiErrorMessage } from '@/lib/utils';
+import { useUnmountSafeTimeout } from '@/hooks/useUnmountSafeTimeout';
 
 interface ReviewExtractedDialogProps {
   open: boolean;
@@ -42,6 +43,7 @@ export default function ReviewExtractedDialog({
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues);
+  const scheduleTimeout = useUnmountSafeTimeout();
 
   useEffect(() => {
     if (candidate) {
@@ -69,7 +71,7 @@ export default function ReviewExtractedDialog({
       });
       onSuccess();
       setSaved(true);
-      window.setTimeout(() => {
+      scheduleTimeout(() => {
         onOpenChange(false);
         setSaved(false);
       }, 1200);
