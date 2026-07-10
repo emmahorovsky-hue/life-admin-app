@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { runUnverifiedAccountCleanup } from '../services/accountCleanupService';
 import { sendRenewalReminders } from '../services/renewalReminderService';
+import { reportServerError } from '../utils/reportError';
 
 // Daily at 03:00 UTC — warn unverified accounts nearing their deadline, then
 // delete those already warned long enough ago.
@@ -30,7 +31,7 @@ export function startCronJobs(): void {
         const { sent, skipped, failed } = await sendRenewalReminders();
         console.log(`[cron] renewal-reminders: sent=${sent} skipped=${skipped} failed=${failed}`);
       } catch (err) {
-        console.error('[cron] renewal-reminders failed:', err);
+        reportServerError('[cron] renewal-reminders failed', err);
       }
     },
     { timezone: 'UTC' }

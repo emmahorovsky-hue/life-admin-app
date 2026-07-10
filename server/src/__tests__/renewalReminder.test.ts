@@ -1,5 +1,6 @@
 import prisma from '../utils/db';
 import { sendRenewalReminders } from '../services/renewalReminderService';
+import { computeNextRenewal } from '../utils/renewal';
 import * as emailService from '../services/emailService';
 
 // Override the global mock from setup.ts to include sendRenewalReminderEmail
@@ -12,10 +13,24 @@ jest.mock('../services/emailService', () => ({
 const mockSendRenewalReminderEmail = emailService.sendRenewalReminderEmail as jest.MockedFunction<typeof emailService.sendRenewalReminderEmail>;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const now = new Date('2026-06-21T09:00:00.000Z');
 
-async function createUserAndSubscription({ renewalDaysFromNow, isActive = true }: { renewalDaysFromNow: number; isActive?: boolean }) {
+function utcMidnight(daysFromNow: number): Date {
+  return new Date(Date.UTC(2026, 5, 21) + daysFromNow * DAY_MS);
+}
+
+async function createUserAndSubscription({
+  renewalDate,
+  billingCycle = 'monthly',
+  isActive = true,
+  cancelledAt = null as Date | null,
+}: {
+  renewalDate: Date;
+  billingCycle?: string;
+  isActive?: boolean;
+  cancelledAt?: Date | null;
+}) {
   const email = `test-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`;
-  const now = new Date();
 
   const user = await prisma.user.create({
     data: {
@@ -31,10 +46,11 @@ async function createUserAndSubscription({ renewalDaysFromNow, isActive = true }
       name: 'Test Subscription',
       cost: 9.99,
       currency: 'USD',
-      billingCycle: 'monthly',
-      renewalDate: new Date(now.getTime() + renewalDaysFromNow * DAY_MS),
+      billingCycle,
+      renewalDate,
       category: 'streaming',
       isActive,
+      cancelledAt,
     },
   });
 
@@ -42,14 +58,12 @@ async function createUserAndSubscription({ renewalDaysFromNow, isActive = true }
 }
 
 describe('sendRenewalReminders', () => {
-  const now = new Date('2026-06-21T09:00:00.000Z');
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('sends a reminder when subscription renews within the window', async () => {
-    const { subscription } = await createUserAndSubscription({ renewalDaysFromNow: 5 });
+    const { subscription } = await createUserAndSubscription({ renewalDate: utcMidnight(5) });
 
     const result = await sendRenewalReminders(now);
 
@@ -65,12 +79,25 @@ describe('sendRenewalReminders', () => {
     expect(log).not.toBeNull();
     expect(log!.type).toBe('renewal_reminder');
     expect(log!.status).toBe('sent');
+    expect(log!.renewalDate).toEqual(utcMidnight(5));
   });
 
-  it('skips when a notification log already exists for this renewal cycle', async () => {
-    const { user, subscription } = await createUserAndSubscription({ renewalDaysFromNow: 5 });
+  it('derives the upcoming renewal from a past anchor date (monthly sub created long ago)', async () => {
+    // Anchor ~6 months back, monthly cycle: next derived renewal is 2026-06-26 — inside the window.
+    const anchor = new Date(Date.UTC(2025, 11, 26));
+    await createUserAndSubscription({ renewalDate: anchor, billingCycle: 'monthly' });
 
-    // Pre-insert a log entry (simulating a prior run)
+    const result = await sendRenewalReminders(now);
+
+    expect(result.sent).toBe(1);
+    expect(mockSendRenewalReminderEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ renewalDate: computeNextRenewal(anchor, 'monthly', now) })
+    );
+  });
+
+  it('skips when a reminder was already sent for this renewal occurrence', async () => {
+    const { user, subscription } = await createUserAndSubscription({ renewalDate: utcMidnight(5) });
+
     await prisma.notificationLog.create({
       data: {
         userId: user.id,
@@ -78,6 +105,7 @@ describe('sendRenewalReminders', () => {
         type: 'renewal_reminder',
         status: 'sent',
         sentAt: new Date(now.getTime() - 1 * DAY_MS),
+        renewalDate: utcMidnight(5),
       },
     });
 
@@ -89,8 +117,56 @@ describe('sendRenewalReminders', () => {
     expect(mockSendRenewalReminderEmail).not.toHaveBeenCalled();
   });
 
+  it('sends again for the next cycle of a weekly subscription (dedup is per occurrence, not a rolling window)', async () => {
+    // Weekly sub anchored 2 days ago: previous occurrence was -2d, next is +5d.
+    const anchor = utcMidnight(-2);
+    const { user, subscription } = await createUserAndSubscription({ renewalDate: anchor, billingCycle: 'weekly' });
+
+    // Reminder for the PREVIOUS occurrence, sent 6 days ago — inside what the old
+    // rolling 8-day window would have treated as a blocker.
+    await prisma.notificationLog.create({
+      data: {
+        userId: user.id,
+        subscriptionId: subscription.id,
+        type: 'renewal_reminder',
+        status: 'sent',
+        sentAt: new Date(now.getTime() - 6 * DAY_MS),
+        renewalDate: anchor,
+      },
+    });
+
+    const result = await sendRenewalReminders(now);
+
+    expect(result.sent).toBe(1);
+    expect(result.skipped).toBe(0);
+    expect(mockSendRenewalReminderEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ renewalDate: utcMidnight(5) })
+    );
+  });
+
+  it('retries after a failed send (failed logs do not dedup)', async () => {
+    const { user, subscription } = await createUserAndSubscription({ renewalDate: utcMidnight(5) });
+
+    await prisma.notificationLog.create({
+      data: {
+        userId: user.id,
+        subscriptionId: subscription.id,
+        type: 'renewal_reminder',
+        status: 'failed',
+        sentAt: new Date(now.getTime() - 1 * DAY_MS),
+        renewalDate: utcMidnight(5),
+      },
+    });
+
+    const result = await sendRenewalReminders(now);
+
+    expect(result.sent).toBe(1);
+    expect(result.skipped).toBe(0);
+    expect(mockSendRenewalReminderEmail).toHaveBeenCalledTimes(1);
+  });
+
   it('skips inactive subscriptions', async () => {
-    await createUserAndSubscription({ renewalDaysFromNow: 5, isActive: false });
+    await createUserAndSubscription({ renewalDate: utcMidnight(5), isActive: false });
 
     const result = await sendRenewalReminders(now);
 
@@ -100,8 +176,11 @@ describe('sendRenewalReminders', () => {
     expect(mockSendRenewalReminderEmail).not.toHaveBeenCalled();
   });
 
-  it('skips subscriptions with renewalDate in the past', async () => {
-    await createUserAndSubscription({ renewalDaysFromNow: -1 });
+  it('skips cancelled subscriptions (no upcoming charge)', async () => {
+    await createUserAndSubscription({
+      renewalDate: utcMidnight(5),
+      cancelledAt: new Date(now.getTime() - 3 * DAY_MS),
+    });
 
     const result = await sendRenewalReminders(now);
 
@@ -110,7 +189,7 @@ describe('sendRenewalReminders', () => {
   });
 
   it('skips subscriptions renewing beyond the reminder window', async () => {
-    await createUserAndSubscription({ renewalDaysFromNow: 10 }); // default window is 7 days
+    await createUserAndSubscription({ renewalDate: utcMidnight(10) }); // default window is 7 days
 
     const result = await sendRenewalReminders(now);
 
@@ -119,8 +198,8 @@ describe('sendRenewalReminders', () => {
   });
 
   it('logs a failed notification and continues when email send fails', async () => {
-    const { subscription: sub1 } = await createUserAndSubscription({ renewalDaysFromNow: 3 });
-    const { subscription: sub2 } = await createUserAndSubscription({ renewalDaysFromNow: 5 });
+    const { subscription: sub1 } = await createUserAndSubscription({ renewalDate: utcMidnight(3) });
+    const { subscription: sub2 } = await createUserAndSubscription({ renewalDate: utcMidnight(5) });
 
     mockSendRenewalReminderEmail
       .mockRejectedValueOnce(new Error('Resend API error'))
@@ -131,23 +210,21 @@ describe('sendRenewalReminders', () => {
     expect(result.sent).toBe(1);
     expect(result.failed).toBe(1);
 
-    const failedLog = await prisma.notificationLog.findFirst({ where: { subscriptionId: sub1.id } });
-    const sentLog = await prisma.notificationLog.findFirst({ where: { subscriptionId: sub2.id } });
-
-    expect(failedLog!.status).toBe('failed');
-    expect(sentLog!.status).toBe('sent');
+    const logs = await prisma.notificationLog.findMany({
+      where: { subscriptionId: { in: [sub1.id, sub2.id] } },
+    });
+    expect(logs.map((l) => l.status).sort()).toEqual(['failed', 'sent']);
   });
 
   it('sends separate reminders for multiple subscriptions belonging to the same user', async () => {
     const user = await prisma.user.create({
       data: { email: `multi-${Date.now()}@example.com`, password: 'hashed', emailVerified: true },
     });
-    const baseDate = now.getTime();
 
     await prisma.subscription.createMany({
       data: [
-        { userId: user.id, name: 'Netflix', cost: 15, currency: 'USD', billingCycle: 'monthly', renewalDate: new Date(baseDate + 3 * DAY_MS), category: 'streaming', isActive: true },
-        { userId: user.id, name: 'Spotify', cost: 10, currency: 'USD', billingCycle: 'monthly', renewalDate: new Date(baseDate + 6 * DAY_MS), category: 'music', isActive: true },
+        { userId: user.id, name: 'Netflix', cost: 15, currency: 'USD', billingCycle: 'monthly', renewalDate: utcMidnight(3), category: 'streaming', isActive: true },
+        { userId: user.id, name: 'Spotify', cost: 10, currency: 'USD', billingCycle: 'monthly', renewalDate: utcMidnight(6), category: 'music', isActive: true },
       ],
     });
 
@@ -155,25 +232,5 @@ describe('sendRenewalReminders', () => {
 
     expect(result.sent).toBe(2);
     expect(mockSendRenewalReminderEmail).toHaveBeenCalledTimes(2);
-  });
-
-  it('sends a reminder when a prior log exists but is older than the dedup window', async () => {
-    const { user, subscription } = await createUserAndSubscription({ renewalDaysFromNow: 5 });
-
-    // Old log from more than RENEWAL_REMINDER_DAYS+1 days ago — should not trigger dedup
-    await prisma.notificationLog.create({
-      data: {
-        userId: user.id,
-        subscriptionId: subscription.id,
-        type: 'renewal_reminder',
-        status: 'sent',
-        sentAt: new Date(now.getTime() - 10 * DAY_MS),
-      },
-    });
-
-    const result = await sendRenewalReminders(now);
-
-    expect(result.sent).toBe(1);
-    expect(result.skipped).toBe(0);
   });
 });

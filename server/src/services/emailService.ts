@@ -141,7 +141,7 @@ export async function sendRenewalReminderEmail({ to, subscriptionName, renewalDa
   manageUrl?: string;
 }) {
   const url = manageUrl ?? `${CLIENT_URL}/dashboard`;
-  const formattedDate = renewalDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const formattedDate = renewalDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   const formattedCost = `${currency} ${cost.toFixed(2)}`;
 
   if (!resend) {
