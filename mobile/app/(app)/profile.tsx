@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -17,6 +18,18 @@ import { colors, fontMono } from '../../lib/theme';
 
 export default function ProfileScreen() {
   const { user, updateUser, logout } = useAuth();
+
+  const fullName = [user?.name, user?.surname].filter(Boolean).join(' ');
+  const initials =
+    `${user?.name?.[0] ?? ''}${user?.surname?.[0] ?? ''}`.toUpperCase() ||
+    (user?.email?.[0] ?? '?').toUpperCase();
+
+  const confirmSignOut = () => {
+    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: logout },
+    ]);
+  };
 
   // Personal details
   const [name, setName] = useState(user?.name ?? '');
@@ -112,6 +125,17 @@ export default function ProfileScreen() {
           Profile<Text style={styles.accent}>.</Text>
         </Text>
 
+        {/* Identity */}
+        <View style={styles.identityRow}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+          <View style={styles.identityInfo}>
+            {fullName ? <Text style={styles.identityName}>{fullName}</Text> : null}
+            <Text style={styles.identityEmail}>{user?.email}</Text>
+          </View>
+        </View>
+
         {/* Personal details */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Personal details</Text>
@@ -124,6 +148,8 @@ export default function ProfileScreen() {
                 placeholderTextColor={colors.mutedForeground}
                 value={name}
                 onChangeText={setName}
+                autoComplete="name-given"
+                textContentType="givenName"
                 editable={!detailsLoading}
               />
             </View>
@@ -135,6 +161,8 @@ export default function ProfileScreen() {
                 placeholderTextColor={colors.mutedForeground}
                 value={surname}
                 onChangeText={setSurname}
+                autoComplete="name-family"
+                textContentType="familyName"
                 editable={!detailsLoading}
               />
             </View>
@@ -164,6 +192,7 @@ export default function ProfileScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
+            textContentType="emailAddress"
             editable={!emailLoading}
           />
           <Text style={styles.hint}>
@@ -195,6 +224,7 @@ export default function ProfileScreen() {
             onChangeText={setCurrentPassword}
             secureTextEntry
             autoComplete="current-password"
+            textContentType="password"
             editable={!passwordLoading}
           />
           <Text style={styles.fieldLabel}>NEW PASSWORD</Text>
@@ -206,6 +236,7 @@ export default function ProfileScreen() {
             onChangeText={setNewPassword}
             secureTextEntry
             autoComplete="new-password"
+            textContentType="newPassword"
             editable={!passwordLoading}
           />
           <Text style={styles.hint}>
@@ -221,6 +252,7 @@ export default function ProfileScreen() {
             onChangeText={setConfirmPassword}
             secureTextEntry
             autoComplete="new-password"
+            textContentType="newPassword"
             editable={!passwordLoading}
           />
           {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
@@ -237,7 +269,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Sign out */}
-        <Pressable style={styles.signOutButton} onPress={logout}>
+        <Pressable style={styles.signOutButton} onPress={confirmSignOut}>
           <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>
       </ScrollView>
@@ -250,6 +282,20 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 12, paddingBottom: 48 },
   h1: { fontSize: 26, fontWeight: '800', color: colors.foreground, marginBottom: 4, marginTop: 8 },
   accent: { color: colors.brandOrange },
+
+  identityRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { fontSize: 18, fontWeight: '700', color: colors.foreground },
+  identityInfo: { flex: 1 },
+  identityName: { fontSize: 16, fontWeight: '700', color: colors.foreground },
+  identityEmail: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
 
   card: {
     backgroundColor: colors.card,
