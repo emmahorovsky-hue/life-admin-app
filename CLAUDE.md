@@ -81,6 +81,14 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `RESEND_API_KEY`| Email sending via Resend SDK                                         |
 | `ANTHROPIC_API_KEY` | Receipt/invoice AI extraction (optional; feature degrades gracefully without it) |
 | `AI_MODEL`      | Claude model id for extraction (optional, defaults to `claude-haiku-4-5`)        |
+| `EMAIL_FROM`    | From address on outgoing emails (default `noreply@paypr.live`)       |
+| `MOBILE_URL`    | Mobile deep link scheme for email redirects (default `lifeadmin://`) |
+| `SENTRY_RELEASE`| Tags Sentry errors by deploy (optional; set in CI/CD)                |
+| `ENABLE_CRON`   | Set to `false` to skip scheduling background jobs (default enabled)  |
+| `CLEANUP_CRON`  | Cron schedule for unverified-account cleanup (default `0 3 * * *` UTC) |
+| `GRACE_PERIOD_DAYS` | Days an account may stay unverified before deletion (default 7)  |
+| `WARNING_LEAD_HOURS`| Hours before the deadline the warning email is sent (default 24) |
+| `DISABLE_AUTH_RATE_LIMIT` | Dev only: `true` disables auth rate limiting; ignored (with a warning) when `NODE_ENV=production` |
 | `VITE_API_URL`  | Frontend axios baseURL (defaults to `/api` for same-origin proxy)    |
 | `VITE_LOGO_DEV_TOKEN` | Brand logos on subscription rows via logo.dev (optional; rows fall back to category icons without it). Publishable client-side token. |
 
