@@ -112,17 +112,17 @@ export default function Profile() {
       </div>
 
       {emailChanged && (
-        <div className="text-sm bg-green-50 text-green-800 border border-green-200 p-3 rounded-md">
+        <div role="status" className="text-sm bg-green-50 text-green-800 border border-green-200 p-3 rounded-md">
           Your email address has been updated successfully.
         </div>
       )}
       {tokenError && (
-        <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md">
+        <div role="alert" className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md">
           That confirmation link is invalid or has expired. Please request a new one.
         </div>
       )}
       {emailTakenError && (
-        <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md">
+        <div role="alert" className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md">
           That email address is now in use by another account. Please try a different address.
         </div>
       )}
@@ -134,12 +134,13 @@ export default function Profile() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleDetailsSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">First name</Label>
                 <Input
                   id="name"
                   type="text"
+                  autoComplete="given-name"
                   placeholder="First name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -151,6 +152,7 @@ export default function Profile() {
                 <Input
                   id="surname"
                   type="text"
+                  autoComplete="family-name"
                   placeholder="Last name"
                   value={surname}
                   onChange={(e) => setSurname(e.target.value)}
@@ -159,12 +161,12 @@ export default function Profile() {
               </div>
             </div>
             {detailsError && (
-              <p className="text-sm text-destructive">{detailsError}</p>
+              <p role="alert" className="text-sm text-destructive">{detailsError}</p>
             )}
             {detailsSuccess && (
-              <p className="text-sm text-green-700">Details updated.</p>
+              <p role="status" className="text-sm text-green-700">Details updated.</p>
             )}
-            <Button type="submit" disabled={detailsLoading}>
+            <Button type="submit" className="w-full sm:w-auto" disabled={detailsLoading}>
               {detailsLoading ? 'Saving...' : 'Save'}
             </Button>
           </form>
@@ -184,6 +186,7 @@ export default function Profile() {
               <Input
                 id="newEmail"
                 type="email"
+                autoComplete="email"
                 placeholder="Enter new email"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
@@ -195,12 +198,12 @@ export default function Profile() {
               </p>
             </div>
             {emailError && (
-              <p className="text-sm text-destructive">{emailError}</p>
+              <p role="alert" className="text-sm text-destructive">{emailError}</p>
             )}
             {emailSent && (
-              <p className="text-sm text-green-700">Check your inbox to confirm the new address.</p>
+              <p role="status" className="text-sm text-green-700">Check your inbox to confirm the new address.</p>
             )}
-            <Button type="submit" disabled={emailLoading}>
+            <Button type="submit" className="w-full sm:w-auto" disabled={emailLoading}>
               {emailLoading ? 'Sending...' : 'Send confirmation'}
             </Button>
           </form>
@@ -219,6 +222,7 @@ export default function Profile() {
               <Input
                 id="currentPassword"
                 type="password"
+                autoComplete="current-password"
                 placeholder="Enter current password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -231,6 +235,7 @@ export default function Profile() {
               <Input
                 id="newPassword"
                 type="password"
+                autoComplete="new-password"
                 placeholder="At least 8 characters"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -246,6 +251,7 @@ export default function Profile() {
               <Input
                 id="confirmPassword"
                 type="password"
+                autoComplete="new-password"
                 placeholder="Re-enter new password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -254,12 +260,12 @@ export default function Profile() {
               />
             </div>
             {passwordError && (
-              <p className="text-sm text-destructive">{passwordError}</p>
+              <p role="alert" className="text-sm text-destructive">{passwordError}</p>
             )}
             {passwordSuccess && (
-              <p className="text-sm text-green-700">Password updated.</p>
+              <p role="status" className="text-sm text-green-700">Password updated.</p>
             )}
-            <Button type="submit" disabled={passwordLoading}>
+            <Button type="submit" className="w-full sm:w-auto" disabled={passwordLoading}>
               {passwordLoading ? 'Updating...' : 'Update password'}
             </Button>
           </form>
