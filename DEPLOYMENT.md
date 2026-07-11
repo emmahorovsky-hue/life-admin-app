@@ -263,6 +263,35 @@ Verify `VITE_API_URL` in Vercel environment matches Railway backend:
 3. Update DNS records
 4. Wait for SSL certificate (automatic)
 
+## Part 6: Mobile Builds (EAS)
+
+The Expo app bakes its API URL into the binary at build time via `API_URL`
+(read in `mobile/app.config.ts`, exposed as `extra.apiUrl`). There is **no
+production fallback**: the localhost default only applies to local dev
+(`__DEV__`), and a release build without an API URL crashes at startup with a
+configuration error instead of silently calling localhost.
+
+### 6.1 Configure the API URL
+
+1. Open `mobile/eas.json`
+2. Replace the `REPLACE-WITH-PRODUCTION-API-URL` placeholder in
+   `build.production.env.API_URL` with your Railway backend URL, e.g.
+   `https://your-app.up.railway.app/api` (and the staging placeholder in
+   `build.preview.env.API_URL` if you use preview builds)
+3. Alternatively, set `API_URL` as an [EAS environment variable](https://docs.expo.dev/eas/environment-variables/)
+   on the project instead of committing it to `eas.json`
+
+`eas build --profile production` refuses to start if `API_URL` is unset, still
+a placeholder, or points at localhost — the config in `mobile/app.config.ts`
+throws during build configuration.
+
+### 6.2 Build
+
+```bash
+cd mobile
+npx eas build --profile production --platform all
+```
+
 ## Monitoring & Troubleshooting
 
 ### Check Backend Logs

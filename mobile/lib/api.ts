@@ -3,9 +3,19 @@ import Constants from 'expo-constants';
 import { callLogout } from './authBridge';
 import { tokenStorage } from './storage';
 
+// The localhost fallback is dev-only (LIF-131): a release build that shipped
+// without API_URL would otherwise silently point every user at localhost.
+// Failing at startup makes the misconfiguration impossible to miss.
 const apiUrl =
   (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
-  'http://localhost:3001/api';
+  (__DEV__ ? 'http://localhost:3001/api' : undefined);
+
+if (!apiUrl) {
+  throw new Error(
+    'No API URL was configured for this build. Set API_URL in mobile/eas.json ' +
+      'for the build profile (or as an EAS environment variable) and rebuild.',
+  );
+}
 
 export const api = axios.create({
   baseURL: apiUrl,
