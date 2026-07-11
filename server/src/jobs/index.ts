@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { runUnverifiedAccountCleanup } from '../services/accountCleanupService';
+import { reportServerError } from '../utils/reportError';
 
 // Daily at 03:00 UTC — warn unverified accounts nearing their deadline, then
 // delete those already warned long enough ago.
@@ -13,7 +14,7 @@ export function startCronJobs(): void {
         const { warned, deleted } = await runUnverifiedAccountCleanup();
         console.log(`[cron] unverified-account cleanup: warned=${warned} deleted=${deleted}`);
       } catch (err) {
-        console.error('[cron] unverified-account cleanup failed:', err);
+        reportServerError('[cron] unverified-account cleanup failed', err);
       }
     },
     { timezone: 'UTC' }
