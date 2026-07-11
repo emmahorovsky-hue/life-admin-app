@@ -25,11 +25,15 @@ export default function Dashboard() {
   const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
   const [chartWidth, setChartWidth] = useState(0);
 
-  // Angle the x-axis labels when a bar's slot can't fit the longest category
-  // name ("Cloud Storage" ≈ 88px at 11px Space Mono) horizontally. 48px covers
-  // the y-axis gutter (width 44 + left margin -8 + right margin 4).
-  const angledTicks =
-    chartWidth > 0 && categoryData.length > 0 && (chartWidth - 48) / categoryData.length < 92;
+  // Truncate x-axis labels that can't fit their bar's slot. Space Mono at
+  // 11px advances ~6.6px per character; 48px covers the y-axis gutter
+  // (width 44 + left margin -8 + right margin 4).
+  const tickSlotChars =
+    chartWidth > 0 && categoryData.length > 0
+      ? Math.max(4, Math.floor((chartWidth - 48) / categoryData.length / 6.6))
+      : Infinity;
+  const formatCategoryTick = (name: string) =>
+    name.length > tickSlotChars ? `${name.slice(0, tickSlotChars - 1).trimEnd()}…` : name;
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -306,7 +310,7 @@ export default function Dashboard() {
             ) : (
               <ResponsiveContainer
                 width="100%"
-                height={angledTicks ? 290 : 250}
+                height={250}
                 onResize={(width) => setChartWidth(width)}
               >
                 <BarChart data={categoryData} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
@@ -318,14 +322,8 @@ export default function Dashboard() {
                   <XAxis
                     dataKey="name"
                     interval={0}
-                    height={angledTicks ? 76 : 30}
-                    angle={angledTicks ? -35 : 0}
-                    tick={{
-                      fill: 'hsl(var(--muted-foreground))',
-                      fontFamily: 'Space Mono, monospace',
-                      fontSize: 11,
-                      textAnchor: angledTicks ? 'end' : 'middle',
-                    }}
+                    tickFormatter={formatCategoryTick}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontFamily: 'Space Mono, monospace', fontSize: 11 }}
                     tickLine={false}
                     axisLine={{ stroke: 'hsl(var(--border))' }}
                   />
