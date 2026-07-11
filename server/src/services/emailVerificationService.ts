@@ -46,20 +46,29 @@ export async function consumeEmailVerificationToken(rawToken: string): Promise<C
   if (record.expiresAt < new Date()) return { ok: false, reason: 'expired' };
   if (record.email !== record.user.email) return { ok: false, reason: 'email_changed' };
 
-  await prisma.$transaction([
-    prisma.user.update({
+  // Atomically claim the token so two concurrent requests with the same valid
+  // token can't both succeed. Only the request whose updateMany flips usedAt
+  // (count === 1) is allowed to proceed; a loser sees count === 0. The WHERE
+  // re-checks usedAt/expiresAt inside the same write to close the read→write gap.
+  const claimed = await prisma.$transaction(async (tx) => {
+    const claim = await tx.emailVerificationToken.updateMany({
+      where: { id: record.id, usedAt: null, expiresAt: { gt: new Date() } },
+      data: { usedAt: new Date() },
+    });
+    if (claim.count === 0) return false;
+
+    await tx.user.update({
       where: { id: record.userId },
       data: { emailVerified: true, emailVerifiedAt: new Date() },
-    }),
-    prisma.emailVerificationToken.update({
-      where: { id: record.id },
-      data: { usedAt: new Date() },
-    }),
-    prisma.emailVerificationToken.updateMany({
+    });
+    await tx.emailVerificationToken.updateMany({
       where: { userId: record.userId, usedAt: null, id: { not: record.id } },
       data: { usedAt: new Date() },
-    }),
-  ]);
+    });
+    return true;
+  });
+
+  if (!claimed) return { ok: false, reason: 'already_used' };
 
   return { ok: true, userId: record.userId };
 }
