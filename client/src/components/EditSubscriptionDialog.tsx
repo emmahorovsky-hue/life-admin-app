@@ -38,8 +38,11 @@ export default function EditSubscriptionDialog({
   const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues);
   const scheduleTimeout = useUnmountSafeTimeout();
 
+  // Keyed on `open` as well as `subscription`: reopening the same row passes
+  // the same object reference, so without `open` the effect wouldn't re-run
+  // and uncommitted edits from a dismissed session would still be in the form.
   useEffect(() => {
-    if (subscription) {
+    if (open && subscription) {
       setValues({
         name: subscription.name,
         cost: parseFloat(subscription.cost),
@@ -53,7 +56,7 @@ export default function EditSubscriptionDialog({
       });
       setError('');
     }
-  }, [subscription]);
+  }, [open, subscription]);
 
   const handleSubmit = async () => {
     if (!subscription) return;

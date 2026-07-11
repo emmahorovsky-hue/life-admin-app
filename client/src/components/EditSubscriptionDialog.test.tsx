@@ -38,6 +38,34 @@ function renderDialog(sub: Subscription) {
   return { onCancelRenewal, onResume };
 }
 
+describe('EditSubscriptionDialog reset on reopen (LIF-118)', () => {
+  it('discards uncommitted edits when the dialog is reopened for the same subscription', async () => {
+    const props = {
+      onOpenChange: vi.fn(),
+      subscription: activeSub, // same object reference across reopen
+      onSuccess: vi.fn(),
+      onDelete: vi.fn(),
+      onCancelRenewal: vi.fn(),
+      onResume: vi.fn(),
+    };
+    const { rerender } = render(<EditSubscriptionDialog open {...props} />);
+
+    const nameInput = screen.getByRole('textbox', { name: /service name/i });
+    expect(nameInput).toHaveValue('Netflix');
+
+    // Type an edit, then dismiss without saving.
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Netflix Premium');
+    expect(nameInput).toHaveValue('Netflix Premium');
+    rerender(<EditSubscriptionDialog open={false} {...props} />);
+
+    // Reopen the same row: the form must show the subscription's values,
+    // not the previously typed, uncommitted ones.
+    rerender(<EditSubscriptionDialog open {...props} />);
+    expect(screen.getByRole('textbox', { name: /service name/i })).toHaveValue('Netflix');
+  });
+});
+
 describe('EditSubscriptionDialog cancel / resume', () => {
   afterEach(() => {
     vi.restoreAllMocks();
