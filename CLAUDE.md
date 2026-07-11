@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev            # Start dev server with nodemon + tsx (port 3001)
 npm run build          # Compile TypeScript to dist/
-npm run test           # Run Jest tests (requires lifeadmin_test DB — see below)
+npm run test           # Run Jest tests (needs local Postgres; creates a per-run DB — see below)
 npm run test:watch     # Jest in watch mode
 npm run test:coverage  # Coverage report
 npm run prisma:migrate   # Apply migrations (dev, creates shadow DB)
@@ -35,16 +35,11 @@ npm run test:e2e # Playwright e2e tests (spins up the Vite dev server on port 41
 cd server && npx jest src/__tests__/auth.verification.test.ts
 ```
 
-### Test database setup (required before first `npm test`)
+### Test database setup
 
-```bash
-createdb lifeadmin_test
-cd server && npm run prisma:migrate:deploy  # applies existing migrations (no shadow DB); jest globalSetup also runs this automatically
-```
+No manual setup — each `npm test` run creates its own throwaway database (`lifeadmin_test_<pid>_<hex>`, derived from `DATABASE_URL` or the default `postgresql://<OS_USER>:@localhost:5432/lifeadmin_test`), migrates it, and drops it on teardown (`src/__tests__/globalSetup.ts` / `globalTeardown.ts`). This makes concurrent jest runs safe. Requires a running Postgres and a role allowed to `CREATE DATABASE`; without that permission the run falls back to the shared `lifeadmin_test` DB (then concurrent runs are unsafe).
 
 > Note: use `prisma:migrate` (not `prisma:migrate:deploy`) for dev work — it creates a shadow DB and handles schema drift.
-
-The test DB is configured in `server/.env.test`. By default it connects to `postgresql://<OS_USER>:@localhost:5432/lifeadmin_test`.
 
 ## Architecture
 
