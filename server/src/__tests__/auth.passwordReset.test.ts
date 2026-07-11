@@ -233,6 +233,9 @@ describe('Auth Password Reset Endpoints', () => {
 
       const updated = await prisma.user.findUnique({ where: { id: user.id } });
       expect(updated!.passwordChangedAt).not.toBeNull();
+      // Floored to the whole second (like the change-password path) because the
+      // middleware compares it against JWT iat, which is in whole seconds.
+      expect(updated!.passwordChangedAt!.getMilliseconds()).toBe(0);
     });
   });
 });
