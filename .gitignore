@@ -1,10 +1,11 @@
 # Dependencies
 node_modules/
 
-# Environment variables
+# Environment variables (all variants, in every workspace; .env.example is the
+# only variant meant to be committed — CI enforces this, see ci.yml env-file-guard)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Build output
 dist/
@@ -44,5 +45,4 @@ docs/local/
 # Local test/debug artifacts
 client/playwright-debug*.mjs
 client/test-results/
-server/.env.test
 server/TEST_SETUP.md
