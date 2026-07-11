@@ -70,15 +70,23 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<{ se
       failed++;
     }
 
-    await prisma.notificationLog.create({
-      data: {
-        userId: sub.userId,
-        subscriptionId: sub.id,
-        type: 'renewal_reminder',
-        status,
-        renewalDate: nextRenewal,
-      },
-    });
+    // A failed log write must not abort the loop — the remaining due
+    // subscriptions should still get their reminders this run. The cost is
+    // at-least-once delivery: a sent email whose log write failed will be
+    // re-sent on the next run because dedup won't see it.
+    try {
+      await prisma.notificationLog.create({
+        data: {
+          userId: sub.userId,
+          subscriptionId: sub.id,
+          type: 'renewal_reminder',
+          status,
+          renewalDate: nextRenewal,
+        },
+      });
+    } catch (err) {
+      reportServerError(`[renewal-reminders] Failed to log ${status} reminder for subscription ${sub.id}`, err);
+    }
   }
 
   return { sent, skipped, failed };

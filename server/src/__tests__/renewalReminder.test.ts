@@ -216,6 +216,32 @@ describe('sendRenewalReminders', () => {
     expect(logs.map((l) => l.status).sort()).toEqual(['failed', 'sent']);
   });
 
+  it('continues sending to remaining subscriptions when a log write fails', async () => {
+    const { subscription: sub1 } = await createUserAndSubscription({ renewalDate: utcMidnight(3) });
+    const { subscription: sub2 } = await createUserAndSubscription({ renewalDate: utcMidnight(5) });
+
+    // First log write fails (transient DB error); subsequent calls go through.
+    const createSpy = jest
+      .spyOn(prisma.notificationLog, 'create')
+      .mockRejectedValueOnce(new Error('db connection lost') as never);
+
+    try {
+      const result = await sendRenewalReminders(now);
+
+      // Both emails still went out; the log failure is reported, not fatal.
+      expect(result.sent).toBe(2);
+      expect(mockSendRenewalReminderEmail).toHaveBeenCalledTimes(2);
+    } finally {
+      createSpy.mockRestore();
+    }
+
+    const logs = await prisma.notificationLog.findMany({
+      where: { subscriptionId: { in: [sub1.id, sub2.id] } },
+    });
+    expect(logs).toHaveLength(1);
+    expect(logs[0].status).toBe('sent');
+  });
+
   it('sends separate reminders for multiple subscriptions belonging to the same user', async () => {
     const user = await prisma.user.create({
       data: { email: `multi-${Date.now()}@example.com`, password: 'hashed', emailVerified: true },
