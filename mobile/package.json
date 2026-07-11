@@ -10,6 +10,7 @@
     "@shopify/react-native-skia": "2.6.2",
     "axios": "^1.6.0",
     "expo": "~57.0.1",
+    "expo-device": "~57.0.0",
     "expo-document-picker": "~57.0.0",
     "expo-image-picker": "~57.0.1",
     "expo-local-authentication": "~57.0.0",
