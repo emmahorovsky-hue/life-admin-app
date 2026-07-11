@@ -7,10 +7,10 @@ import { dashboardApi } from '@/lib/dashboard';
 import type { DashboardSummary } from '@/lib/dashboard';
 import { subscriptionApi, categories } from '@/lib/subscriptions';
 import { formatCurrency, dominantCurrency, DEFAULT_CURRENCY } from '@/lib/currency';
-import { normalizeToMonthlyCost } from '@life-admin/shared';
+import { normalizeToMonthlyCost, parseRenewalDate } from '@life-admin/shared';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { PaperSheet } from '@/components/PaperSheet';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
@@ -93,9 +93,12 @@ export default function Dashboard() {
     );
   }
 
-  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  // Parse as a local calendar date (parseRenewalDate) and compare calendar
+  // days, matching Subscriptions/Timeline — native Date parsing shifts the
+  // day in timezones behind UTC.
+  const today = new Date();
   const dueSoonRenewals = summary.upcomingRenewals.filter(
-    r => new Date(r.nextRenewalDate).getTime() - Date.now() <= sevenDaysMs
+    r => differenceInCalendarDays(parseRenewalDate(r.nextRenewalDate), today) <= 7
   );
 
   // Renewals can be in different currencies, so a single summed figure would
@@ -222,7 +225,7 @@ export default function Dashboard() {
                       <SubscriptionLogo name={renewal.name} category={renewal.category} size={28} className="shrink-0" />
                       <span className="font-mono font-bold text-sm text-foreground shrink-0">{renewal.name}</span>
                       <span className="text-xs text-muted-foreground font-mono shrink-0 ml-1">
-                        {format(new Date(renewal.nextRenewalDate), 'MMM d')}
+                        {format(parseRenewalDate(renewal.nextRenewalDate), 'MMM d')}
                       </span>
                       <div className="leader-dots flex-1 mx-2 mb-0.5" />
                       <span className="font-mono font-bold text-sm text-foreground shrink-0">
