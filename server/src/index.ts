@@ -1,10 +1,11 @@
+// Must stay the first import: it loads server/.env (so module-scope
+// process.env reads in every module below see .env values) and initializes Sentry.
 import './instrument';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import subscriptionRoutes from './routes/subscriptions';
 import dashboardRoutes from './routes/dashboard';
@@ -12,9 +13,6 @@ import categoryRoutes from './routes/categories';
 import { errorHandler } from './middleware/errorHandler';
 import { csrfMiddleware } from './middleware/csrf';
 import { startCronJobs } from './jobs';
-
-// Load environment variables
-dotenv.config();
 
 // Startup validation for required environment variables (prevents silent failures in production)
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
