@@ -3,6 +3,11 @@ import axios from 'axios';
 import { User, AuthResponse } from '@life-admin/shared';
 import { api } from '../lib/api';
 import { registerLogout } from '../lib/authBridge';
+import {
+  invalidatePushRegistration,
+  registerForPushNotifications,
+  subscribeToPushTokenRotation,
+} from '../lib/pushNotifications';
 import { tokenStorage } from '../lib/storage';
 
 interface AuthContextType {
@@ -22,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await tokenStorage.remove();
+    invalidatePushRegistration();
     setUser(null);
   }, []);
 
@@ -53,6 +59,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     restoreSession();
     return () => { isMounted = false; };
   }, []);
+
+  // Register the device for push notifications once a session exists (login,
+  // register or restore) — the endpoint needs the Bearer token, so this must
+  // not run before auth. Keyed on user id so switching accounts re-registers,
+  // while profile updates on the same account don't re-trigger. Registration
+  // is best-effort and can never throw (see lib/pushNotifications.ts).
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    void registerForPushNotifications();
+    const subscription = subscribeToPushTokenRotation();
+    return () => subscription.remove();
+  }, [userId]);
 
   const login = async (email: string, password: string) => {
     const { data } = await api.post<AuthResponse & { token: string }>('/auth/login', {

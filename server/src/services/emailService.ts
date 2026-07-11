@@ -5,6 +5,17 @@ const FROM = process.env.EMAIL_FROM ?? 'noreply@paypr.live';
 
 const CLIENT_URL = process.env.CLIENT_URL ?? 'https://paypr.live';
 
+// The URLs in these emails carry raw single-use tokens, so they must never
+// reach production logs — only echo them to stdout in local dev (LIF-148).
+function logEmailNotSent(description: string, to: string, urlLabel: string, url: string): void {
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`[Email Service] ${description} skipped: RESEND_API_KEY unset`);
+    return;
+  }
+  console.log(`[Email Service] Resend not configured. Would send ${description} to:`, to);
+  console.log(`[Email Service] ${urlLabel}:`, url);
+}
+
 export function buildEmailHtml({ heading, bodyHtml, ctaText, ctaUrl, footerNote, illustrationUrl }: {
   heading: string;
   bodyHtml: string;
@@ -45,8 +56,7 @@ export function buildEmailHtml({ heading, bodyHtml, ctaText, ctaUrl, footerNote,
 
 export async function sendVerificationEmail({ to, verifyUrl, expiresInHours }: { to: string; verifyUrl: string; expiresInHours: number }) {
   if (!resend) {
-    console.log('[Email Service] Resend not configured. Would send verification email to:', to);
-    console.log('[Email Service] Verification URL:', verifyUrl);
+    logEmailNotSent('verification email', to, 'Verification URL', verifyUrl);
     return { id: 'mock-email-id' };
   }
   const subject = 'Verify your email for Paypr';
@@ -67,8 +77,7 @@ export async function sendVerificationEmail({ to, verifyUrl, expiresInHours }: {
 
 export async function sendDeletionWarningEmail({ to, deleteInHours, loginUrl }: { to: string; deleteInHours: number; loginUrl: string }) {
   if (!resend) {
-    console.log('[Email Service] Resend not configured. Would send deletion-warning email to:', to);
-    console.log('[Email Service] Login URL:', loginUrl);
+    logEmailNotSent('deletion-warning email', to, 'Login URL', loginUrl);
     return { id: 'mock-email-id' };
   }
   const subject = 'Action needed: verify your email or your account will be deleted';
@@ -91,8 +100,7 @@ export async function sendDeletionWarningEmail({ to, deleteInHours, loginUrl }: 
 
 export async function sendEmailChangeVerificationEmail({ to, verifyUrl, expiresInHours }: { to: string; verifyUrl: string; expiresInHours: number }) {
   if (!resend) {
-    console.log('[Email Service] Resend not configured. Would send email-change verification email to:', to);
-    console.log('[Email Service] Verification URL:', verifyUrl);
+    logEmailNotSent('email-change verification email', to, 'Verification URL', verifyUrl);
     return { id: 'mock-email-id' };
   }
   const subject = 'Confirm your new email address for Paypr';
@@ -187,8 +195,7 @@ export async function sendRenewalReminderEmail({ to, subscriptionName, renewalDa
 
 export async function sendPasswordResetEmail({ to, resetUrl, expiresInHours }: { to: string; resetUrl: string; expiresInHours: number }) {
   if (!resend) {
-    console.log('[Email Service] Resend not configured. Would send password reset email to:', to);
-    console.log('[Email Service] Reset URL:', resetUrl);
+    logEmailNotSent('password reset email', to, 'Reset URL', resetUrl);
     return { id: 'mock-email-id' };
   }
   const subject = 'Reset your Paypr password';

@@ -19,3 +19,12 @@ export const generateToken = (payload: JwtPayload): string => {
 export const verifyToken = (token: string): JwtPayload => {
   return jwt.verify(token, JWT_SECRET) as JwtPayload;
 };
+
+// JWT `iat` claims are whole seconds (RFC 7519), and the auth middleware
+// invalidates sessions where `iat < passwordChangedAt / 1000`. Floor the
+// timestamp to the second so a token issued in the same second as the password
+// change (e.g. the one re-issued by change-password) is not spuriously
+// rejected for being a few milliseconds "older" than passwordChangedAt.
+export const passwordChangedAtNow = (): Date => {
+  return new Date(Math.floor(Date.now() / 1000) * 1000);
+};

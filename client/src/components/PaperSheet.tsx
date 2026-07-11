@@ -1,34 +1,47 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ComponentPropsWithoutRef, ElementType, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PAPER_TINT, PAPER_SHADOW, PAPER_MARGIN_RULE } from '@/lib/paper';
 
-interface PaperSheetProps {
+type PaperSheetOwnProps<T extends ElementType> = {
+  /** Element to render the sheet as, e.g. "button" for interactive cards. Defaults to "div". */
+  as?: T;
   /** Background cream tint. Defaults to the primary tint. */
   tint?: string;
   /** Tailwind left-offset for the red margin rule; should sit inside the left padding. */
   marginRuleClassName?: string;
+  /** Absolutely-positioned decoration painted behind the margin rule and content (e.g. horizontal ruling). */
+  backdrop?: ReactNode;
   /** Classes for the content column (e.g. vertical spacing). */
   innerClassName?: string;
   /** Classes for the sheet itself (padding, rotation, …). */
   className?: string;
   style?: CSSProperties;
   children: ReactNode;
-}
+};
+
+type PaperSheetProps<T extends ElementType> = PaperSheetOwnProps<T> &
+  Omit<ComponentPropsWithoutRef<T>, keyof PaperSheetOwnProps<T>>;
 
 /** A single "filed paper" sheet: cream surface, warm shadow, soft-red left margin rule. */
-export function PaperSheet({
+export function PaperSheet<T extends ElementType = 'div'>({
+  as,
   tint = PAPER_TINT,
   marginRuleClassName = 'left-8',
+  backdrop,
   innerClassName,
   className,
   style,
   children,
-}: PaperSheetProps) {
+  ...rest
+}: PaperSheetProps<T>) {
+  const Component: ElementType = as ?? 'div';
   return (
-    <div
+    <Component
       className={cn('relative overflow-hidden rounded-[3px] border border-black/[0.06]', className)}
       style={{ backgroundColor: tint, boxShadow: PAPER_SHADOW, ...style }}
+      {...rest}
     >
+      {backdrop}
       {/* Left margin rule */}
       <span
         aria-hidden="true"
@@ -36,6 +49,6 @@ export function PaperSheet({
         style={{ background: PAPER_MARGIN_RULE }}
       />
       <div className={cn('relative', innerClassName)}>{children}</div>
-    </div>
+    </Component>
   );
 }
