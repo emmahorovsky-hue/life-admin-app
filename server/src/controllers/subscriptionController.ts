@@ -207,6 +207,9 @@ export const getSubscriptionById = async (
       where: {
         id: subscriptionId,
         userId: req.user.userId,
+        // Soft-deleted subscriptions are invisible in the list — keep id-scoped
+        // access consistent (LIF-146).
+        isActive: true,
       },
     });
 
@@ -264,11 +267,12 @@ export const updateSubscription = async (
     const { name, cost, currency, billingCycle, renewalDate, category, notes } =
       req.body;
 
-    // Check if subscription exists and belongs to user
+    // Check if subscription exists, belongs to user, and isn't soft-deleted
     const existingSubscription = await prisma.subscription.findFirst({
       where: {
         id: subscriptionId,
         userId: req.user.userId,
+        isActive: true,
       },
     });
 
@@ -327,11 +331,12 @@ export const deleteSubscription = async (
     const { id } = req.params;
     const subscriptionId = typeof id === 'string' ? id : id[0];
 
-    // Check if subscription exists and belongs to user
+    // Check if subscription exists, belongs to user, and isn't already deleted
     const existingSubscription = await prisma.subscription.findFirst({
       where: {
         id: subscriptionId,
         userId: req.user.userId,
+        isActive: true,
       },
     });
 
@@ -387,7 +392,7 @@ export const cancelSubscription = async (
     const subscriptionId = typeof id === 'string' ? id : id[0];
 
     const existingSubscription = await prisma.subscription.findFirst({
-      where: { id: subscriptionId, userId: req.user.userId },
+      where: { id: subscriptionId, userId: req.user.userId, isActive: true },
     });
 
     if (!existingSubscription) {
@@ -447,7 +452,7 @@ export const resumeSubscription = async (
     const subscriptionId = typeof id === 'string' ? id : id[0];
 
     const existingSubscription = await prisma.subscription.findFirst({
-      where: { id: subscriptionId, userId: req.user.userId },
+      where: { id: subscriptionId, userId: req.user.userId, isActive: true },
     });
 
     if (!existingSubscription) {
