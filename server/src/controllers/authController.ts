@@ -65,12 +65,17 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
         password: hashedPassword,
         name,
       },
+      // Keep this select in sync with login/getMe so all auth paths return the
+      // full shared `User` shape (LIF-132).
       select: {
         id: true,
         email: true,
         name: true,
+        surname: true,
         emailVerified: true,
+        emailVerifiedAt: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 
