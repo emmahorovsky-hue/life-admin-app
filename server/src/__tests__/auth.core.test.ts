@@ -45,8 +45,19 @@ describe('Core auth endpoints (LIF-128)', () => {
       const res = await request(app).post('/api/auth/register').send(registerPayload);
 
       expect(res.status).toBe(201);
-      expect(res.body.user.email).toBe(registerPayload.email);
       expect(res.body.user.password).toBeUndefined();
+      // Register must return the same full `User` shape as login/getMe so the
+      // shared type stays honest across all auth paths (LIF-132).
+      expect(res.body.user).toEqual({
+        id: expect.any(String),
+        email: registerPayload.email,
+        name: registerPayload.name,
+        surname: null,
+        emailVerified: false,
+        emailVerifiedAt: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
 
       const user = await prisma.user.findUnique({ where: { email: registerPayload.email } });
       expect(user).toBeTruthy();
