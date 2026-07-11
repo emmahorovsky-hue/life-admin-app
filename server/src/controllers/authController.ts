@@ -3,7 +3,7 @@ import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
-import { generateToken } from '../utils/jwt';
+import { generateToken, passwordChangedAtNow } from '../utils/jwt';
 import { issueEmailVerificationToken, consumeEmailVerificationToken } from '../services/emailVerificationService';
 import { issuePasswordResetToken, consumePasswordResetToken } from '../services/passwordResetService';
 import { initiateEmailChange, consumeEmailChangeToken } from '../services/emailChangeService';
@@ -337,7 +337,9 @@ export const resetPassword = async (req: AuthRequest, res: Response): Promise<vo
     await prisma.$transaction([
       prisma.user.update({
         where: { id: result.userId },
-        data: { password: hashedPassword, passwordChangedAt: now },
+        // Floored to the second (see passwordChangedAtNow) so both password
+        // paths store the same precision the middleware compares against iat.
+        data: { password: hashedPassword, passwordChangedAt: passwordChangedAtNow() },
       }),
       prisma.passwordResetToken.updateMany({
         where: { userId: result.userId, usedAt: null },
@@ -429,10 +431,10 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Floor passwordChangedAt to the current second so the re-issued token's iat
-    // (which is also in whole seconds) satisfies iat >= passwordChangedAt/1000,
-    // keeping this session alive while still invalidating older sessions.
-    const passwordChangedAt = new Date(Math.floor(Date.now() / 1000) * 1000);
+    // Floored to the second (see passwordChangedAtNow) so the re-issued token's
+    // iat satisfies iat >= passwordChangedAt/1000, keeping this session alive
+    // while still invalidating older sessions.
+    const passwordChangedAt = passwordChangedAtNow();
     const token = generateToken({ userId: user.id, email: user.email });
 
     await prisma.user.update({
