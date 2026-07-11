@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { PaperSheet } from '@/components/PaperSheet';
-import { PAPER_TINTS, PAPER_SHADOW, PAPER_RULING } from '@/lib/paper';
+import { PAPER_TINTS, PAPER_RULING } from '@/lib/paper';
 import AddSubscriptionDialog from '@/components/AddSubscriptionDialog';
 import EditSubscriptionDialog from '@/components/EditSubscriptionDialog';
 import UploadReceiptDialog from '@/components/UploadReceiptDialog';
@@ -209,31 +209,26 @@ export default function Subscriptions() {
               categories.find((c) => c.id === sub.category)?.name || sub.category;
 
             return (
-              <button
+              <PaperSheet
                 key={sub.id}
+                as="button"
                 type="button"
                 onClick={() => handleEdit(sub)}
                 aria-label={`Edit ${sub.name}`}
-                style={{ backgroundColor: PAPER_TINTS[i % PAPER_TINTS.length], boxShadow: PAPER_SHADOW }}
-                className={`group relative w-full text-left overflow-hidden rounded-[3px] border border-black/[0.06] cursor-pointer pt-5 pr-[22px] pb-[18px] pl-[46px] [transform:rotate(-0.5deg)] transition-[transform,box-shadow] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] hover:[transform:rotate(0deg)_translateY(-3px)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:hover:[transform:rotate(-0.5deg)] ${
+                tint={PAPER_TINTS[i % PAPER_TINTS.length]}
+                marginRuleClassName="left-[30px]"
+                backdrop={
+                  /* Horizontal paper ruling */
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ backgroundImage: PAPER_RULING, backgroundPosition: '0 76px' }}
+                  />
+                }
+                className={`group w-full text-left cursor-pointer pt-5 pr-[22px] pb-[18px] pl-[46px] [transform:rotate(-0.5deg)] transition-[transform,box-shadow] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] hover:[transform:rotate(0deg)_translateY(-3px)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:hover:[transform:rotate(-0.5deg)] ${
                   status === 'ended' ? 'opacity-60' : ''
                 }`}
               >
-                {/* Horizontal paper ruling */}
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ backgroundImage: PAPER_RULING, backgroundPosition: '0 76px' }}
-                />
-                {/* Left margin rule */}
-                <span
-                  aria-hidden="true"
-                  className="absolute left-[30px] top-0 bottom-0 w-px"
-                  style={{ background: 'hsl(2 65% 58% / 0.30)' }}
-                />
-
-                {/* Content sits above the ruling */}
-                <div className="relative">
                 {/* Top row: logo + name/category, urgent stamp */}
                 <div className="flex justify-between items-start gap-3 mb-3">
                   <div className="flex items-center gap-[11px] min-w-0">
@@ -274,8 +269,7 @@ export default function Subscriptions() {
                     {days}d left
                   </span>
                 </div>
-                </div>
-              </button>
+              </PaperSheet>
             );
           })}
         </div>
