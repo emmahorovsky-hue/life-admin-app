@@ -20,14 +20,26 @@ import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
-if (process.env.DISABLE_AUTH_RATE_LIMIT === 'true') {
+const rateLimitDisableRequested = process.env.DISABLE_AUTH_RATE_LIMIT === 'true';
+const isProduction = process.env.NODE_ENV === 'production';
+
+// DISABLE_AUTH_RATE_LIMIT is a dev/load-testing escape hatch only — in
+// production it is ignored so a leaked env var can't strip brute-force
+// protection off the auth endpoints.
+if (rateLimitDisableRequested && isProduction) {
+  console.warn(
+    '[auth] WARNING: DISABLE_AUTH_RATE_LIMIT=true was IGNORED because NODE_ENV is "production". ' +
+    'Auth rate limiting remains enabled. Unset this variable in production environments.'
+  );
+} else if (rateLimitDisableRequested) {
   console.warn(
     '[auth] WARNING: DISABLE_AUTH_RATE_LIMIT is set — all auth rate limiting is disabled. ' +
     'Do NOT use this in production or staging environments.'
   );
 }
 
-const isTestEnv = process.env.NODE_ENV === 'test' || process.env.DISABLE_AUTH_RATE_LIMIT === 'true';
+const skipAuthRateLimit =
+  process.env.NODE_ENV === 'test' || (rateLimitDisableRequested && !isProduction);
 
 // Per-endpoint rate limiters. Each rateLimit() call owns its own counter
 // store, so every endpoint gets an independent budget — a single shared
@@ -38,7 +50,7 @@ const createAuthLimiter = (max: number) =>
   rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max,
-    skip: () => isTestEnv,
+    skip: () => skipAuthRateLimit,
     message: {
       error: {
         message: 'Too many requests, please try again later',
@@ -71,7 +83,7 @@ const forgotPasswordGenericResponse = {
 const forgotPasswordPerEmailLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 1,
-  skip: () => isTestEnv,
+  skip: () => skipAuthRateLimit,
   keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
   handler: (req, res) => res.status(200).json(forgotPasswordGenericResponse),
   standardHeaders: false,
@@ -81,7 +93,7 @@ const forgotPasswordPerEmailLimiter = rateLimit({
 const forgotPasswordPerEmailHourlyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
-  skip: () => isTestEnv,
+  skip: () => skipAuthRateLimit,
   keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
   handler: (req, res) => res.status(200).json(forgotPasswordGenericResponse),
   standardHeaders: false,
@@ -91,7 +103,7 @@ const forgotPasswordPerEmailHourlyLimiter = rateLimit({
 const forgotPasswordPerIpLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20,
-  skip: () => isTestEnv,
+  skip: () => skipAuthRateLimit,
   handler: (req, res) => res.status(200).json(forgotPasswordGenericResponse),
   standardHeaders: false,
   legacyHeaders: false,
@@ -100,7 +112,7 @@ const forgotPasswordPerIpLimiter = rateLimit({
 const resendPerEmailLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 1,
-  skip: () => isTestEnv,
+  skip: () => skipAuthRateLimit,
   keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
   handler: (req, res) => res.status(200).json(genericResponse),
   standardHeaders: false,
@@ -110,7 +122,7 @@ const resendPerEmailLimiter = rateLimit({
 const resendPerEmailHourlyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
-  skip: () => isTestEnv,
+  skip: () => skipAuthRateLimit,
   keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
   handler: (req, res) => res.status(200).json(genericResponse),
   standardHeaders: false,
@@ -120,7 +132,7 @@ const resendPerEmailHourlyLimiter = rateLimit({
 const resendPerIpLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20,
-  skip: () => isTestEnv,
+  skip: () => skipAuthRateLimit,
   handler: (req, res) => res.status(200).json(genericResponse),
   standardHeaders: false,
   legacyHeaders: false,
