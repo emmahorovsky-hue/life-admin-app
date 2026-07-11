@@ -120,7 +120,7 @@ export default function Subscriptions() {
       {/* Header + controls */}
       <div className="flex justify-between items-end gap-4 flex-wrap">
         <div>
-          <h2 className="font-sans font-extrabold text-3xl tracking-tight">
+          <h2 className="text-3xl font-bold">
             Subscriptions<span className="text-brand-orange">.</span>
           </h2>
         </div>
