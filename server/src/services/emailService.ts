@@ -131,6 +131,18 @@ export async function sendEmailChangedNoticeEmail({ to, newEmail }: { to: string
   return res.data!;
 }
 
+// User-controlled values (subscription name, currency, billing cycle) are the
+// only user content interpolated into any email HTML — escape them so a
+// subscription named e.g. "<img src=…>" can't inject markup into the message.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export async function sendRenewalReminderEmail({ to, subscriptionName, renewalDate, cost, currency, billingCycle, manageUrl }: {
   to: string;
   subscriptionName: string;
@@ -150,14 +162,15 @@ export async function sendRenewalReminderEmail({ to, subscriptionName, renewalDa
     return { id: 'mock-email-id' };
   }
 
+  const safeName = escapeHtml(subscriptionName);
   const subject = `Your ${subscriptionName} subscription renews on ${formattedDate}`;
   const html = buildEmailHtml({
-    heading: `Your ${subscriptionName} subscription renews soon`,
+    heading: `Your ${safeName} subscription renews soon`,
     bodyHtml: `
-      <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.5;">This is a heads-up that your <strong>${subscriptionName}</strong> subscription is due to renew on <strong>${formattedDate}</strong>.</p>
+      <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.5;">This is a heads-up that your <strong>${safeName}</strong> subscription is due to renew on <strong>${formattedDate}</strong>.</p>
       <table style="margin: 0 0 16px; font-size: 14px; color: #161616; border-collapse: collapse;">
-        <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Amount</td><td style="padding: 4px 0;"><strong>${formattedCost}</strong></td></tr>
-        <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Billing cycle</td><td style="padding: 4px 0;">${billingCycle}</td></tr>
+        <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Amount</td><td style="padding: 4px 0;"><strong>${escapeHtml(formattedCost)}</strong></td></tr>
+        <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Billing cycle</td><td style="padding: 4px 0;">${escapeHtml(billingCycle)}</td></tr>
         <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Renewal date</td><td style="padding: 4px 0;">${formattedDate}</td></tr>
       </table>
     `,
