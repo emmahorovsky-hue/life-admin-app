@@ -43,4 +43,29 @@ describe('general API rate limiter', () => {
       await request(app).get('/api/ping').expect(200);
     }
   });
+
+  it('ignores DISABLE_RATE_LIMIT when NODE_ENV is production', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalDisable = process.env.DISABLE_RATE_LIMIT;
+    process.env.NODE_ENV = 'production';
+    process.env.DISABLE_RATE_LIMIT = 'true';
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      jest.resetModules();
+      // Re-import so the module re-reads the env at load time, as it does in prod.
+      const { createApiLimiter: createProdLimiter } = require('../rateLimit') as typeof import('../rateLimit');
+      const app = buildApp(createProdLimiter({ max: 1, windowMs: 60_000 }));
+
+      await request(app).get('/api/ping').expect(200);
+      await request(app).get('/api/ping').expect(429);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('ignoring it'));
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+      process.env.DISABLE_RATE_LIMIT = originalDisable === undefined ? undefined : originalDisable;
+      if (originalDisable === undefined) delete process.env.DISABLE_RATE_LIMIT;
+      warnSpy.mockRestore();
+      jest.resetModules();
+    }
+  });
 });
