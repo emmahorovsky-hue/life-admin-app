@@ -13,11 +13,13 @@ const api = axios.create({
 
 // CSRF double-submit token. The server delivers it two ways: as a (non-httpOnly)
 // cookie that the browser returns automatically, and as a readable `x-csrf-token`
-// response header. We rely on the header because in production the SPA (Vercel)
-// and API (Railway) are different origins, so document.cookie can't see the
-// API-origin cookie. We cache the latest header value and echo it back on every
-// mutating request; the server checks header === cookie, which an attacker on
-// another origin can't satisfy. The cookie fallback keeps same-origin dev working.
+// response header. The web app always calls the API same-origin (Vite proxy in
+// dev, Vercel rewrite to Railway in production — see vercel.json), so the cookie
+// is first-party and readCsrfCookie() can see it; the cached header value is
+// preferred when present and also keeps things working if VITE_API_URL ever
+// points at the API cross-origin (where document.cookie can't see the API-origin
+// cookie). We echo the token back on every mutating request; the server checks
+// header === cookie, which an attacker on another origin can't satisfy.
 let csrfToken: string | null = null;
 
 const readCsrfCookie = (): string | null => {
