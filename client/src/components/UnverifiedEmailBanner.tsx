@@ -14,6 +14,9 @@ export const UnverifiedEmailBanner: React.FC = () => {
   const [resent, setResent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const countdownIntervalRef = useRef<number | undefined>(undefined);
+  // Captured once on mount (render must stay pure — no Date.now() mid-render).
+  // Day-level resolution means going stale over a page's lifetime is harmless.
+  const [renderedAt] = useState(() => Date.now());
 
   // Stop a running countdown if the banner unmounts mid-count (navigation, or
   // emailVerified flipping) — otherwise the interval keeps firing setCountdown
@@ -24,7 +27,7 @@ export const UnverifiedEmailBanner: React.FC = () => {
     return null;
   }
 
-  const daysElapsed = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / MS_PER_DAY);
+  const daysElapsed = Math.floor((renderedAt - new Date(user.createdAt).getTime()) / MS_PER_DAY);
   const daysLeft = Math.max(0, GRACE_PERIOD_DAYS - daysElapsed);
   const deletionWarning =
     daysLeft > 0

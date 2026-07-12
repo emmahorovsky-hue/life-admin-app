@@ -37,34 +37,50 @@ export default function Subscriptions() {
   const [extractedCandidate, setExtractedCandidate] = useState<SubscriptionCandidate | null>(null);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
 
+  // Every setState here lives in a promise callback, never synchronously in an
+  // effect body; `loading` starts true, which covers the initial spinner.
+  const fetchSubscriptions = () =>
+    subscriptionApi
+      .getAll()
+      .then((data) => {
+        setSubscriptions(data);
+        setError('');
+      })
+      .catch((err: unknown) => {
+        setError(getApiErrorMessage(err, 'Failed to load subscriptions'));
+      })
+      .finally(() => setLoading(false));
+
+  // Reload for event handlers (delete, save, …): these DO flip the spinner on,
+  // which is fine in a handler — just not synchronously inside an effect.
   const loadSubscriptions = async () => {
-    try {
-      setLoading(true);
-      const data = await subscriptionApi.getAll();
-      setSubscriptions(data);
-      setError('');
-    } catch (err) {
-      setError(getApiErrorMessage(err, 'Failed to load subscriptions'));
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    await fetchSubscriptions();
   };
 
   useEffect(() => {
-    loadSubscriptions();
+    void fetchSubscriptions();
   }, []);
 
   // Open the upload flow directly when navigated here from an "add" button
-  // elsewhere (e.g. the Dashboard). Clear the state so it doesn't re-fire on refresh/back.
+  // elsewhere (e.g. the Dashboard). The dialog opens via a render-time state
+  // adjustment; the effect's only job is clearing the router state so the flow
+  // doesn't re-fire on refresh/back.
+  const openAddRequested = Boolean((location.state as { openAdd?: boolean } | null)?.openAdd);
+  const [prevOpenAddRequested, setPrevOpenAddRequested] = useState(false);
+  if (openAddRequested !== prevOpenAddRequested) {
+    setPrevOpenAddRequested(openAddRequested);
+    if (openAddRequested) setUploadDialogOpen(true);
+  }
+
   useEffect(() => {
-    if ((location.state as { openAdd?: boolean } | null)?.openAdd) {
-      setUploadDialogOpen(true);
+    if (openAddRequested) {
       navigate(`${location.pathname}${location.search}${location.hash}`, {
         replace: true,
         state: null,
       });
     }
-  }, [location, navigate]);
+  }, [openAddRequested, location, navigate]);
 
   // Mutation failures surface in the same error banner as load failures
   // (and, like load errors, clear on the next successful load).

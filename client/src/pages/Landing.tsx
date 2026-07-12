@@ -12,7 +12,7 @@ import {
   useInView,
   useReducedMotion,
 } from 'framer-motion';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useSyncExternalStore } from 'react';
 import ExtractionSection from './ExtractionSection';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -59,15 +59,14 @@ const RECEIPT_LINES = [
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 
 function useCountUp(target: number, inView: boolean, reduced: boolean): number {
-  const [count, setCount] = useState(reduced ? target : 0);
+  const [count, setCount] = useState(0);
   const rafRef = useRef<number>(0);
 
+  // The effect only ever animates; every "just show the final value" case
+  // (reduced motion, target 0) is derived at render time below instead of
+  // being written back as state.
   useEffect(() => {
-    if (!inView) return;
-    if (reduced || target === 0) {
-      setCount(target);
-      return;
-    }
+    if (!inView || reduced || target === 0) return;
     const start = performance.now();
     const duration = 1200;
     const step = (now: number) => {
@@ -80,7 +79,7 @@ function useCountUp(target: number, inView: boolean, reduced: boolean): number {
     return () => cancelAnimationFrame(rafRef.current);
   }, [inView, target, reduced]);
 
-  return count;
+  return reduced ? target : count;
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -191,18 +190,22 @@ function Crosshair() {
 // cursor is inside the frame each mark is pulled toward it (decorative). Refs +
 // direct DOM writes — no React state per frame. Disabled on coarse pointers /
 // reduced motion. Parent (the frame) must be `relative` and pass its ref.
+// Pointer coarseness as a proper external-store subscription (it can genuinely
+// change, e.g. a laptop entering tablet mode), replacing the old set-state-in-
+// an-effect mirror of matchMedia.
+const coarseQuery = '(pointer: coarse)';
+const subscribeToCoarsePointer = (onChange: () => void) => {
+  const media = window.matchMedia(coarseQuery);
+  media.addEventListener('change', onChange);
+  return () => media.removeEventListener('change', onChange);
+};
+const isCoarsePointer = () => window.matchMedia(coarseQuery).matches;
+
 function MagneticMarks({ frameRef, enabled }: { frameRef: React.RefObject<HTMLDivElement>; enabled: boolean }) {
   const topRef = useRef<HTMLSpanElement>(null);
   const bottomRef = useRef<HTMLSpanElement>(null);
-  const [active, setActive] = useState(false);
-
-  useEffect(() => {
-    if (!enabled || typeof window === 'undefined') {
-      setActive(false);
-      return;
-    }
-    setActive(!window.matchMedia('(pointer: coarse)').matches);
-  }, [enabled]);
+  const coarse = useSyncExternalStore(subscribeToCoarsePointer, isCoarsePointer);
+  const active = enabled && !coarse;
 
   useEffect(() => {
     if (!active) return;

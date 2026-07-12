@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import SubscriptionModal, {
   SUBSCRIPTION_MODAL_CONTENT_CLASS,
@@ -29,16 +29,20 @@ export default function AddSubscriptionDialog({
   const scheduleTimeout = useUnmountSafeTimeout();
 
   // Every open starts from a blank form, however the last one ended — saved,
-  // dismissed via the X, or closed with a failed save still on screen. Keyed on
-  // open (rather than resetting on close) so the fields can't blank out while
+  // dismissed via the X, or closed with a failed save still on screen. Reset on
+  // the open *edge* (rather than on close) so the fields can't blank out while
   // the dialog is animating away; same approach as EditSubscriptionDialog.
-  useEffect(() => {
+  // State is adjusted during render, not in an effect, so the blank form is in
+  // the same paint that shows the dialog.
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) {
       setValues(defaultSubscriptionFormValues());
       setError('');
       setSaved(false);
     }
-  }, [open]);
+  }
 
   const handleSubmit = async () => {
     setError('');
