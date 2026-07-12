@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import SubscriptionModal, {
   SUBSCRIPTION_MODAL_CONTENT_CLASS,
@@ -45,12 +45,16 @@ export default function ReviewExtractedDialog({
   const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues);
   const scheduleTimeout = useUnmountSafeTimeout();
 
-  useEffect(() => {
+  // Repopulate when a new candidate arrives — adjusted during render, not in an
+  // effect, so the populated form is in the same paint that shows the dialog.
+  const [prevCandidate, setPrevCandidate] = useState<typeof candidate>(null);
+  if (candidate !== prevCandidate) {
+    setPrevCandidate(candidate);
     if (candidate) {
       setValues(candidateToFormValues(candidate));
       setError('');
     }
-  }, [candidate]);
+  }
 
   const hint = (field: keyof SubscriptionFormValues) =>
     candidate?.uncertainFields.includes(field) ? (

@@ -38,9 +38,17 @@ export default function ExtractionLoadingOverlay({
   // loops back to 0 so the reveal keeps cycling for as long as the overlay is up.
   const [revealed, setRevealed] = useState(0);
 
+  // Restart the reveal from zero on the open edge — adjusted during render so
+  // the first paint of a reopened overlay never shows the previous cycle's
+  // checks. The effect below only drives the interval.
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setRevealed(0);
+  }
+
   useEffect(() => {
     if (!open || reduced) return;
-    setRevealed(0);
     const id = setInterval(() => {
       setRevealed((n) => (n >= FIELDS.length ? 0 : n + 1));
     }, STEP_MS);

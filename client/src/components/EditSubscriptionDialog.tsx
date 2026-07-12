@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import SubscriptionModal, {
   SUBSCRIPTION_MODAL_CONTENT_CLASS,
@@ -39,9 +39,16 @@ export default function EditSubscriptionDialog({
   const scheduleTimeout = useUnmountSafeTimeout();
 
   // Keyed on `open` as well as `subscription`: reopening the same row passes
-  // the same object reference, so without `open` the effect wouldn't re-run
+  // the same object reference, so without `open` the form wouldn't repopulate
   // and uncommitted edits from a dismissed session would still be in the form.
-  useEffect(() => {
+  // State is adjusted during render, not in an effect, so the populated form is
+  // in the same paint that shows the dialog.
+  const [prevSession, setPrevSession] = useState<{
+    open: boolean;
+    subscription: Subscription | null;
+  }>({ open: false, subscription: null });
+  if (open !== prevSession.open || subscription !== prevSession.subscription) {
+    setPrevSession({ open, subscription });
     if (open && subscription) {
       setValues({
         name: subscription.name,
@@ -56,7 +63,7 @@ export default function EditSubscriptionDialog({
       });
       setError('');
     }
-  }, [open, subscription]);
+  }
 
   const handleSubmit = async () => {
     if (!subscription) return;
