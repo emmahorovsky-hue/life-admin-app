@@ -21,6 +21,7 @@ import * as Sentry from '@sentry/node';
 export type SecurityEventType =
   | 'auth.login.success'
   | 'auth.login.failure'
+  | 'auth.logout'
   | 'auth.register.success'
   | 'auth.password_reset.requested'
   | 'auth.password_reset.completed'
