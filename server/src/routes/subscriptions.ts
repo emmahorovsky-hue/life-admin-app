@@ -13,12 +13,22 @@ import {
 import { authenticateToken } from '../middleware/auth';
 import {
   BILLING_CYCLES,
+  CATEGORY_IDS,
+  currencies,
   SUBSCRIPTION_SORT_FIELDS,
   SORT_ORDERS,
 } from '../constants/subscriptions';
+import { MAX_NAME_LENGTH, MAX_NOTES_LENGTH } from '../constants/validation';
 import { receiptUpload, extractRateLimit } from '../middleware/receiptUpload';
 
 const router = express.Router();
+
+// Currency codes are case-insensitive on the wire but stored uppercase, so "usd"
+// and "USD" are the same subscription rather than two. toUpperCase() is not a
+// validator.js sanitizer, hence the custom one — and it must run *before* isIn(),
+// or a lowercase code would be rejected instead of normalised.
+const normaliseCurrency = (value: unknown) =>
+  typeof value === 'string' ? value.toUpperCase() : value;
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -54,20 +64,33 @@ router.get(
 router.post(
   '/',
   [
-    body('name').trim().notEmpty().withMessage('Name is required'),
+    body('name')
+      .trim()
+      .notEmpty()
+      .withMessage('Name is required')
+      .isLength({ max: MAX_NAME_LENGTH })
+      .withMessage(`Name must be at most ${MAX_NAME_LENGTH} characters`),
     body('cost')
       .isFloat({ min: 0 })
       .withMessage('Cost must be a positive number'),
     body('currency')
       .optional()
-      .isLength({ min: 3, max: 3 })
-      .withMessage('Currency must be a 3-letter ISO code'),
+      .customSanitizer(normaliseCurrency)
+      .isIn(currencies)
+      .withMessage(`Currency must be one of: ${currencies.join(', ')}`),
     body('billingCycle')
       .isIn([...BILLING_CYCLES])
       .withMessage('Invalid billing cycle'),
     body('renewalDate').isISO8601().withMessage('Invalid renewal date'),
-    body('category').trim().notEmpty().withMessage('Category is required'),
-    body('notes').optional().trim(),
+    body('category')
+      .trim()
+      .isIn([...CATEGORY_IDS])
+      .withMessage(`Category must be one of: ${CATEGORY_IDS.join(', ')}`),
+    body('notes')
+      .optional()
+      .trim()
+      .isLength({ max: MAX_NOTES_LENGTH })
+      .withMessage(`Notes must be at most ${MAX_NOTES_LENGTH} characters`),
   ],
   createSubscription
 );
@@ -82,15 +105,22 @@ router.get('/:id', getSubscriptionById);
 router.patch(
   '/:id',
   [
-    body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
+    body('name')
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage('Name cannot be empty')
+      .isLength({ max: MAX_NAME_LENGTH })
+      .withMessage(`Name must be at most ${MAX_NAME_LENGTH} characters`),
     body('cost')
       .optional()
       .isFloat({ min: 0 })
       .withMessage('Cost must be a positive number'),
     body('currency')
       .optional()
-      .isLength({ min: 3, max: 3 })
-      .withMessage('Currency must be a 3-letter ISO code'),
+      .customSanitizer(normaliseCurrency)
+      .isIn(currencies)
+      .withMessage(`Currency must be one of: ${currencies.join(', ')}`),
     body('billingCycle')
       .optional()
       .isIn([...BILLING_CYCLES])
@@ -102,9 +132,13 @@ router.patch(
     body('category')
       .optional()
       .trim()
-      .notEmpty()
-      .withMessage('Category cannot be empty'),
-    body('notes').optional().trim(),
+      .isIn([...CATEGORY_IDS])
+      .withMessage(`Category must be one of: ${CATEGORY_IDS.join(', ')}`),
+    body('notes')
+      .optional()
+      .trim()
+      .isLength({ max: MAX_NOTES_LENGTH })
+      .withMessage(`Notes must be at most ${MAX_NOTES_LENGTH} characters`),
   ],
   updateSubscription
 );

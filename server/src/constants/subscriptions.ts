@@ -4,8 +4,9 @@
 // the other (LIF-158). They are re-exported from here rather than imported
 // directly at each call site, so the six existing importers (route validators,
 // categoryController, aiService, tests) keep working unchanged.
-export { CATEGORY_IDS, CATEGORIES, BILLING_CYCLES } from '@life-admin/shared';
+export { CATEGORY_IDS, CATEGORIES, BILLING_CYCLES, currencies } from '@life-admin/shared';
 export type { CategoryId, BillingCycle } from '@life-admin/shared';
+
 
 // Sort constants stay server-side: they name Prisma columns and HTTP query
 // values, which are not the client's business and have no meaning in the shared

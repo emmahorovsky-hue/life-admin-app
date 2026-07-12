@@ -18,6 +18,7 @@ import {
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
 import { logSecurityEvent } from '../utils/securityLog';
+import { MAX_NAME_LENGTH } from '../constants/validation';
 
 const router = express.Router();
 
@@ -178,7 +179,11 @@ router.post(
         minSymbols: 1,
       })
       .withMessage('Password must be at least 8 characters with 1 uppercase, 1 number, and 1 special character'),
-    body('name').optional().trim(),
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ max: MAX_NAME_LENGTH })
+      .withMessage(`Name must be at most ${MAX_NAME_LENGTH} characters`),
   ],
   register
 );
@@ -253,8 +258,16 @@ router.patch(
   '/profile',
   authenticateToken,
   [
-    body('name').optional().trim(),
-    body('surname').optional().trim(),
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ max: MAX_NAME_LENGTH })
+      .withMessage(`Name must be at most ${MAX_NAME_LENGTH} characters`),
+    body('surname')
+      .optional()
+      .trim()
+      .isLength({ max: MAX_NAME_LENGTH })
+      .withMessage(`Surname must be at most ${MAX_NAME_LENGTH} characters`),
   ],
   updateProfile
 );
