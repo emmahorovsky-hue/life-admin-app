@@ -48,7 +48,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await api.post('/auth/logout');
+    // Tell the server first — this is what actually revokes the session
+    // (LIF-174). Best-effort, same as mobile: if we're offline or the token has
+    // already expired the call fails, and we must still clear local state
+    // rather than trap the user in a logged-in app.
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Ignored on purpose — local logout must always succeed.
+    }
     setUser(null);
   };
 
