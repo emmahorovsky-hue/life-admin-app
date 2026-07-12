@@ -109,6 +109,7 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `CLEANUP_CRON`  | Cron schedule for unverified-account cleanup (default `0 3 * * *` UTC) |
 | `GRACE_PERIOD_DAYS` | Days an account may stay unverified before deletion (default 7)  |
 | `WARNING_LEAD_HOURS`| Hours before the deadline the warning email is sent (default 24) |
+| `TOKEN_RETENTION_DAYS` | Days a used/expired verification/reset/email-change token row is kept before the daily sweep deletes it (default 30). Not zero on purpose — the consume paths report `already_used`/`expired` rather than `invalid`, which needs the row to still exist. |
 | `DISABLE_AUTH_RATE_LIMIT` | Dev only: `true` disables auth rate limiting; ignored (with a warning) when `NODE_ENV=production` |
 | `VITE_API_URL`  | Frontend axios baseURL (defaults to `/api` for same-origin proxy)    |
 | `VITE_LOGO_DEV_TOKEN` | Brand logos on subscription rows via logo.dev (optional; rows fall back to category icons without it). Publishable client-side token. |
