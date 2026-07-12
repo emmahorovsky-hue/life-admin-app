@@ -40,11 +40,15 @@ git checkout -b feature/LIF-42-add-email-reminders
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed setup instructions.
 
+This is an npm-workspaces monorepo (`server`, `client`, `mobile`, `packages/shared`). Install once
+from the repo root — the hoisted tree is what lets `client` and `mobile` resolve `@life-admin/shared`.
+
 **Quick start:**
 ```bash
+npm install            # from the repo root, covers every workspace
+
 # Backend
 cd server
-npm install
 cp .env.example .env
 # Edit .env with your database
 npm run prisma:migrate
@@ -53,9 +57,16 @@ npm run dev
 
 # Frontend (in another terminal)
 cd client
-npm install
 npm run dev
+
+# Mobile (in another terminal)
+cd mobile
+npm run ios            # or: npm run android / npm run web
 ```
+
+See [mobile/AGENTS.md](mobile/AGENTS.md) before touching the Expo app — its auth differs from web
+(SecureStore + `Authorization: Bearer`, not the httpOnly cookie), and its API URL is baked in at
+build time.
 
 ### Code Style
 
@@ -120,17 +131,20 @@ Closes #42
 **Before pushing:**
 
 ```bash
-# Backend
+# Backend — no ESLint here; CI runs the suite plus a typecheck
 cd server
-npm run lint
-npm run lint -- --fix  # Auto-fix
 npm run test
+npx tsc --noEmit
 
 # Frontend
 cd client
 npm run lint
 npm run lint -- --fix  # Auto-fix
-npm run test
+npm run test:unit      # Vitest; npm run test:e2e for Playwright
+
+# Mobile — no lint or test scripts yet; typecheck before pushing
+cd mobile
+npx tsc --noEmit
 ```
 
 **Tests must pass.** If they don't, the PR will be blocked.

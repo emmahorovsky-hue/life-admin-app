@@ -10,10 +10,14 @@ A modern subscription tracker application to help users manage and monitor their
 
 **Prerequisites:** Node.js 20+, PostgreSQL 15+
 
+This is an npm-workspaces monorepo — **install once from the repo root**. The hoisted tree is what
+lets `client/` and `mobile/` resolve `@life-admin/shared`.
+
 ```bash
+npm install            # from the repo root, covers every workspace
+
 # Backend
 cd server
-npm install
 cp .env.example .env
 # Edit .env with your database credentials
 npm run prisma:migrate
@@ -22,12 +26,16 @@ npm run dev
 
 # Frontend (in another terminal)
 cd client
-npm install
 npm run dev
+
+# Mobile (in another terminal)
+cd mobile
+npm run ios            # or: npm run android / npm run web
 ```
 
 - Backend: http://localhost:3001
 - Frontend: http://localhost:3000
+- Mobile: Expo dev server (point it at your machine's LAN IP, not localhost, when running on a device)
 
 **Test credentials:** `test@example.com` / `testpass123`
 
@@ -35,7 +43,9 @@ npm run dev
 
 **Backend:** Node.js 20 + Express + TypeScript + Prisma + PostgreSQL  
 **Frontend:** React 18 + TypeScript + Vite + TailwindCSS + shadcn/ui  
-**Hosting:** Railway (backend) + Vercel (frontend)
+**Mobile:** Expo SDK 57 + React Native + expo-router + TypeScript  
+**Shared:** `@life-admin/shared` — types, constants, and subscription/date utilities used by web and mobile  
+**Hosting:** Railway (backend) + Vercel (frontend) + EAS (mobile builds)
 
 ## Documentation
 
@@ -50,6 +60,8 @@ npm run dev
 | **Frontend Setup** | [client/README.md](client/README.md) |
 | **Components** | [client/docs/COMPONENTS.md](client/docs/COMPONENTS.md) |
 | **Design System** | [client/docs/STYLING.md](client/docs/STYLING.md) |
+| **Mobile App** | [mobile/AGENTS.md](mobile/AGENTS.md) |
+| **Mobile Builds (EAS)** | [DEPLOYMENT.md](DEPLOYMENT.md) — Part 6 |
 | **Production Deploy** | [DEPLOYMENT.md](DEPLOYMENT.md) |
 | **Contributing** | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
@@ -67,17 +79,26 @@ npm run dev
 ## Project Structure
 
 ```
-life-admin-app/
+life-admin-app/                # npm workspaces monorepo
 ├── server/                    # Express API + TypeScript
 │   ├── src/                   # Controllers, routes, middleware
 │   ├── prisma/                # Database schema & migrations
 │   ├── docs/                  # API & Database documentation
 │   └── README.md
 │
-├── client/                    # React + Vite frontend
+├── client/                    # React + Vite frontend (web SPA)
 │   ├── src/                   # Components, pages, contexts
 │   ├── docs/                  # Component & styling guides
 │   └── README.md
+│
+├── mobile/                    # Expo (SDK 57) React Native app
+│   ├── app/                   # expo-router routes: (auth) and (app) groups
+│   ├── lib/                   # API client, SecureStore token storage
+│   ├── eas.json               # EAS build profiles
+│   └── AGENTS.md              # Mobile architecture & auth notes
+│
+├── packages/shared/           # @life-admin/shared — types, constants, utils
+│                              # consumed by client and mobile (raw TS, no build)
 │
 ├── docs/                      # Repo-level documentation
 │   ├── INDEX.md              # Documentation hub (start here!)
