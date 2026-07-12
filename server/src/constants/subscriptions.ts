@@ -2,8 +2,8 @@
 // which the client and mobile app already use — the server used to keep its own
 // byte-identical copy, so a category added on one side silently didn't exist on
 // the other (LIF-158). They are re-exported from here rather than imported
-// directly at each call site, so the six existing importers (route validators,
-// categoryController, aiService, tests) keep working unchanged.
+// directly at each call site, so the existing importers (route validators,
+// aiService, tests) keep working unchanged.
 export { CATEGORY_IDS, CATEGORIES, BILLING_CYCLES, currencies } from '@life-admin/shared';
 export type { CategoryId, BillingCycle } from '@life-admin/shared';
 
