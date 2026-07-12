@@ -31,10 +31,12 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
+    "@life-admin/shared": "*",
     "@prisma/client": "^5.22.0",
     "@sentry/node": "^10.65.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
+    "date-fns": "^3.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "expo-server-sdk": "^6.1.0",
