@@ -48,8 +48,7 @@
     "multer": "^2.2.0",
     "node-cron": "^4.6.0",
     "prisma": "^5.22.0",
-    "resend": "^6.17.2",
-    "typescript": "~6.0.3"
+    "resend": "^6.17.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -66,6 +65,7 @@
     "nodemon": "^3.1.9",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.9",
-    "tsx": "^4.23.0"
+    "tsx": "^4.23.0",
+    "typescript": "~6.0.3"
   }
 }
