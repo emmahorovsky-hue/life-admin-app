@@ -72,6 +72,25 @@ describe('Core auth endpoints (LIF-128)', () => {
       expect(res.body.error).toBeDefined();
     });
 
+    it('returns 400 EMAIL_EXISTS when a concurrent registration wins the race after the existence check (LIF-145)', async () => {
+      // Simulate the create-after-check race deterministically: the email is
+      // already taken, but the existence check reports it free (as it would if
+      // a concurrent request created the user just after the check). The
+      // subsequent `create` then hits the unique constraint (P2002), which
+      // must map to the same 400 EMAIL_EXISTS as the check — never a 500.
+      await request(app).post('/api/auth/register').send(registerPayload);
+
+      const findSpy = jest.spyOn(prisma.user, 'findUnique').mockResolvedValueOnce(null);
+      try {
+        const res = await request(app).post('/api/auth/register').send(registerPayload);
+
+        expect(res.status).toBe(400);
+        expect(res.body.error.code).toBe('EMAIL_EXISTS');
+      } finally {
+        findSpy.mockRestore();
+      }
+    });
+
     it('rejects an invalid email format with 400', async () => {
       const res = await request(app)
         .post('/api/auth/register')
