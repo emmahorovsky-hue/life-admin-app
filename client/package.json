@@ -13,7 +13,7 @@
     "test:e2e": "npx playwright test e2e"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.3.2",
+    "@hookform/resolvers": "^5.4.0",
     "@life-admin/shared": "*",
     "@sentry/react": "^10.65.0",
     "axios": "^1.6.0",
