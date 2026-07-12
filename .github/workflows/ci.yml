@@ -194,13 +194,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Secrets must never be committed (LIF-149). .env.example templates are
-      # allowed; client/.env.production is known-committed, tracked as LIF-162.
+      # Secrets must never be committed (LIF-149). Only .env.example templates
+      # are allowed — the client/.env.production exception is gone (LIF-162).
       - name: Fail if a .env file is tracked
         run: |
           tracked=$(git ls-files | grep -E '(^|/)\.env(\.[^/]*)?$' \
-            | grep -vE '(^|/)\.env\.example$' \
-            | grep -vx 'client/.env.production' || true)
+            | grep -vE '(^|/)\.env\.example$' || true)
           if [ -n "$tracked" ]; then
             echo "::error::Tracked .env files found — secrets must never be committed:"
             echo "$tracked"
