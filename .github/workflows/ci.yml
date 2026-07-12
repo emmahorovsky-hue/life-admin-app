@@ -121,7 +121,7 @@ jobs:
         run: npm run typecheck --workspace=mobile
 
   e2e:
-    name: E2E (Playwright, non-blocking)
+    name: E2E (Playwright)
     runs-on: ubuntu-latest
 
     services:
@@ -180,12 +180,11 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: ./client
 
-      # Playwright's webServer boots the Vite dev server on 4173, which proxies
-      # /api to the backend started above. Non-blocking: e2e is informational.
+      # Playwright's webServer builds and serves the production bundle on 4173,
+      # whose preview proxy forwards /api to the backend started above.
       - name: Run e2e tests
         run: npm run test:e2e
         working-directory: ./client
-        continue-on-error: true
 
   env-file-guard:
     name: No committed .env files
