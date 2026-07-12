@@ -27,7 +27,7 @@ jest.mock('../services/emailService', () => ({
   sendEmailChangeVerificationEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
   sendEmailChangedNoticeEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
   sendPasswordResetEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
-  sendRenewalReminderEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
+  sendRenewalReminderDigest: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
 }));
 // NOTE: We do not mock `emailVerificationService.issueEmailVerificationToken`
 // because several tests assert that tokens are persisted and emails are sent.

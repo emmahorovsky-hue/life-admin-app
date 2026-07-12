@@ -36,6 +36,7 @@ export default function EditSubscriptionDialog({
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues);
+  const [remindersMuted, setRemindersMuted] = useState(false);
   const scheduleTimeout = useUnmountSafeTimeout();
 
   // Keyed on `open` as well as `subscription`: reopening the same row passes
@@ -61,6 +62,7 @@ export default function EditSubscriptionDialog({
         category: subscription.category,
         notes: subscription.notes || '',
       });
+      setRemindersMuted(subscription.remindersMuted);
       setError('');
     }
   }
@@ -71,7 +73,7 @@ export default function EditSubscriptionDialog({
     setLoading(true);
 
     try {
-      await subscriptionApi.update(subscription.id, values);
+      await subscriptionApi.update(subscription.id, { ...values, remindersMuted });
       onSuccess();
       setSaved(true);
       scheduleTimeout(() => {
@@ -103,6 +105,8 @@ export default function EditSubscriptionDialog({
           error={error}
           saved={saved}
           editStatus={status}
+          remindersMuted={remindersMuted}
+          onRemindersMutedChange={setRemindersMuted}
           onCancelRenewal={() => {
             onCancelRenewal(subscription.id);
             onOpenChange(false);

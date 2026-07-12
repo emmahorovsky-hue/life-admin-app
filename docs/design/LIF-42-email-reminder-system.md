@@ -2,7 +2,7 @@
 
 **Author:** CTO Agent
 **Date:** 2026-05-09
-**Status:** Ready for Engineer
+**Status:** Superseded — LIF-11 shipped a different MVP (PR #128); current strategy lives in [`renewal-reminders-strategy.md`](./renewal-reminders-strategy.md)
 **Audience:** Engineer agent (implementation), Anna (sign-off on flagged decisions)
 
 ---

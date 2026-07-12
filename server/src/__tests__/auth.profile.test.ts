@@ -103,6 +103,60 @@ describe('Auth Profile Endpoints', () => {
       expect(updated!.name).toBe('Ada');
       expect(updated!.surname).toBe('Lovelace');
     });
+
+    it('updates reminder emails toggle and timezone', async () => {
+      const user = await createUser();
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ reminderEmailsEnabled: false, timezone: 'Asia/Singapore' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.reminderEmailsEnabled).toBe(false);
+      expect(res.body.user.timezone).toBe('Asia/Singapore');
+
+      const updated = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(updated!.reminderEmailsEnabled).toBe(false);
+      expect(updated!.timezone).toBe('Asia/Singapore');
+    });
+
+    it('leaves reminder settings untouched when only other fields are sent', async () => {
+      const user = await createUser();
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ name: 'Ada' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.reminderEmailsEnabled).toBe(true);
+      expect(res.body.user.timezone).toBe('UTC');
+    });
+
+    it('rejects a non-boolean reminderEmailsEnabled', async () => {
+      const user = await createUser();
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ reminderEmailsEnabled: 'yes' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects an invalid timezone', async () => {
+      const user = await createUser();
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ timezone: 'Not/AZone' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
   });
 
   describe('POST /api/auth/change-password', () => {

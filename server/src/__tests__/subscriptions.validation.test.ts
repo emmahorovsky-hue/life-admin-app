@@ -62,6 +62,26 @@ describe('Subscription input validation (LIF-31)', () => {
     return res.body.subscription?.id ?? res.body.id;
   };
 
+  describe('remindersMuted is a strict boolean', () => {
+    it('updates the mute flag on PATCH', async () => {
+      const id = await createOne();
+      const res = await patch(id, { remindersMuted: true });
+      expect(res.status).toBe(200);
+
+      const row = await prisma.subscription.findUnique({ where: { id } });
+      expect(row?.remindersMuted).toBe(true);
+    });
+
+    it('rejects a non-boolean value', async () => {
+      const id = await createOne();
+      const res = await patch(id, { remindersMuted: 'yes' });
+      expect(res.status).toBe(400);
+
+      const row = await prisma.subscription.findUnique({ where: { id } });
+      expect(row?.remindersMuted).toBe(false);
+    });
+  });
+
   describe('category must be a known id', () => {
     it('rejects an unknown category on create', async () => {
       // The headline bug: this returned 201 and persisted "banana" as a category.

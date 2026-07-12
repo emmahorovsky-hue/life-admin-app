@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { updateProfile, changePassword, initiateEmailChange } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/utils';
 import { isValidPassword } from '@life-admin/shared';
@@ -30,6 +31,23 @@ export default function Profile() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState('');
   const [detailsSuccess, setDetailsSuccess] = useState(false);
+
+  // Notifications
+  const [remindersLoading, setRemindersLoading] = useState(false);
+  const [remindersError, setRemindersError] = useState('');
+
+  const handleReminderEmailsToggle = async (enabled: boolean) => {
+    setRemindersError('');
+    setRemindersLoading(true);
+    try {
+      const res = await updateProfile({ reminderEmailsEnabled: enabled });
+      updateUser(res.data.user);
+    } catch (err) {
+      setRemindersError(getApiErrorMessage(err, 'Failed to update reminder settings. Please try again.'));
+    } finally {
+      setRemindersLoading(false);
+    }
+  };
 
   // Change email
   const [newEmail, setNewEmail] = useState('');
@@ -168,6 +186,32 @@ export default function Profile() {
               {detailsLoading ? 'Saving...' : 'Save'}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="reminderEmails">Renewal reminder emails</Label>
+              <p className="text-xs text-muted-foreground">
+                A heads-up email before each subscription renews, so you can cancel in time. You can also mute individual subscriptions when editing them.
+              </p>
+            </div>
+            <Switch
+              id="reminderEmails"
+              checked={user?.reminderEmailsEnabled ?? true}
+              onCheckedChange={handleReminderEmailsToggle}
+              disabled={remindersLoading}
+            />
+          </div>
+          {remindersError && (
+            <p className="text-sm text-destructive mt-3">{remindersError}</p>
+          )}
         </CardContent>
       </Card>
 

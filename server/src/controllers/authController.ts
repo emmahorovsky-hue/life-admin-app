@@ -76,6 +76,9 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
         surname: true,
         emailVerified: true,
         emailVerifiedAt: true,
+        reminderEmailsEnabled: true,
+        reminderPushEnabled: true,
+        timezone: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -198,6 +201,9 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
         surname: user.surname,
         emailVerified: user.emailVerified,
         emailVerifiedAt: user.emailVerifiedAt,
+        reminderEmailsEnabled: user.reminderEmailsEnabled,
+        reminderPushEnabled: user.reminderPushEnabled,
+        timezone: user.timezone,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -290,6 +296,9 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         surname: true,
         emailVerified: true,
         emailVerifiedAt: true,
+        reminderEmailsEnabled: true,
+        reminderPushEnabled: true,
+        timezone: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -452,11 +461,16 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    const { name, surname } = req.body;
+    const { name, surname, reminderEmailsEnabled, timezone } = req.body;
 
     const user = await prisma.user.update({
       where: { id: req.user.userId },
-      data: { name: name ?? undefined, surname: surname ?? undefined },
+      data: {
+        name: name ?? undefined,
+        surname: surname ?? undefined,
+        reminderEmailsEnabled: reminderEmailsEnabled ?? undefined,
+        timezone: timezone ?? undefined,
+      },
       select: {
         id: true,
         email: true,
@@ -464,6 +478,9 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
         surname: true,
         emailVerified: true,
         emailVerifiedAt: true,
+        reminderEmailsEnabled: true,
+        reminderPushEnabled: true,
+        timezone: true,
         createdAt: true,
         updatedAt: true,
       },
