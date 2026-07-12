@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": ["packages/shared", "client", "server", "mobile"],
   "engines": {
-    "npm": ">=11"
+    "node": ">=20",
+    "npm": ">=10"
   }
 }

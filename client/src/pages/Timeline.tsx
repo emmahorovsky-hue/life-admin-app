@@ -94,7 +94,7 @@ export default function Timeline() {
     <div className="space-y-6 max-w-3xl">
       {/* Header — consistent with the other pages */}
       <div>
-        <h2 className="font-sans font-extrabold text-3xl tracking-tight">
+        <h2 className="text-3xl font-bold">
           What's due next<span className="text-brand-orange">.</span>
         </h2>
       </div>

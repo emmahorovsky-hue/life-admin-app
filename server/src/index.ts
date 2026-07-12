@@ -12,6 +12,7 @@ import dashboardRoutes from './routes/dashboard';
 import categoryRoutes from './routes/categories';
 import { errorHandler } from './middleware/errorHandler';
 import { csrfMiddleware } from './middleware/csrf';
+import { apiLimiter } from './middleware/rateLimit';
 import { startCronJobs } from './jobs';
 
 // Startup validation for required environment variables (prevents silent failures in production)
@@ -127,7 +128,9 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API Routes
+// API Routes. The general limiter is a coarse per-IP backstop for the whole
+// API; auth routes layer their own tighter per-endpoint limiters on top.
+app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/dashboard', dashboardRoutes);

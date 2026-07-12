@@ -10,7 +10,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    // TS 6.x hard-errors on moduleResolution=node10; migrating the module
+    // system is out of scope for the version alignment (LIF-133).
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.test.ts", "**/__tests__/**"]

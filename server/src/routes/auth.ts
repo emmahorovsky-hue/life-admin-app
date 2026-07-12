@@ -17,8 +17,13 @@ import {
   registerDeviceTokenHandler,
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
+import { logSecurityEvent } from '../utils/securityLog';
 
 const router = express.Router();
+
+// Route label for security logs: path only, never req.originalUrl — query
+// strings on auth endpoints can carry tokens.
+const routePath = (req: express.Request) => req.baseUrl + req.path;
 
 const rateLimitDisableRequested = process.env.DISABLE_AUTH_RATE_LIMIT === 'true';
 const isProduction = process.env.NODE_ENV === 'production';
@@ -51,11 +56,14 @@ const createAuthLimiter = (max: number) =>
     windowMs: 15 * 60 * 1000, // 15 minutes
     max,
     skip: () => skipAuthRateLimit,
-    message: {
-      error: {
-        message: 'Too many requests, please try again later',
-        code: 'RATE_LIMIT_EXCEEDED',
-      },
+    handler: (req, res) => {
+      logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req) });
+      res.status(429).json({
+        error: {
+          message: 'Too many requests, please try again later',
+          code: 'RATE_LIMIT_EXCEEDED',
+        },
+      });
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -85,7 +93,10 @@ const forgotPasswordPerEmailLimiter = rateLimit({
   max: 1,
   skip: () => skipAuthRateLimit,
   keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
-  handler: (req, res) => res.status(200).json(forgotPasswordGenericResponse),
+  handler: (req, res) => {
+    logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req), reason: 'per_email_minute' });
+    res.status(200).json(forgotPasswordGenericResponse);
+  },
   standardHeaders: false,
   legacyHeaders: false,
 });
@@ -95,7 +106,10 @@ const forgotPasswordPerEmailHourlyLimiter = rateLimit({
   max: 5,
   skip: () => skipAuthRateLimit,
   keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
-  handler: (req, res) => res.status(200).json(forgotPasswordGenericResponse),
+  handler: (req, res) => {
+    logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req), reason: 'per_email_hourly' });
+    res.status(200).json(forgotPasswordGenericResponse);
+  },
   standardHeaders: false,
   legacyHeaders: false,
 });
@@ -104,7 +118,10 @@ const forgotPasswordPerIpLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20,
   skip: () => skipAuthRateLimit,
-  handler: (req, res) => res.status(200).json(forgotPasswordGenericResponse),
+  handler: (req, res) => {
+    logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req), reason: 'per_ip_hourly' });
+    res.status(200).json(forgotPasswordGenericResponse);
+  },
   standardHeaders: false,
   legacyHeaders: false,
 });
@@ -114,7 +131,10 @@ const resendPerEmailLimiter = rateLimit({
   max: 1,
   skip: () => skipAuthRateLimit,
   keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
-  handler: (req, res) => res.status(200).json(genericResponse),
+  handler: (req, res) => {
+    logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req), reason: 'per_email_minute' });
+    res.status(200).json(genericResponse);
+  },
   standardHeaders: false,
   legacyHeaders: false,
 });
@@ -124,7 +144,10 @@ const resendPerEmailHourlyLimiter = rateLimit({
   max: 5,
   skip: () => skipAuthRateLimit,
   keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
-  handler: (req, res) => res.status(200).json(genericResponse),
+  handler: (req, res) => {
+    logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req), reason: 'per_email_hourly' });
+    res.status(200).json(genericResponse);
+  },
   standardHeaders: false,
   legacyHeaders: false,
 });
@@ -133,7 +156,10 @@ const resendPerIpLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20,
   skip: () => skipAuthRateLimit,
-  handler: (req, res) => res.status(200).json(genericResponse),
+  handler: (req, res) => {
+    logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req), reason: 'per_ip_hourly' });
+    res.status(200).json(genericResponse);
+  },
   standardHeaders: false,
   legacyHeaders: false,
 });
