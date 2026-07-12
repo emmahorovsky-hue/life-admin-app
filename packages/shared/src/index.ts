@@ -3,6 +3,7 @@ export * from './types/subscription';
 export * from './types/dashboard';
 export * from './constants/subscriptions';
 export * from './utils/currency';
+export * from './utils/dashboard';
 export * from './utils/timeline';
 export * from './utils/subscription';
 export * from './utils/logo';
