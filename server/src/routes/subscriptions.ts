@@ -1,5 +1,5 @@
 import express from 'express';
-import { body } from 'express-validator';
+import { body, query } from 'express-validator';
 import {
   createSubscription,
   getSubscriptions,
@@ -11,7 +11,11 @@ import {
   extractSubscriptionFromFile,
 } from '../controllers/subscriptionController';
 import { authenticateToken } from '../middleware/auth';
-import { BILLING_CYCLES } from '../constants/subscriptions';
+import {
+  BILLING_CYCLES,
+  SUBSCRIPTION_SORT_FIELDS,
+  SORT_ORDERS,
+} from '../constants/subscriptions';
 import { receiptUpload, extractRateLimit } from '../middleware/receiptUpload';
 
 const router = express.Router();
@@ -20,7 +24,31 @@ const router = express.Router();
 router.use(authenticateToken);
 
 // GET /api/subscriptions
-router.get('/', getSubscriptions);
+router.get(
+  '/',
+  [
+    query('sort')
+      .optional()
+      // express-validator runs isIn against each element of a repeated param, so
+      // ?sort=name&sort=cost would otherwise pass and then silently fall back to
+      // the default sort in the controller.
+      .custom((_value, { req }) => !Array.isArray(req.query?.sort))
+      .withMessage('sort must be a single value')
+      .bail()
+      .isIn([...SUBSCRIPTION_SORT_FIELDS])
+      .withMessage(
+        `sort must be one of: ${SUBSCRIPTION_SORT_FIELDS.join(', ')}`
+      ),
+    query('order')
+      .optional()
+      .custom((_value, { req }) => !Array.isArray(req.query?.order))
+      .withMessage('order must be a single value')
+      .bail()
+      .isIn([...SORT_ORDERS])
+      .withMessage(`order must be one of: ${SORT_ORDERS.join(', ')}`),
+  ],
+  getSubscriptions
+);
 
 // POST /api/subscriptions
 router.post(
