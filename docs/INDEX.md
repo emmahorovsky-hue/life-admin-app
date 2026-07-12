@@ -25,6 +25,10 @@ Welcome to Life Admin App documentation. Use this index to find what you need.
 - [SECURITY.md](SECURITY.md) - Authentication, validation, security practices
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow & guidelines
 
+## 🧭 For Product
+
+- [CUSTOMER-JOURNEY.md](CUSTOMER-JOURNEY.md) - The eight-stage journey review: what the customer experiences, where it breaks, and what to fix first
+
 ## 🚢 Deployment & DevOps
 
 - [DEPLOYMENT.md](../DEPLOYMENT.md) - Production deployment (Railway & Vercel)
@@ -64,6 +68,7 @@ See [server/docs/API.md](../server/docs/API.md) for complete reference.
 | [DEPLOYMENT.md](../DEPLOYMENT.md) | DevOps/Leads | Production setup |
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | Contributors | PR & code standards |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical leads | System design |
+| [CUSTOMER-JOURNEY.md](CUSTOMER-JOURNEY.md) | Product/Leads | Customer journey review & priorities |
 | [SECURITY.md](SECURITY.md) | Security-conscious devs | Security practices |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | All developers | Workflows & standards |
 | [server/README.md](../server/README.md) | Backend devs | Backend setup |
