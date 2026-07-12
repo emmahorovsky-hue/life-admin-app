@@ -314,30 +314,6 @@ List all subscriptions renewing in the next 30 days.
 
 ---
 
-### Categories
-
-#### GET /api/categories
-Get list of available subscription categories (public endpoint).
-
-**Response (200):**
-```json
-[
-  {
-    "id": "streaming",
-    "name": "Streaming",
-    "description": "Netflix, Hulu, Disney+, etc."
-  },
-  {
-    "id": "fitness",
-    "name": "Fitness",
-    "description": "Gym, ClassPass, Peloton, etc."
-  }
-  // ... more categories
-]
-```
-
----
-
 ### Health Check
 
 #### GET /health

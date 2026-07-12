@@ -472,35 +472,6 @@ Get subscriptions renewing within 30 days.
 
 ---
 
-## Categories Endpoint
-
-### List Categories
-
-**GET** `/api/categories`
-
-Get all available subscription categories.
-
-**Authentication required:** No
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "categories": [
-      { "id": "cat_1", "name": "streaming" },
-      { "id": "cat_2", "name": "productivity" },
-      { "id": "cat_3", "name": "fitness" },
-      { "id": "cat_4", "name": "education" },
-      { "id": "cat_5", "name": "entertainment" },
-      { "id": "cat_6", "name": "other" }
-    ]
-  }
-}
-```
-
----
-
 ## Error Handling
 
 ### Error Response Format
