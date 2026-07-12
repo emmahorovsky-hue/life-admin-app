@@ -60,6 +60,58 @@ describe('dashboard renewals (compute-on-read)', () => {
     expect(renewal.daysUntilRenewal).toBeLessThanOrEqual(30);
   });
 
+  it('serializes all money as decimal strings (LIF-125)', async () => {
+    // Two subs whose monthly total (19.99 + 5.99 = 25.98) is not exactly
+    // representable in binary floating point — string totals keep it exact.
+    const anchor = new Date();
+    anchor.setUTCDate(anchor.getUTCDate() + 3);
+    anchor.setUTCHours(0, 0, 0, 0);
+
+    await prisma.subscription.createMany({
+      data: [
+        {
+          userId,
+          name: 'Netflix',
+          cost: '19.99',
+          currency: 'SGD',
+          billingCycle: 'monthly',
+          renewalDate: anchor,
+          category: 'streaming',
+        },
+        {
+          userId,
+          name: 'iCloud',
+          cost: '5.99',
+          currency: 'SGD',
+          billingCycle: 'monthly',
+          renewalDate: anchor,
+          category: 'software',
+        },
+      ],
+    });
+
+    const summary = await request(app).get('/api/dashboard/summary').set('Cookie', cookie);
+    expect(summary.status).toBe(200);
+    // Totals: decimal strings with 2dp, computed with Decimal arithmetic.
+    expect(summary.body.totalMonthlySpend).toBe('25.98');
+    expect(summary.body.totalAnnualSpend).toBe('311.76');
+    // Per-item cost: same string-decimal contract as the subscription endpoints.
+    for (const renewal of summary.body.upcomingRenewals) {
+      expect(typeof renewal.cost).toBe('string');
+    }
+    expect(summary.body.upcomingRenewals.map((r: { cost: string }) => r.cost).sort()).toEqual([
+      '19.99',
+      '5.99',
+    ]);
+
+    // /upcoming and the subscriptions list serialize cost the same way.
+    const upcoming = await request(app).get('/api/dashboard/upcoming').set('Cookie', cookie);
+    expect(upcoming.status).toBe(200);
+    for (const sub of upcoming.body) {
+      expect(typeof sub.cost).toBe('string');
+    }
+  });
+
   it('excludes subscriptions whose next renewal is beyond 30 days', async () => {
     const anchor = new Date();
     anchor.setUTCDate(anchor.getUTCDate() + 60); // ~2 months out
