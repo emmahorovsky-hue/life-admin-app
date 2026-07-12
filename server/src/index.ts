@@ -9,7 +9,6 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth';
 import subscriptionRoutes from './routes/subscriptions';
 import dashboardRoutes from './routes/dashboard';
-import categoryRoutes from './routes/categories';
 import { errorHandler } from './middleware/errorHandler';
 import { csrfMiddleware } from './middleware/csrf';
 import { apiLimiter } from './middleware/rateLimit';
@@ -134,7 +133,6 @@ app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/categories', categoryRoutes);
 
 // 404 handler
 app.use((req, res) => {
