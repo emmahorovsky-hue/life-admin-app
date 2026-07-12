@@ -24,5 +24,13 @@ cmds = [
   "npm run build"
 ]
 
+# `prisma migrate deploy` runs the Prisma CLI at container start, not just at
+# build — so `prisma` is a genuine RUNTIME dependency and must stay in
+# server/package.json "dependencies". Moving it to devDependencies (it looks
+# like a build-only tool, and has been proposed as such — LIF-153) would leave
+# the deploy relying on `--include=dev` above happening to install it. That is
+# working by accident: drop the flag, or prune dev deps from the runtime image,
+# and the container fails on boot rather than at build, where it's harder to
+# spot. `typescript` is genuinely build-only and does live in devDependencies.
 [start]
 cmd = "npm run prisma:migrate:deploy && npm start"
