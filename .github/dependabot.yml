@@ -16,6 +16,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Tailwind 4 is a ground-up rewrite (CSS-first config, separate
+      # @tailwindcss/postcss plugin) — upgrading is a dedicated migration,
+      # not a routine bump. Remove once the migration lands.
+      - dependency-name: tailwindcss
+        update-types: ['version-update:semver-major']
     groups:
       npm-minor-and-patch:
         applies-to: version-updates
