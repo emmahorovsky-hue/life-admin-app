@@ -26,6 +26,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(async () => {
+    // Tell the server first, while the token is still in storage for the request
+    // interceptor to attach — this is what actually revokes the session
+    // (LIF-174). Best-effort: if we're offline or the token has already expired
+    // the call fails, and we must still clear local state rather than trap the
+    // user in a logged-in app. The token is dead locally either way.
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Ignored on purpose — local logout must always succeed.
+    }
     await tokenStorage.remove();
     invalidatePushRegistration();
     setUser(null);

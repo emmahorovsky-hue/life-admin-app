@@ -33,15 +33,18 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// 401s from credential submission are expected failures (wrong password),
-// not session expiry — don't clear auth state for them.
-const CREDENTIAL_PATHS = ['/auth/login', '/auth/register'];
+// 401s from credential submission are expected failures (wrong password), not
+// session expiry — don't clear auth state for them. /auth/logout is exempt for a
+// different reason: logout() itself calls it, so clearing auth state here would
+// re-enter logout() and re-issue the request forever. The server answers 200
+// even for a dead token (LIF-174), but this guard must not rely on that.
+const NO_SESSION_CLEAR_PATHS = ['/auth/login', '/auth/register', '/auth/logout'];
 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const path = error.config?.url ?? '';
-    if (error.response?.status === 401 && !CREDENTIAL_PATHS.includes(path)) {
+    if (error.response?.status === 401 && !NO_SESSION_CLEAR_PATHS.includes(path)) {
       // Clear auth state — layout guard handles navigation once user becomes null
       await callLogout();
     }
