@@ -57,7 +57,12 @@ This is an npm-workspaces monorepo with four workspaces (see the root `package.j
 - `server/` — Express API, deployed on Railway
 - `client/` — React SPA (Vite), deployed on Vercel
 - `mobile/` — Expo (React Native) app using expo-router; builds are configured via EAS (`mobile/eas.json`)
-- `packages/shared` — the `@life-admin/shared` package: TypeScript types, utils (subscription status, currency, timeline, password), and constants shared by `client/` and `mobile/`. It ships raw TS source (`main` points at `src/index.ts`); each app's bundler (Vite / Metro) compiles it, so there is no build step for this package.
+- `packages/shared` — the `@life-admin/shared` package: TypeScript types, utils (subscription status, currency, timeline, password), and constants shared across the workspaces. It **builds** to `dist/` (CommonJS + `.d.ts`) via `tsc -p tsconfig.build.json`. The build runs automatically on `npm install` / `npm ci` through the package's `prepare` script, so `dist/` always exists after an install — it is gitignored, never committed. CommonJS is deliberate: the server compiles with `module: "commonjs"` and could not consume the raw-TypeScript package this used to ship (LIF-157).
+
+  The three consumers resolve it three different ways — worth knowing before touching `main`/`exports`:
+  - **client** — bypasses the package: `vite.config.ts` aliases `@life-admin/shared` directly to `../packages/shared/src/index.ts`, so it compiles from source and keeps HMR on shared edits.
+  - **mobile** — Metro honours package `exports` (`unstable_enablePackageExports`), so it consumes `dist/`. Editing shared during mobile dev needs a rebuild: `npm run build:watch --workspace=packages/shared`.
+  - **server** — plain `tsc` / Node, consumes `dist/` via `main` + `types`.
 
 Server and client are deployed independently; the mobile app talks to the same API (base URL from `mobile/eas.json` / `app.config.ts`, falling back to `http://localhost:3001/api` in dev).
 
