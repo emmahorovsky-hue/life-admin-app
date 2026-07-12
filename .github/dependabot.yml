@@ -16,6 +16,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # 0.5+ is flat-config-only and requires eslint ^9 || ^10; the client is on
+      # eslint 8 with eslintrc (eslint-plugin-react-hooks 4.x caps it there).
+      # Unblock this when the client migrates to ESLint 9 + flat config.
+      - dependency-name: eslint-plugin-react-refresh
+        versions: ['>=0.5.0']
     groups:
       npm-minor-and-patch:
         applies-to: version-updates
