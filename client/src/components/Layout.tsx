@@ -173,7 +173,16 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    // A document navigation, not navigate('/'): once logout() clears the user,
+    // the protected route's guard renders its own <Navigate to="/login">, and
+    // react-router 7 runs client-side navigations in a transition — so the
+    // guard's redirect races this one and intermittently wins, stranding the
+    // user on /login instead of the landing page (caught by the logout e2e
+    // spec). A full-page load can't lose that race, and starting from a clean
+    // document after logout also drops any lingering in-memory state.
+    // Reordering navigate('/') before logout() doesn't work either: Landing
+    // bounces authenticated users straight back to /dashboard.
+    window.location.assign('/');
   };
 
   const handleNav = (path: string) => {
