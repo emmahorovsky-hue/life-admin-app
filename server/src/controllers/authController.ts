@@ -10,6 +10,7 @@ import { issuePasswordResetToken, consumePasswordResetToken } from '../services/
 import { initiateEmailChange, consumeEmailChangeToken } from '../services/emailChangeService';
 import { registerDeviceToken } from '../services/deviceTokenService';
 import { reportServerError } from '../utils/reportError';
+import { logSecurityEvent } from '../utils/securityLog';
 
 // The frontend (Vercel) and backend (Railway) are served from different sites
 // in production, so the auth cookie must be SameSite=None to be sent on the
@@ -90,6 +91,8 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
       reportServerError('Failed to send verification email', err);
     }
 
+    logSecurityEvent('auth.register.success', req, { userId: user.id, email: user.email });
+
     // Generate JWT
     const token = generateToken({ userId: user.id, email: user.email });
 
@@ -149,6 +152,7 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
     });
 
     if (!user) {
+      logSecurityEvent('auth.login.failure', req, { email, reason: 'unknown_email' });
       res.status(401).json({
         error: {
           message: 'Invalid credentials',
@@ -162,6 +166,11 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
+      logSecurityEvent('auth.login.failure', req, {
+        userId: user.id,
+        email: user.email,
+        reason: 'invalid_password',
+      });
       res.status(401).json({
         error: {
           message: 'Invalid credentials',
@@ -170,6 +179,8 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
       });
       return;
     }
+
+    logSecurityEvent('auth.login.success', req, { userId: user.id, email: user.email });
 
     // Generate JWT
     const token = generateToken({ userId: user.id, email: user.email });
@@ -274,6 +285,7 @@ export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void
     const { token } = req.query;
 
     if (!token || typeof token !== 'string') {
+      logSecurityEvent('auth.email_verification.failure', req, { reason: 'missing_token' });
       res.redirect(url('verify-email/error?reason=invalid'));
       return;
     }
@@ -281,10 +293,12 @@ export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void
     const result = await consumeEmailVerificationToken(token);
 
     if (!result.ok) {
+      logSecurityEvent('auth.email_verification.failure', req, { reason: result.reason });
       res.redirect(url(`verify-email/error?reason=${result.reason}`));
       return;
     }
 
+    logSecurityEvent('auth.email_verification.success', req, { userId: result.userId });
     res.redirect(url('verify-email/success'));
   } catch (error) {
     reportServerError('Verify email error', error);
@@ -305,9 +319,15 @@ export const forgotPassword = async (req: AuthRequest, res: Response): Promise<v
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
 
     if (!user) {
+      // Response stays generic (anti-enumeration), but the attempt is still
+      // worth a first-party log line — bursts of unknown-email requests are
+      // an enumeration/abuse signal.
+      logSecurityEvent('auth.password_reset.requested', req, { email, reason: 'unknown_email' });
       res.status(200).json(genericResponse);
       return;
     }
+
+    logSecurityEvent('auth.password_reset.requested', req, { userId: user.id, email: user.email });
 
     const platform = req.headers['x-platform'] as string | undefined;
     issuePasswordResetToken(user.id, user.email, platform).catch((err) => {
@@ -335,6 +355,7 @@ export const resetPassword = async (req: AuthRequest, res: Response): Promise<vo
     const result = await consumePasswordResetToken(token);
 
     if (!result.ok) {
+      logSecurityEvent('auth.password_reset.failed', req, { reason: result.reason });
       const messages: Record<string, string> = {
         invalid: 'This password reset link is invalid.',
         expired: 'This password reset link has expired. Please request a new one.',
@@ -361,6 +382,8 @@ export const resetPassword = async (req: AuthRequest, res: Response): Promise<vo
         data: { usedAt: now },
       }),
     ]);
+
+    logSecurityEvent('auth.password_reset.completed', req, { userId: result.userId });
 
     res.status(200).json({ message: 'Password reset successfully.' });
   } catch (error) {
@@ -435,6 +458,11 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
 
     const passwordMatch = await bcrypt.compare(currentPassword, user.password);
     if (!passwordMatch) {
+      logSecurityEvent('auth.password.change_failed', req, {
+        userId: user.id,
+        email: user.email,
+        reason: 'invalid_current_password',
+      });
       res.status(400).json({ error: { message: 'Current password is incorrect', code: 'INVALID_CURRENT_PASSWORD' } });
       return;
     }
@@ -456,6 +484,8 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
       where: { id: user.id },
       data: { password: hashedPassword, passwordChangedAt },
     });
+
+    logSecurityEvent('auth.password.changed', req, { userId: user.id, email: user.email });
 
     res.cookie('token', token, COOKIE_OPTIONS);
 
@@ -518,6 +548,10 @@ export const initiateEmailChangeHandler = async (req: AuthRequest, res: Response
     // consume-time as the authoritative guard.
     const existing = await prisma.user.findUnique({ where: { email: newEmail } });
     const platform = req.headers['x-platform'] as string | undefined;
+    logSecurityEvent('auth.email_change.requested', req, {
+      userId: req.user.userId,
+      ...(existing && { reason: 'email_taken' }),
+    });
     if (!existing) {
       await initiateEmailChange(req.user.userId, newEmail, platform);
     }
@@ -541,6 +575,7 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
     const { token } = req.query;
 
     if (!token || typeof token !== 'string') {
+      logSecurityEvent('auth.email_change.failed', req, { reason: 'missing_token' });
       res.redirect(url('profile?error=invalid-token'));
       return;
     }
@@ -548,11 +583,13 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
     const result = await consumeEmailChangeToken(token);
 
     if (!result.ok) {
+      logSecurityEvent('auth.email_change.failed', req, { reason: result.reason });
       const errorParam = result.reason === 'email_taken' ? 'email-taken' : 'invalid-token';
       res.redirect(url(`profile?error=${errorParam}`));
       return;
     }
 
+    logSecurityEvent('auth.email_change.completed', req, { userId: result.userId });
     res.redirect(url('profile?emailChanged=true'));
   } catch (error) {
     reportServerError('Verify email change error', error);
