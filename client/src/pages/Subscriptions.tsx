@@ -66,12 +66,14 @@ export default function Subscriptions() {
     }
   }, [location, navigate]);
 
+  // Mutation failures surface in the same error banner as load failures
+  // (and, like load errors, clear on the next successful load).
   const handleDelete = async (id: string) => {
     try {
       await subscriptionApi.delete(id);
       await loadSubscriptions();
     } catch (err) {
-      alert(getApiErrorMessage(err, 'Failed to delete subscription'));
+      setError(getApiErrorMessage(err, 'Failed to delete subscription'));
     }
   };
 
@@ -80,7 +82,7 @@ export default function Subscriptions() {
       await subscriptionApi.cancel(id);
       await loadSubscriptions();
     } catch (err) {
-      alert(getApiErrorMessage(err, 'Failed to cancel subscription'));
+      setError(getApiErrorMessage(err, 'Failed to cancel subscription'));
     }
   };
 
@@ -89,7 +91,7 @@ export default function Subscriptions() {
       await subscriptionApi.resume(id);
       await loadSubscriptions();
     } catch (err) {
-      alert(getApiErrorMessage(err, 'Failed to resume subscription'));
+      setError(getApiErrorMessage(err, 'Failed to resume subscription'));
     }
   };
 
