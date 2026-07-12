@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import SubscriptionModal, {
   SUBSCRIPTION_MODAL_CONTENT_CLASS,
@@ -28,6 +28,18 @@ export default function AddSubscriptionDialog({
   const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues);
   const scheduleTimeout = useUnmountSafeTimeout();
 
+  // Every open starts from a blank form, however the last one ended — saved,
+  // dismissed via the X, or closed with a failed save still on screen. Keyed on
+  // open (rather than resetting on close) so the fields can't blank out while
+  // the dialog is animating away; same approach as EditSubscriptionDialog.
+  useEffect(() => {
+    if (open) {
+      setValues(defaultSubscriptionFormValues());
+      setError('');
+      setSaved(false);
+    }
+  }, [open]);
+
   const handleSubmit = async () => {
     setError('');
     setLoading(true);
@@ -35,13 +47,10 @@ export default function AddSubscriptionDialog({
     try {
       await subscriptionApi.create(values);
       onSuccess();
-      // Briefly show the success state before closing and resetting.
+      // Briefly show the success state before closing; the open effect above
+      // clears the form for the next session.
       setSaved(true);
-      scheduleTimeout(() => {
-        onOpenChange(false);
-        setSaved(false);
-        setValues(defaultSubscriptionFormValues());
-      }, 1200);
+      scheduleTimeout(() => onOpenChange(false), 1200);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to add subscription'));
     } finally {
