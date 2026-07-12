@@ -96,6 +96,30 @@ jobs:
         env:
           VITE_API_URL: http://localhost:3001
 
+  mobile-shared-typecheck:
+    name: Mobile & Shared Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      # Install the whole workspace from the repo root (see backend job note).
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck packages/shared
+        run: npm run typecheck --workspace=packages/shared
+
+      - name: Typecheck mobile
+        run: npm run typecheck --workspace=mobile
+
   e2e:
     name: E2E (Playwright, non-blocking)
     runs-on: ubuntu-latest

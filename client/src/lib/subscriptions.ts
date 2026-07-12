@@ -34,11 +34,6 @@ export const subscriptionApi = {
     return response.data;
   },
 
-  getById: async (id: string) => {
-    const response = await api.get<Subscription>(`/subscriptions/${id}`);
-    return response.data;
-  },
-
   create: async (data: CreateSubscriptionData) => {
     const response = await api.post<Subscription>('/subscriptions', data);
     return response.data;
