@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/db';
 import { sendEmailChangeVerificationEmail, sendEmailChangedNoticeEmail } from './emailService';
+import { reportServerError } from '../utils/reportError';
 
 const TOKEN_BYTES = 32;
 const EXPIRY_HOURS = 24;
@@ -84,7 +85,7 @@ export async function consumeEmailChangeToken(rawToken: string): Promise<Consume
     try {
       await sendEmailChangedNoticeEmail({ to: oldEmail, newEmail: record.newEmail });
     } catch (err) {
-      console.error('Failed to send email-change notice to previous address:', err);
+      reportServerError('Failed to send email-change notice to previous address', err);
     }
   }
 

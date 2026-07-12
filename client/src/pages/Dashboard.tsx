@@ -23,6 +23,17 @@ export default function Dashboard() {
   // lookup so each renewal row can render in its own subscription's currency.
   const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
   const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
+  const [chartWidth, setChartWidth] = useState(0);
+
+  // Truncate x-axis labels that can't fit their bar's slot. Space Mono at
+  // 11px advances ~6.6px per character; 48px covers the y-axis gutter
+  // (width 44 + left margin -8 + right margin 4).
+  const tickSlotChars =
+    chartWidth > 0 && categoryData.length > 0
+      ? Math.max(4, Math.floor((chartWidth - 48) / categoryData.length / 6.6))
+      : Infinity;
+  const formatCategoryTick = (name: string) =>
+    name.length > tickSlotChars ? `${name.slice(0, tickSlotChars - 1).trimEnd()}…` : name;
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -138,7 +149,7 @@ export default function Dashboard() {
               Charged this month
             </p>
             <div className="text-4xl font-bold font-mono tracking-tight">
-              {formatCurrency(summary.totalMonthlySpend, displayCurrency)}
+              {formatCurrency(parseFloat(summary.totalMonthlySpend), displayCurrency)}
             </div>
             <p className="text-sm opacity-75 mt-3">
               {summary.activeSubscriptions} active {summary.activeSubscriptions === 1 ? 'subscription' : 'subscriptions'}
@@ -153,7 +164,7 @@ export default function Dashboard() {
               Per year
             </p>
             <div className="text-4xl font-bold font-mono tracking-tight">
-              {formatCurrency(summary.totalAnnualSpend, displayCurrency)}
+              {formatCurrency(parseFloat(summary.totalAnnualSpend), displayCurrency)}
             </div>
           </CardContent>
         </Card>
@@ -297,7 +308,11 @@ export default function Dashboard() {
                 </Button>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer
+                width="100%"
+                height={250}
+                onResize={(width) => setChartWidth(width)}
+              >
                 <BarChart data={categoryData} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
                   <CartesianGrid
                     vertical={false}
@@ -306,6 +321,8 @@ export default function Dashboard() {
                   />
                   <XAxis
                     dataKey="name"
+                    interval={0}
+                    tickFormatter={formatCategoryTick}
                     tick={{ fill: 'hsl(var(--muted-foreground))', fontFamily: 'Space Mono, monospace', fontSize: 11 }}
                     tickLine={false}
                     axisLine={{ stroke: 'hsl(var(--border))' }}
@@ -325,6 +342,10 @@ export default function Dashboard() {
                       fontFamily: 'Space Mono, monospace',
                       fontSize: 12,
                     }}
+                    // Without these, recharts colors the item text with the series
+                    // color (--accent, near-invisible on --card in both themes).
+                    labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
+                    itemStyle={{ color: 'hsl(var(--card-foreground))' }}
                     formatter={(value: number) => [formatCurrency(value, displayCurrency), 'Monthly']}
                   />
                   <Bar

@@ -18,7 +18,7 @@ export function startCronJobs(): void {
         const { warned, deleted } = await runUnverifiedAccountCleanup();
         console.log(`[cron] unverified-account cleanup: warned=${warned} deleted=${deleted}`);
       } catch (err) {
-        console.error('[cron] unverified-account cleanup failed:', err);
+        reportServerError('[cron] unverified-account cleanup failed', err);
       }
     },
     { timezone: 'UTC' }

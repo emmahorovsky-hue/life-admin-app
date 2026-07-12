@@ -1,5 +1,6 @@
 import prisma from '../utils/db';
 import { sendDeletionWarningEmail } from './emailService';
+import { reportServerError } from '../utils/reportError';
 
 // How long an account may stay unverified before it is deleted.
 const GRACE_PERIOD_DAYS = Number(process.env.GRACE_PERIOD_DAYS ?? 7);
@@ -54,7 +55,7 @@ export async function warnExpiringUnverifiedUsers(now: Date = new Date()): Promi
     } catch (err) {
       // Don't let one failed send abort the batch; leave deletionWarningSentAt
       // null so the user is retried on the next run.
-      console.error(`Failed to send deletion warning to user ${user.id}:`, err);
+      reportServerError(`Failed to send deletion warning to user ${user.id}`, err);
     }
   }
 
