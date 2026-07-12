@@ -3,13 +3,7 @@ import { sendRenewalReminders } from '../services/renewalReminderService';
 import { computeNextRenewal } from '../utils/renewal';
 import * as emailService from '../services/emailService';
 
-// Override the global mock from setup.ts to include sendRenewalReminderEmail
-jest.mock('../services/emailService', () => ({
-  sendVerificationEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
-  sendDeletionWarningEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
-  sendRenewalReminderEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
-}));
-
+// setup.ts mocks every sender, so no local override is needed here.
 const mockSendRenewalReminderEmail = emailService.sendRenewalReminderEmail as jest.MockedFunction<typeof emailService.sendRenewalReminderEmail>;
 
 const DAY_MS = 24 * 60 * 60 * 1000;

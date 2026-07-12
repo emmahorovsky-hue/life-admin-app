@@ -14,10 +14,13 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4173',
+    // Serve the real production bundle rather than the dev server, so e2e
+    // exercises what actually ships (minification, build-time env inlining).
+    command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: true,
-    timeout: 120_000,
+    // Generous: this now includes a full production build, not just a boot.
+    timeout: 180_000,
   },
   projects: [
     {
