@@ -1,0 +1,37 @@
+version: 2
+
+# The Security Audit job in ci.yml is a hard gate: a new moderate+ advisory in
+# the dependency tree fails every build until someone fixes it. Dependabot is
+# the other half of that deal — it opens the fixing PR itself, so an advisory
+# published on a Tuesday is a pull request rather than a blocked main branch.
+#
+# Updates are grouped so routine version bumps arrive as one PR per ecosystem
+# per week. Security patches are not grouped: they come as their own PRs so
+# they can be reviewed and merged on their own.
+updates:
+  # Single npm entry: the root lockfile covers all four workspaces
+  # (packages/shared, client, server, mobile).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+
+  # Pinned action versions go stale and are a supply-chain surface of their own.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      github-actions:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
