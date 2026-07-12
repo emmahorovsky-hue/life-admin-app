@@ -5,6 +5,10 @@ import prisma from '../utils/db';
 import { Prisma } from '@prisma/client';
 import { extractSubscription } from '../services/aiService';
 import { withNextRenewal, computeNextRenewal } from '../utils/renewal';
+import {
+  SubscriptionSortField,
+  SortOrder,
+} from '../constants/subscriptions';
 import { reportServerError } from '../utils/reportError';
 
 /**
@@ -127,6 +131,20 @@ export const getSubscriptions = async (
   res: Response
 ): Promise<void> => {
   try {
+    // sort/order are validated by the route's express-validator chain (LIF-144) —
+    // without it an unknown column in Prisma's orderBy throws and surfaces as a 500.
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
+        error: {
+          message: 'Validation failed',
+          code: 'VALIDATION_ERROR',
+          details: errors.array(),
+        },
+      });
+      return;
+    }
+
     if (!req.user) {
       res.status(401).json({
         error: {
@@ -138,8 +156,12 @@ export const getSubscriptions = async (
     }
 
     const category = typeof req.query.category === 'string' ? req.query.category : undefined;
-    const sort = typeof req.query.sort === 'string' ? req.query.sort : 'renewalDate';
-    const order = typeof req.query.order === 'string' ? req.query.order : 'asc';
+    const sort: SubscriptionSortField =
+      typeof req.query.sort === 'string'
+        ? (req.query.sort as SubscriptionSortField)
+        : 'renewalDate';
+    const order: SortOrder =
+      req.query.order === 'desc' ? 'desc' : 'asc';
 
     const where: any = {
       userId: req.user.userId,
@@ -150,14 +172,9 @@ export const getSubscriptions = async (
       where.category = category;
     }
 
-    const orderBy: any = {};
-    if (typeof sort === 'string') {
-      orderBy[sort] = order === 'desc' ? 'desc' : 'asc';
-    }
-
     const subscriptions = await prisma.subscription.findMany({
       where,
-      orderBy,
+      orderBy: { [sort]: order },
     });
 
     const now = new Date();

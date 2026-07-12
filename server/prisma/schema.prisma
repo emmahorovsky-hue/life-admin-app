@@ -61,7 +61,8 @@ model NotificationLog {
   type           String   // "renewal_reminder"
   sentAt         DateTime @default(now())
   status         String   // "sent" | "failed"
-  
+  renewalDate    DateTime? // renewal occurrence this reminder targeted — dedup key with subscriptionId+type
+
   @@index([userId])
   @@index([subscriptionId])
   @@index([sentAt])

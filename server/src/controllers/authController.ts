@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { validationResult } from 'express-validator';
+import { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
@@ -104,6 +105,20 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
       user,
     });
   } catch (error) {
+    // Concurrent registrations with the same email can both pass the existence
+    // check above; the loser's `create` then hits the unique constraint on
+    // email (P2002). Map it to the same 400 the check produces (LIF-145).
+    // The only other Prisma write in this handler (verification token) has its
+    // own try/catch, so a P2002 here can only come from the user create.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      res.status(400).json({
+        error: {
+          message: 'Email already registered',
+          code: 'EMAIL_EXISTS',
+        },
+      });
+      return;
+    }
     reportServerError('Register error', error);
     res.status(500).json({
       error: {
