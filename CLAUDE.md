@@ -83,7 +83,7 @@ Route (routes/) → Middleware (express-validator) → Controller (controllers/)
 
 ### Frontend data flow
 
-`AuthContext` (`client/src/contexts/AuthContext.tsx`) is the single source of truth for the logged-in user. It calls `GET /api/auth/me` on mount. All protected pages are wrapped in `<ProtectedRoute>` which reads from this context. The Axios interceptor in `lib/api.ts` auto-redirects to `/login` on 401 for non-public paths.
+`AuthContext` (`client/src/contexts/AuthContext.tsx`) is the single source of truth for the logged-in user. It calls `GET /api/auth/me` on mount. All protected pages are wrapped in `<ProtectedRoute>` which reads from this context. On a 401 from a non-public path, the Axios interceptor in `lib/api.ts` doesn't navigate itself — it notifies subscribers via `onUnauthorized()`; `AuthContext` clears the user and `<ProtectedRoute>` redirects to `/login` with `<Navigate>`, so the redirect stays inside the router and React state survives.
 
 ### CORS
 

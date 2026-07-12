@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { AuthProvider, useAuth } from './AuthContext';
 
 // Mock the axios instance the context talks to.
 vi.mock('@/lib/api', () => ({
   default: { get: vi.fn(), post: vi.fn() },
+  onUnauthorized: vi.fn(() => () => {}),
 }));
 
-import api from '@/lib/api';
+import api, { onUnauthorized } from '@/lib/api';
 const mockedGet = vi.mocked(api.get);
+const mockedOnUnauthorized = vi.mocked(onUnauthorized);
 
 function Consumer() {
   const { user, loading } = useAuth();
@@ -41,6 +43,31 @@ describe('AuthContext', () => {
     renderWithProvider();
 
     await waitFor(() => expect(screen.getByText('no-user')).toBeInTheDocument());
+  });
+
+  it('clears the user when the API client reports a 401', async () => {
+    mockedGet.mockResolvedValueOnce({ data: { user: { email: 'me@example.com' } } });
+    renderWithProvider();
+    await waitFor(() => expect(screen.getByText('me@example.com')).toBeInTheDocument());
+
+    // The interceptor emits instead of hard-navigating; the provider drops the
+    // user, which is what makes ProtectedRoute redirect through the router.
+    const notifyUnauthorized = mockedOnUnauthorized.mock.calls[0][0];
+    act(() => notifyUnauthorized());
+
+    await waitFor(() => expect(screen.getByText('no-user')).toBeInTheDocument());
+  });
+
+  it('unsubscribes from 401 notifications on unmount', async () => {
+    const unsubscribe = vi.fn();
+    mockedOnUnauthorized.mockReturnValueOnce(unsubscribe);
+    mockedGet.mockResolvedValueOnce({ data: { user: { email: 'me@example.com' } } });
+
+    const { unmount } = renderWithProvider();
+    await waitFor(() => expect(screen.getByText('me@example.com')).toBeInTheDocument());
+
+    unmount();
+    expect(unsubscribe).toHaveBeenCalled();
   });
 
   it('throws if useAuth is used outside an AuthProvider', () => {
