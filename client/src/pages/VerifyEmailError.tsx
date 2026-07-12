@@ -26,9 +26,12 @@ const errorMessages: Record<string, { headline: string; body: string; showResend
   },
 };
 
+const primaryButtonClass =
+  'bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary-hover transition';
+
 const VerifyEmailError: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const reason = searchParams.get('reason') || 'invalid';
   const errorInfo = errorMessages[reason] || errorMessages.invalid;
 
@@ -70,28 +73,48 @@ const VerifyEmailError: React.FC = () => {
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-2">{errorInfo.headline}</h1>
         <p className="text-muted-foreground mb-6">{errorInfo.body}</p>
-        <div className="flex flex-col gap-3">
-          {errorInfo.showResend && user && (
-            <button
-              onClick={handleResend}
-              disabled={resending || resent}
-              className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary-hover transition disabled:opacity-50"
-            >
-              {resent ? 'Sent — check your inbox' : resending ? 'Sending...' : 'Resend verification'}
-            </button>
-          )}
-          {reason === 'already_used' && (
-            <Link
-              to="/login"
-              className="inline-block bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary-hover transition"
-            >
-              Log in
-            </Link>
-          )}
-          <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground underline">
-            Go to dashboard
-          </Link>
-        </div>
+        {/* Verification links are usually opened from an email in a logged-out
+            browser, so every CTA has to work anonymously — resending needs an
+            account, and /dashboard would just bounce off ProtectedRoute. */}
+        {!loading && (
+          <div className="flex flex-col gap-3">
+            {errorInfo.showResend ? (
+              user ? (
+                <button
+                  onClick={handleResend}
+                  disabled={resending || resent}
+                  className={`${primaryButtonClass} disabled:opacity-50`}
+                >
+                  {resent
+                    ? 'Sent — check your inbox'
+                    : resending
+                      ? 'Sending...'
+                      : 'Resend verification'}
+                </button>
+              ) : (
+                <Link to="/login" className={`inline-block ${primaryButtonClass}`}>
+                  Log in to resend
+                </Link>
+              )
+            ) : user ? (
+              <Link to="/dashboard" className={`inline-block ${primaryButtonClass}`}>
+                Go to dashboard
+              </Link>
+            ) : (
+              <Link to="/login" className={`inline-block ${primaryButtonClass}`}>
+                Log in
+              </Link>
+            )}
+            {errorInfo.showResend && user && (
+              <Link
+                to="/dashboard"
+                className="text-sm text-muted-foreground hover:text-foreground underline"
+              >
+                Go to dashboard
+              </Link>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

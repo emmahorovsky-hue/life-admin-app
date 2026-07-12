@@ -136,7 +136,7 @@ export default function DashboardScreen() {
       <View style={[styles.card, styles.featuredCard]}>
         <Text style={[styles.tileLabel, styles.featuredLabel]}>CHARGED THIS MONTH</Text>
         <Text style={[styles.tileValue, styles.featuredValue]}>
-          {formatCurrency(summary.totalMonthlySpend, displayCurrency)}
+          {formatCurrency(parseFloat(summary.totalMonthlySpend), displayCurrency)}
         </Text>
         <Text style={[styles.tileFootnote, styles.featuredLabel]}>
           {summary.activeSubscriptions} active{' '}
@@ -148,7 +148,7 @@ export default function DashboardScreen() {
         <View style={[styles.card, styles.tileHalf]}>
           <Text style={styles.tileLabel}>PER YEAR</Text>
           <Text style={styles.tileValueSmall}>
-            {formatCurrency(summary.totalAnnualSpend, displayCurrency)}
+            {formatCurrency(parseFloat(summary.totalAnnualSpend), displayCurrency)}
           </Text>
         </View>
         <View style={[styles.card, styles.tileHalf]}>

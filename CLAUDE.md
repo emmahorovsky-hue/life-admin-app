@@ -29,6 +29,15 @@ npm run test:unit:watch # Vitest in watch mode
 npm run test:e2e # Playwright e2e tests (spins up the Vite dev server on port 4173; needs the backend on 3001 for the /api proxy)
 ```
 
+### Mobile (`mobile/`)
+
+```bash
+npm run start    # Expo dev server (Metro)
+npm run ios      # Expo dev server + open iOS simulator
+npm run android  # Expo dev server + open Android emulator
+npm run web      # Expo dev server for web
+```
+
 ### Running a single backend test file
 
 ```bash
@@ -43,11 +52,21 @@ No manual setup — each `npm test` run creates its own throwaway database (`lif
 
 ## Architecture
 
-This is a monorepo with a separate `server/` (Express API) and `client/` (React SPA). They are deployed independently: backend on Railway, frontend on Vercel.
+This is an npm-workspaces monorepo with four workspaces (see the root `package.json`):
+
+- `server/` — Express API, deployed on Railway
+- `client/` — React SPA (Vite), deployed on Vercel
+- `mobile/` — Expo (React Native) app using expo-router; builds are configured via EAS (`mobile/eas.json`)
+- `packages/shared` — the `@life-admin/shared` package: TypeScript types, utils (subscription status, currency, timeline, password), and constants shared by `client/` and `mobile/`. It ships raw TS source (`main` points at `src/index.ts`); each app's bundler (Vite / Metro) compiles it, so there is no build step for this package.
+
+Server and client are deployed independently; the mobile app talks to the same API (base URL from `mobile/eas.json` / `app.config.ts`, falling back to `http://localhost:3001/api` in dev).
 
 ### Auth flow
 
-JWT tokens are issued on login/register and stored as **httpOnly cookies** (not localStorage). The `authenticateToken` middleware (`server/src/middleware/auth.ts`) reads `req.cookies.token`. The frontend axios client (`client/src/lib/api.ts`) sets `withCredentials: true` on every request so cookies are sent cross-origin.
+JWT tokens are issued on login/register and delivered both ways: set as an **httpOnly cookie** and returned in the JSON response body. The `authenticateToken` middleware (`server/src/middleware/auth.ts`) prefers an `Authorization: Bearer <token>` header and falls back to `req.cookies.token`.
+
+- **Web** uses the cookie: the axios client (`client/src/lib/api.ts`) sets `withCredentials: true` on every request so cookies are sent cross-origin.
+- **Mobile** can't rely on cookies: it stores the token from the response body in **expo-secure-store** (`mobile/lib/storage.ts`) and an axios request interceptor (`mobile/lib/api.ts`) attaches it as a Bearer header (plus an `X-Platform: mobile` header) on every request.
 
 Email verification uses a separate `EmailVerificationToken` table. On registration, a 32-byte token is generated, SHA-256 hashed before storage (raw token only travels in the email link), and expires in 24 hours. The verify endpoint lives at `GET /api/auth/verify-email?token=<raw>` and redirects the browser to `/verify-email/success` or `/verify-email/error`.
 
@@ -95,7 +114,8 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 ### Database schema highlights
 
 - `User.emailVerified` — users can use the app without verifying, but a banner (`UnverifiedEmailBanner.tsx`) is shown
-- `Subscription.isActive` — soft-delete pattern; cancelled subscriptions set `isActive=false`
+- `Subscription.isActive` — soft-delete pattern for **DELETE** `/api/subscriptions/:id` only: it sets `isActive=false` and the row disappears from queries
+- `Subscription.cancelledAt` — **cancel** (`POST /api/subscriptions/:id/cancel`) is not delete: it sets `cancelledAt` and freezes `renewalDate` at the end of the current paid period (`server/src/controllers/subscriptionController.ts`), so the subscription stays active and visible until that date. `POST /api/subscriptions/:id/resume` reverses it by clearing `cancelledAt`. Client-side status (`packages/shared/src/utils/subscription.ts`) derives `active` / `cancelling` / `ended` from `cancelledAt` + the frozen renewal date — it never reads `isActive`
 - `NotificationLog` — append-only log of sent renewal reminder emails; no foreign key to `Subscription` (intentional, subscriptions can be deleted)
 
 ## Branch & commit conventions
