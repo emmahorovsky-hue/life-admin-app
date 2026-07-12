@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { runUnverifiedAccountCleanup } from '../services/accountCleanupService';
+import { deleteStaleTokens } from '../services/tokenCleanupService';
 import { sendRenewalReminders } from '../services/renewalReminderService';
 import { reportServerError } from '../utils/reportError';
 
@@ -19,6 +20,18 @@ export function startCronJobs(): void {
         console.log(`[cron] unverified-account cleanup: warned=${warned} deleted=${deleted}`);
       } catch (err) {
         reportServerError('[cron] unverified-account cleanup failed', err);
+      }
+
+      // Separate try/catch on purpose: the two sweeps are independent, and a
+      // failure in the account cleanup above must not skip the token sweep.
+      try {
+        const swept = await deleteStaleTokens();
+        console.log(
+          `[cron] stale-token sweep: verification=${swept.emailVerification} ` +
+          `reset=${swept.passwordReset} emailChange=${swept.emailChange}`
+        );
+      } catch (err) {
+        reportServerError('[cron] stale-token sweep failed', err);
       }
     },
     { timezone: 'UTC' }
