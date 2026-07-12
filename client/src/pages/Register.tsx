@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { isValidPassword } from '@life-admin/shared';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,12 +27,7 @@ export default function Register() {
       return;
     }
 
-    if (
-      password.length < 8 ||
-      !/[A-Z]/.test(password) ||
-      !/[0-9]/.test(password) ||
-      !/[^a-zA-Z0-9\s]/.test(password)
-    ) {
+    if (!isValidPassword(password)) {
       setError('Password must be at least 8 characters and include an uppercase letter, number, and symbol');
       return;
     }
