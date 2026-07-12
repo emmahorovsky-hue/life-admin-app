@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { CATEGORY_IDS, BILLING_CYCLES } from '../constants/subscriptions';
+import { reportServerError } from '../utils/reportError';
 
 // Graceful skip when no key is configured — mirrors emailService's RESEND_API_KEY handling.
 const anthropic = process.env.ANTHROPIC_API_KEY
@@ -223,7 +224,7 @@ export async function extractSubscription(
     const candidate = normalizeCandidate(toolUse.input);
     return { candidates: [candidate], source: 'ai' };
   } catch (error) {
-    console.error('[AI Service] Extraction failed:', error);
+    reportServerError('[AI Service] Extraction failed', error);
     return { source: 'none', reason: 'error', candidates: [] };
   }
 }
