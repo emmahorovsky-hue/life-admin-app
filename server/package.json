@@ -34,7 +34,7 @@
     "@life-admin/shared": "*",
     "@prisma/client": "^5.22.0",
     "@sentry/node": "^10.65.0",
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "date-fns": "^4.4.0",
     "cors": "^2.8.5",
@@ -51,7 +51,7 @@
     "resend": "^6.17.2"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcryptjs": "^3.0.0",
     "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
