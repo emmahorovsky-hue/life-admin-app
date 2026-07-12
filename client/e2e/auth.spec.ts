@@ -69,6 +69,12 @@ test.describe('User Registration', () => {
     // Icon-only button in the sidebar — matched by its accessible name.
     await page.click('button[aria-label="Log out"]');
 
+    // Wait for logout to land on the landing page before navigating away. The
+    // click only dispatches the handler; the handler then awaits the /auth/logout
+    // POST and finishes with a full document navigation to '/'. Navigating while
+    // that is still pending aborts our own goto (net::ERR_ABORTED).
+    await expect(page).toHaveURL('/');
+
     // Try to register again with same email
     await page.goto('/register');
     await page.fill('#email', email);
