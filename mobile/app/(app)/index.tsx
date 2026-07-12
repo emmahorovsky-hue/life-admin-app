@@ -5,8 +5,10 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleProp,
   StyleSheet,
   Text,
+  TextStyle,
   View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -14,12 +16,16 @@ import { format } from 'date-fns';
 import { CartesianChart, Bar } from 'victory-native';
 import { matchFont } from '@shopify/react-native-skia';
 import {
+  CategorySpendGroup,
+  CurrencyAmount,
   DashboardSummary,
-  categories,
+  categorySpendByCurrency,
   dominantCurrency,
   DEFAULT_CURRENCY,
   formatCurrency,
-  normalizeToMonthlyCost,
+  formatCurrencyTotals,
+  renewalTotals,
+  spendTotals,
 } from '@life-admin/shared';
 import { dashboardApi } from '../../lib/dashboard';
 import { subscriptionApi } from '../../lib/subscriptions';
@@ -33,15 +39,41 @@ const chartFont = matchFont({
   fontSize: 10,
 });
 
+// Aggregate figures are lists, not scalars: with no exchange-rate source, costs
+// in different currencies can't be added together, so we render one line per
+// currency (LIF-107). A single-currency user — the common case — sees exactly
+// one line, unchanged from before.
+function TotalLines({
+  totals,
+  fallbackCurrency,
+  style,
+}: {
+  totals: CurrencyAmount[];
+  fallbackCurrency: string;
+  style: StyleProp<TextStyle>;
+}) {
+  const lines = formatCurrencyTotals(totals, fallbackCurrency);
+  return (
+    <>
+      {lines.map((line) => (
+        <Text key={line} style={lines.length > 1 ? [style, styles.totalLineMulti] : style}>
+          {line}
+        </Text>
+      ))}
+    </>
+  );
+}
+
 export default function DashboardScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [categoryData, setCategoryData] = useState<{ name: string; total: number }[]>([]);
-  // Currency the user predominantly uses, for aggregate figures, plus a per-id
-  // lookup so each renewal row can render in its own subscription's currency.
+  const [categoryGroups, setCategoryGroups] = useState<CategorySpendGroup[]>([]);
+  // Currency the user predominantly uses — it leads every per-currency list —
+  // plus a per-id lookup so each renewal can be attributed to its own
+  // subscription's currency (the summary payload carries only id + cost).
   const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
   const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
 
@@ -53,22 +85,10 @@ export default function DashboardScreen() {
       ]);
       setSummary(summaryData);
 
-      setDisplayCurrency(dominantCurrency(allSubs.map((sub) => sub.currency)));
+      const primary = dominantCurrency(allSubs.map((sub) => sub.currency));
+      setDisplayCurrency(primary);
       setCurrencyById(new Map(allSubs.map((sub) => [sub.id, sub.currency])));
-
-      const categoryMap = new Map<string, number>();
-      allSubs.forEach((sub) => {
-        const monthlyCost = normalizeToMonthlyCost(parseFloat(sub.cost), sub.billingCycle);
-        categoryMap.set(sub.category, (categoryMap.get(sub.category) || 0) + monthlyCost);
-      });
-      setCategoryData(
-        Array.from(categoryMap.entries())
-          .map(([category, total]) => ({
-            name: categories.find((c) => c.id === category)?.name || category,
-            total: Math.round(total * 100) / 100,
-          }))
-          .sort((a, b) => b.total - a.total),
-      );
+      setCategoryGroups(categorySpendByCurrency(allSubs, primary));
     } catch {
       // Keep whatever is already rendered; the !summary gate below handles
       // the nothing-loaded-yet case.
@@ -116,10 +136,16 @@ export default function DashboardScreen() {
   const dueSoonRenewals = summary.upcomingRenewals.filter(
     (r) => new Date(r.nextRenewalDate).getTime() - Date.now() <= sevenDaysMs,
   );
-  const dueSoonTotal = dueSoonRenewals.reduce((sum, r) => sum + parseFloat(r.cost), 0);
+
+  // Every aggregate below is per-currency: renewals can be in different
+  // currencies, and with no exchange-rate source a single summed figure would
+  // silently add e.g. USD + EUR.
+  const currencyOf = (id: string) => currencyById.get(id) ?? displayCurrency;
+  const spend = spendTotals(summary, displayCurrency);
+  const dueSoonTotals = renewalTotals(dueSoonRenewals, currencyOf, displayCurrency);
 
   const shownRenewals = summary.upcomingRenewals.slice(0, 5);
-  const renewalTotal = shownRenewals.reduce((sum, r) => sum + parseFloat(r.cost), 0);
+  const upcomingTotals = renewalTotals(shownRenewals, currencyOf, displayCurrency);
 
   return (
     <ScrollView
@@ -135,9 +161,11 @@ export default function DashboardScreen() {
       {/* Summary tiles */}
       <View style={[styles.card, styles.featuredCard]}>
         <Text style={[styles.tileLabel, styles.featuredLabel]}>CHARGED THIS MONTH</Text>
-        <Text style={[styles.tileValue, styles.featuredValue]}>
-          {formatCurrency(parseFloat(summary.totalMonthlySpend), displayCurrency)}
-        </Text>
+        <TotalLines
+          totals={spend.monthly}
+          fallbackCurrency={displayCurrency}
+          style={[styles.tileValue, styles.featuredValue]}
+        />
         <Text style={[styles.tileFootnote, styles.featuredLabel]}>
           {summary.activeSubscriptions} active{' '}
           {summary.activeSubscriptions === 1 ? 'subscription' : 'subscriptions'}
@@ -147,13 +175,19 @@ export default function DashboardScreen() {
       <View style={styles.tileRow}>
         <View style={[styles.card, styles.tileHalf]}>
           <Text style={styles.tileLabel}>PER YEAR</Text>
-          <Text style={styles.tileValueSmall}>
-            {formatCurrency(parseFloat(summary.totalAnnualSpend), displayCurrency)}
-          </Text>
+          <TotalLines
+            totals={spend.annual}
+            fallbackCurrency={displayCurrency}
+            style={styles.tileValueSmall}
+          />
         </View>
         <View style={[styles.card, styles.tileHalf]}>
           <Text style={styles.tileLabel}>DUE IN 7 DAYS</Text>
-          <Text style={styles.tileValueSmall}>{formatCurrency(dueSoonTotal, displayCurrency)}</Text>
+          <TotalLines
+            totals={dueSoonTotals}
+            fallbackCurrency={displayCurrency}
+            style={styles.tileValueSmall}
+          />
           {dueSoonRenewals.length > 0 && (
             <Text style={styles.tileFootnote}>
               {dueSoonRenewals.length} {dueSoonRenewals.length === 1 ? 'renewal' : 'renewals'} upcoming
@@ -199,7 +233,14 @@ export default function DashboardScreen() {
             <View style={styles.doubleRule} />
             <View style={styles.totalRow}>
               <Text style={styles.receiptHeading}>TOTAL</Text>
-              <Text style={styles.totalValue}>{formatCurrency(renewalTotal, displayCurrency)}</Text>
+              {/* One line per currency — see TotalLines */}
+              <View style={styles.totalValues}>
+                <TotalLines
+                  totals={upcomingTotals}
+                  fallbackCurrency={displayCurrency}
+                  style={styles.totalValue}
+                />
+              </View>
             </View>
 
             {summary.upcomingRenewals.length > 5 && (
@@ -216,48 +257,61 @@ export default function DashboardScreen() {
         )}
       </View>
 
-      {/* Category breakdown chart */}
+      {/* Category breakdown — one chart per currency, since bars in different
+          currencies can't share an axis. */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Spending by Category</Text>
-        {categoryData.length === 0 ? (
-          <View style={styles.emptyChart}>
-            <Text style={styles.mutedText}>No subscriptions yet</Text>
-            <Pressable
-              style={styles.primaryButton}
-              onPress={() => router.push({ pathname: '/(app)/subscriptions', params: { openAdd: '1' } })}
-            >
-              <Text style={styles.primaryButtonText}>Add Subscription</Text>
-            </Pressable>
-          </View>
+        {categoryGroups.length === 0 ? (
+          <>
+            <Text style={styles.cardTitle}>Spending by Category</Text>
+            <View style={styles.emptyChart}>
+              <Text style={styles.mutedText}>No subscriptions yet</Text>
+              <Pressable
+                style={styles.primaryButton}
+                onPress={() => router.push({ pathname: '/(app)/subscriptions', params: { openAdd: '1' } })}
+              >
+                <Text style={styles.primaryButtonText}>Add Subscription</Text>
+              </Pressable>
+            </View>
+          </>
         ) : (
-          <View style={styles.chartBox}>
-            <CartesianChart
-              data={categoryData}
-              xKey="name"
-              yKeys={['total']}
-              domainPadding={{ left: 24, right: 24, top: 16 }}
-              axisOptions={{
-                font: chartFont,
-                labelColor: colors.mutedForeground,
-                lineColor: colors.border,
-                // Long category names ("Cloud Storage") collide on a phone width.
-                formatXLabel: (name) => {
-                  const label = String(name ?? '');
-                  return label.length > 7 ? `${label.slice(0, 6)}…` : label;
-                },
-              }}
-            >
-              {({ points, chartBounds }) => (
-                <Bar
-                  points={points.total}
-                  chartBounds={chartBounds}
-                  color={colors.foreground}
-                  innerPadding={0.4}
-                  roundedCorners={{ topLeft: 2, topRight: 2 }}
-                />
-              )}
-            </CartesianChart>
-          </View>
+          categoryGroups.map((group) => (
+            <View key={group.currency}>
+              <Text style={styles.cardTitle}>
+                {/* Name the currency only when there's more than one chart to tell
+                    apart — otherwise the title is as it always was. */}
+                Spending by Category
+                {categoryGroups.length > 1 ? ` · ${group.currency}` : ''}
+              </Text>
+              <View style={styles.chartBox}>
+                <CartesianChart
+                  data={group.data}
+                  xKey="name"
+                  yKeys={['total']}
+                  domainPadding={{ left: 24, right: 24, top: 16 }}
+                  axisOptions={{
+                    font: chartFont,
+                    labelColor: colors.mutedForeground,
+                    lineColor: colors.border,
+                    // Long category names ("Cloud Storage") collide on a phone width.
+                    formatXLabel: (name) => {
+                      const label = String(name ?? '');
+                      return label.length > 7 ? `${label.slice(0, 6)}…` : label;
+                    },
+                  }}
+                >
+                  {({ points, chartBounds }) => (
+                    <Bar
+                      points={points.total}
+                      chartBounds={chartBounds}
+                      color={colors.foreground}
+                      innerPadding={0.4}
+                      roundedCorners={{ topLeft: 2, topRight: 2 }}
+                    />
+                  )}
+                </CartesianChart>
+              </View>
+            </View>
+          ))
         )}
       </View>
     </ScrollView>
@@ -333,7 +387,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   totalRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  totalValues: { alignItems: 'flex-end' },
   totalValue: { fontFamily: fontMono, fontWeight: '700', fontSize: 22, color: colors.foreground },
+  // Several currencies stack vertically, so each line gets a size the tiles can
+  // fit; a single-currency total keeps its original size.
+  totalLineMulti: { fontSize: 18 },
 
   chartBox: { height: 250 },
   emptyChart: { alignItems: 'center', paddingVertical: 32, gap: 16 },
