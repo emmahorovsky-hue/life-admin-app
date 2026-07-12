@@ -22,6 +22,24 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # eslint-plugin-react-refresh 0.5.0 changed its peer from `eslint: >=7` to
+      # `eslint: ^9 || ^10` — a breaking change that is legal on 0.x, so it lands
+      # in the minor group. Taking it hoists ESLint 9 to the root while client's
+      # own `eslint: ^8.45.0` nests an ESLint 8 beneath it; @typescript-eslint,
+      # hoisted at the root, then loads a v9 base rule into a v8 linter and
+      # crashes (`Cannot read properties of undefined (reading 'allowShortCircuit')`,
+      # exit 2). It took out the whole 24-update group in #176.
+      #
+      # The client is on ESLint 8 with a legacy .eslintrc.cjs, and ESLint 9
+      # requires flat config — a migration, not a bump. Held until LIF-175 lands,
+      # then delete this entry.
+      #
+      # An `ignore` is the only thing that stops this: client/package.json already
+      # says `^0.4.3`, which on a 0.x package correctly resolves to <0.5.0.
+      # Dependabot gets past it by rewriting the range itself.
+      - dependency-name: eslint-plugin-react-refresh
+        versions: [">=0.5.0"]
 
   # Pinned action versions go stale and are a supply-chain surface of their own.
   - package-ecosystem: github-actions
