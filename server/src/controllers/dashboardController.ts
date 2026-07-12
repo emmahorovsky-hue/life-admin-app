@@ -83,9 +83,12 @@ export const getDashboardSummary = async (
         category: sub.category,
       }));
 
+    // Money crosses the API boundary as decimal strings (LIF-125) — same shape
+    // as per-item `cost` (Prisma Decimal → JSON string). Clients parse once for
+    // display; keeping floats out of the payload avoids precision drift.
     res.status(200).json({
-      totalMonthlySpend: parseFloat(totalMonthlySpend.toFixed(2)),
-      totalAnnualSpend: parseFloat(totalAnnualSpend.toFixed(2)),
+      totalMonthlySpend: totalMonthlySpend.toFixed(2),
+      totalAnnualSpend: totalAnnualSpend.toFixed(2),
       activeSubscriptions: subscriptions.length,
       upcomingRenewals,
     });
