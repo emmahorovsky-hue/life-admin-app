@@ -1,0 +1,25 @@
+// Emit config, separate from tsconfig.json (which is typecheck-only: noEmit,
+// moduleResolution "bundler").
+//
+// Output is CommonJS deliberately. The server compiles with module "commonjs" /
+// moduleResolution "node" (server/tsconfig.json) and cannot consume an ESM-only
+// or raw-TypeScript package — that inability is the whole reason this build
+// exists (LIF-157). Vite and Metro both consume CJS without complaint, so one
+// output format serves all three consumers; a dual ESM/CJS build would be
+// ceremony for a package this small.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    // node16 (not the deprecated "node"/node10) — with no "type": "module" in
+    // package.json this still emits CommonJS, which is what the server needs.
+    "module": "node16",
+    "moduleResolution": "node16",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["src"]
+}
