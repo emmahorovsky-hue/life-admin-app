@@ -28,8 +28,6 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   emailChangeTokens       EmailChangeToken[]
   deviceTokens            DeviceToken[]
-
-  @@index([email])
 }
 
 model Subscription {

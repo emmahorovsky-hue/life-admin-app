@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api, { User } from '@/lib/api';
+import api, { onUnauthorized, User } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -31,6 +31,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     checkAuth();
   }, []);
+
+  // The API client reports 401s from protected pages here rather than hard-
+  // navigating to /login. Dropping the user re-renders ProtectedRoute, which
+  // redirects with <Navigate> — a router navigation, so React state survives.
+  useEffect(() => onUnauthorized(() => setUser(null)), []);
 
   const login = async (email: string, password: string) => {
     const response = await api.post('/auth/login', { email, password });

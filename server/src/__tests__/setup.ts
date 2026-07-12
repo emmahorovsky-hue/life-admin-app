@@ -16,10 +16,18 @@ process.env.ENABLE_CRON = 'false';
 
 import prisma from '../utils/db';
 
-// Mock the email service to prevent actual emails during tests
+// Mock every sender in the email service, not just the two the suite happened to
+// exercise first. The rest were unmocked and only stayed silent because
+// RESEND_API_KEY is unset in the test env — a real send was one env var away.
+// Non-sender exports (buildEmailHtml) keep their real implementations.
 jest.mock('../services/emailService', () => ({
+  ...jest.requireActual('../services/emailService'),
   sendVerificationEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
   sendDeletionWarningEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
+  sendEmailChangeVerificationEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
+  sendEmailChangedNoticeEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
+  sendPasswordResetEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
+  sendRenewalReminderEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
 }));
 // NOTE: We do not mock `emailVerificationService.issueEmailVerificationToken`
 // because several tests assert that tokens are persisted and emails are sent.

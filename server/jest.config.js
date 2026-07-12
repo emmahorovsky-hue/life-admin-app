@@ -16,6 +16,11 @@ process.env.JEST_BASE_DATABASE_URL = process.env.DATABASE_URL || '';
 
 module.exports = {
   preset: 'ts-jest',
+  // The build tsconfig excludes tests and (on TS 6) no longer auto-includes the
+  // hoisted @types/jest, so tests compile against tsconfig.test.json instead.
+  transform: {
+    '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.test.json' }],
+  },
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts'],

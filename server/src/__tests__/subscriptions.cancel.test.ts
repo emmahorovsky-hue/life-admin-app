@@ -122,7 +122,8 @@ describe('subscription cancel / resume', () => {
       .get('/api/dashboard/summary')
       .set('Cookie', authCookie(user.id, user.email));
     expect(before.body.activeSubscriptions).toBe(1);
-    expect(before.body.totalMonthlySpend).toBeGreaterThan(0);
+    // Totals are decimal strings (LIF-125).
+    expect(parseFloat(before.body.totalMonthlySpend)).toBeGreaterThan(0);
 
     await request(app)
       .post(`/api/subscriptions/${sub.id}/cancel`)
@@ -132,6 +133,37 @@ describe('subscription cancel / resume', () => {
       .get('/api/dashboard/summary')
       .set('Cookie', authCookie(user.id, user.email));
     expect(after.body.activeSubscriptions).toBe(0);
-    expect(after.body.totalMonthlySpend).toBe(0);
+    expect(after.body.totalMonthlySpend).toBe('0.00');
+  });
+
+  it('serializes cost as a decimal string on create, list, and get (LIF-125)', async () => {
+    const { user, sub } = await seedUserWithSubscription();
+    const cookie = authCookie(user.id, user.email);
+
+    const created = await request(app)
+      .post('/api/subscriptions')
+      .set('Cookie', cookie)
+      .send({
+        name: 'Spotify',
+        cost: 9.99,
+        currency: 'USD',
+        billingCycle: 'monthly',
+        renewalDate: new Date().toISOString(),
+        category: 'music',
+      });
+    expect(created.status).toBe(201);
+    expect(created.body.cost).toBe('9.99');
+
+    const list = await request(app).get('/api/subscriptions').set('Cookie', cookie);
+    expect(list.status).toBe(200);
+    for (const row of list.body) {
+      expect(typeof row.cost).toBe('string');
+    }
+
+    const single = await request(app)
+      .get(`/api/subscriptions/${sub.id}`)
+      .set('Cookie', cookie);
+    expect(single.status).toBe(200);
+    expect(single.body.cost).toBe('15.99');
   });
 });
