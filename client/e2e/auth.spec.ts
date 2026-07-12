@@ -12,7 +12,6 @@ test.describe('User Registration', () => {
     await page.fill('#email', `user${timestamp}@example.com`);
     await page.fill('#password', 'Password123!');
     await page.fill('#confirmPassword', 'Password123!');
-    await page.fill('#name', 'Test User');
 
     // Submit form
     await page.click('button[type="submit"]');
@@ -30,7 +29,6 @@ test.describe('User Registration', () => {
     await page.fill('#email', 'notanemail');
     await page.fill('#password', 'password123');
     await page.fill('#confirmPassword', 'password123');
-    await page.fill('#name', 'Test User');
 
     await page.click('button[type="submit"]');
 
@@ -49,7 +47,6 @@ test.describe('User Registration', () => {
     await page.fill('#email', `user${timestamp}@example.com`);
     await page.fill('#password', '123');
     await page.fill('#confirmPassword', '123');
-    await page.fill('#name', 'Test User');
 
     await page.click('button[type="submit"]');
 
@@ -65,19 +62,18 @@ test.describe('User Registration', () => {
     await page.fill('#email', email);
     await page.fill('#password', 'Password123!');
     await page.fill('#confirmPassword', 'Password123!');
-    await page.fill('#name', 'User One');
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL('/dashboard');
 
     // Logout
-    await page.click('button:has-text("Logout")');
+    // Icon-only button in the sidebar — matched by its accessible name.
+    await page.click('button[aria-label="Log out"]');
 
     // Try to register again with same email
     await page.goto('/register');
     await page.fill('#email', email);
     await page.fill('#password', 'Password456!');
     await page.fill('#confirmPassword', 'Password456!');
-    await page.fill('#name', 'User Two');
     await page.click('button[type="submit"]');
 
     // Should show error
@@ -99,7 +95,6 @@ test.describe('User Login', () => {
     await page.fill('#email', testEmail);
     await page.fill('#password', testPassword);
     await page.fill('#confirmPassword', testPassword);
-    await page.fill('#name', 'Login Test User');
     await page.click('button[type="submit"]');
     // Confirm registration succeeded before closing, so any subsequent login
     // tests fail with a clear "expected /dashboard" message rather than a
@@ -154,7 +149,6 @@ test.describe('Session Persistence', () => {
     await page.fill('#email', `session${timestamp}@example.com`);
     await page.fill('#password', 'Password123!');
     await page.fill('#confirmPassword', 'Password123!');
-    await page.fill('#name', 'Session Test');
     await page.click('button[type="submit"]');
 
     // Wait for dashboard
@@ -184,21 +178,19 @@ test.describe('Logout', () => {
     await page.fill('#email', `logout${timestamp}@example.com`);
     await page.fill('#password', 'Password123!');
     await page.fill('#confirmPassword', 'Password123!');
-    await page.fill('#name', 'Logout Test');
     await page.click('button[type="submit"]');
 
     await expect(page).toHaveURL('/dashboard');
 
     // Logout
-    await page.click('button:has-text("Logout")');
+    // Icon-only button in the sidebar — matched by its accessible name.
+    await page.click('button[aria-label="Log out"]');
 
-    // Should redirect to login
-    await expect(page).toHaveURL('/login');
+    // Logout returns to the public landing page, not the login form.
+    await expect(page).toHaveURL('/');
 
-    // Try to access dashboard
+    // The session is really gone: the dashboard is no longer reachable.
     await page.goto('/dashboard');
-
-    // Should be redirected back to login
     await expect(page).toHaveURL('/login');
   });
 });

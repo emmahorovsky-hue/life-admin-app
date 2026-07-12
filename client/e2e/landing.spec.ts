@@ -35,7 +35,6 @@ test.describe('Landing Page', () => {
     await page.fill('#email', `landing${timestamp}@example.com`);
     await page.fill('#password', 'Password123!');
     await page.fill('#confirmPassword', 'Password123!');
-    await page.fill('#name', 'Landing Test');
     await page.click('button[type="submit"]');
 
     await expect(page).toHaveURL('/dashboard');
