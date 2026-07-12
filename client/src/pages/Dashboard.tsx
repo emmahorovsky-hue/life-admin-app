@@ -5,35 +5,120 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi } from '@/lib/dashboard';
 import type { DashboardSummary } from '@/lib/dashboard';
-import { subscriptionApi, categories } from '@/lib/subscriptions';
-import { formatCurrency, dominantCurrency, DEFAULT_CURRENCY } from '@/lib/currency';
-import { normalizeToMonthlyCost, parseRenewalDate } from '@life-admin/shared';
+import { subscriptionApi } from '@/lib/subscriptions';
+import { formatCurrency, formatCurrencyTotals, dominantCurrency, DEFAULT_CURRENCY } from '@/lib/currency';
+import type { CurrencyAmount, CategorySpendGroup } from '@life-admin/shared';
+import {
+  categorySpendByCurrency,
+  parseRenewalDate,
+  renewalTotals,
+  spendTotals,
+} from '@life-admin/shared';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { PaperSheet } from '@/components/PaperSheet';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-export default function Dashboard() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [categoryData, setCategoryData] = useState<{ name: string; total: number }[]>([]);
-  // Currency the user predominantly uses, for aggregate figures, plus a per-id
-  // lookup so each renewal row can render in its own subscription's currency.
-  const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
-  const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
+// Aggregate figures are lists, not scalars: with no exchange-rate source, costs
+// in different currencies can't be added together, so we render one line per
+// currency (LIF-107). A single-currency user — the common case — sees exactly
+// one line, unchanged from before.
+function TotalLines({
+  totals,
+  fallbackCurrency,
+  singleClassName,
+  multiClassName,
+}: {
+  totals: CurrencyAmount[];
+  fallbackCurrency: string;
+  singleClassName: string;
+  multiClassName: string;
+}) {
+  const lines = formatCurrencyTotals(totals, fallbackCurrency);
+  return (
+    <div className={lines.length > 1 ? multiClassName : singleClassName}>
+      {lines.map((line) => (
+        <div key={line}>{line}</div>
+      ))}
+    </div>
+  );
+}
+
+// One category chart, in one currency. Bars from different currencies can't
+// share a y-axis, so multi-currency users get one of these per currency.
+function CategoryChart({ data, currency }: CategorySpendGroup) {
   const [chartWidth, setChartWidth] = useState(0);
 
   // Truncate x-axis labels that can't fit their bar's slot. Space Mono at
   // 11px advances ~6.6px per character; 48px covers the y-axis gutter
   // (width 44 + left margin -8 + right margin 4).
   const tickSlotChars =
-    chartWidth > 0 && categoryData.length > 0
-      ? Math.max(4, Math.floor((chartWidth - 48) / categoryData.length / 6.6))
+    chartWidth > 0 && data.length > 0
+      ? Math.max(4, Math.floor((chartWidth - 48) / data.length / 6.6))
       : Infinity;
   const formatCategoryTick = (name: string) =>
     name.length > tickSlotChars ? `${name.slice(0, tickSlotChars - 1).trimEnd()}…` : name;
+
+  return (
+    <ResponsiveContainer width="100%" height={250} onResize={(width) => setChartWidth(width)}>
+      <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
+        <CartesianGrid
+          vertical={false}
+          strokeDasharray="2 4"
+          stroke="hsl(var(--border))"
+        />
+        <XAxis
+          dataKey="name"
+          interval={0}
+          tickFormatter={formatCategoryTick}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontFamily: 'Space Mono, monospace', fontSize: 11 }}
+          tickLine={false}
+          axisLine={{ stroke: 'hsl(var(--border))' }}
+        />
+        <YAxis
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontFamily: 'Space Mono, monospace', fontSize: 11 }}
+          tickLine={false}
+          axisLine={false}
+          width={44}
+        />
+        <Tooltip
+          cursor={{ fill: 'hsl(var(--brand-orange) / 0.08)' }}
+          contentStyle={{
+            backgroundColor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '2px',
+            fontFamily: 'Space Mono, monospace',
+            fontSize: 12,
+          }}
+          // Without these, recharts colors the item text with the series
+          // color (--accent, near-invisible on --card in both themes).
+          labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
+          itemStyle={{ color: 'hsl(var(--card-foreground))' }}
+          formatter={(value: number) => [formatCurrency(value, currency), 'Monthly']}
+        />
+        <Bar
+          dataKey="total"
+          fill="hsl(var(--accent))"
+          activeBar={{ fill: 'hsl(var(--brand-orange))' }}
+          radius={[2, 2, 0, 0]}
+          maxBarSize={56}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [categoryGroups, setCategoryGroups] = useState<CategorySpendGroup[]>([]);
+  // Currency the user predominantly uses — it leads every per-currency list —
+  // plus a per-id lookup so each renewal can be attributed to its own
+  // subscription's currency (the summary payload carries only id + cost).
+  const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
+  const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -44,24 +129,10 @@ export default function Dashboard() {
         ]);
         setSummary(summaryData);
 
-        setDisplayCurrency(dominantCurrency(allSubs.map((sub) => sub.currency)));
+        const primary = dominantCurrency(allSubs.map((sub) => sub.currency));
+        setDisplayCurrency(primary);
         setCurrencyById(new Map(allSubs.map((sub) => [sub.id, sub.currency])));
-
-        const categoryMap = new Map<string, number>();
-        allSubs.forEach((sub) => {
-          const monthlyCost = normalizeToMonthlyCost(parseFloat(sub.cost), sub.billingCycle);
-          const current = categoryMap.get(sub.category) || 0;
-          categoryMap.set(sub.category, current + monthlyCost);
-        });
-
-        const chartData = Array.from(categoryMap.entries())
-          .map(([category, total]) => ({
-            name: categories.find(c => c.id === category)?.name || category,
-            total: Math.round(total * 100) / 100,
-          }))
-          .sort((a, b) => b.total - a.total);
-
-        setCategoryData(chartData);
+        setCategoryGroups(categorySpendByCurrency(allSubs, primary));
       } catch (err) {
         console.error('Failed to load dashboard:', err);
       } finally {
@@ -112,25 +183,17 @@ export default function Dashboard() {
     r => differenceInCalendarDays(parseRenewalDate(r.nextRenewalDate), today) <= 7
   );
 
-  // Renewals can be in different currencies, so a single summed figure would
-  // silently add e.g. USD + EUR. Total per currency instead, displayCurrency
-  // first, then descending amount.
-  const totalsByCurrency = (renewals: typeof summary.upcomingRenewals): [string, number][] => {
-    const totals = new Map<string, number>();
-    for (const r of renewals) {
-      const currency = currencyById.get(r.id) ?? displayCurrency;
-      totals.set(currency, (totals.get(currency) ?? 0) + parseFloat(r.cost));
-    }
-    return [...totals.entries()].sort((a, b) =>
-      a[0] === displayCurrency ? -1 : b[0] === displayCurrency ? 1 : b[1] - a[1]
-    );
-  };
-  const dueSoonTotals = totalsByCurrency(dueSoonRenewals);
+  // Every aggregate below is per-currency: renewals can be in different
+  // currencies, and with no exchange-rate source a single summed figure would
+  // silently add e.g. USD + EUR.
+  const currencyOf = (id: string) => currencyById.get(id) ?? displayCurrency;
+  const spend = spendTotals(summary, displayCurrency);
+  const dueSoonTotals = renewalTotals(dueSoonRenewals, currencyOf, displayCurrency);
 
   const shownRenewals = summary.upcomingRenewals.slice(0, 5);
   // Total covers every upcoming renewal, not just the 5 rows shown — the
   // label calls that out below when the list is truncated.
-  const renewalTotals = totalsByCurrency(summary.upcomingRenewals);
+  const upcomingTotals = renewalTotals(summary.upcomingRenewals, currencyOf, displayCurrency);
 
   return (
     <div className="space-y-6">
@@ -148,9 +211,12 @@ export default function Dashboard() {
             <p className="text-sm font-medium opacity-75 mb-4 uppercase tracking-wide">
               Charged this month
             </p>
-            <div className="text-4xl font-bold font-mono tracking-tight">
-              {formatCurrency(parseFloat(summary.totalMonthlySpend), displayCurrency)}
-            </div>
+            <TotalLines
+              totals={spend.monthly}
+              fallbackCurrency={displayCurrency}
+              singleClassName="text-4xl font-bold font-mono tracking-tight"
+              multiClassName="text-2xl font-bold font-mono tracking-tight space-y-1"
+            />
             <p className="text-sm opacity-75 mt-3">
               {summary.activeSubscriptions} active {summary.activeSubscriptions === 1 ? 'subscription' : 'subscriptions'}
             </p>
@@ -163,9 +229,12 @@ export default function Dashboard() {
             <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">
               Per year
             </p>
-            <div className="text-4xl font-bold font-mono tracking-tight">
-              {formatCurrency(parseFloat(summary.totalAnnualSpend), displayCurrency)}
-            </div>
+            <TotalLines
+              totals={spend.annual}
+              fallbackCurrency={displayCurrency}
+              singleClassName="text-4xl font-bold font-mono tracking-tight"
+              multiClassName="text-2xl font-bold font-mono tracking-tight space-y-1"
+            />
           </CardContent>
         </Card>
 
@@ -175,13 +244,12 @@ export default function Dashboard() {
             <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wide">
               Due in 7 days
             </p>
-            <div className={`font-bold font-mono tracking-tight ${dueSoonTotals.length > 1 ? 'text-2xl space-y-1' : 'text-4xl'}`}>
-              {dueSoonTotals.length === 0
-                ? formatCurrency(0, displayCurrency)
-                : dueSoonTotals.map(([currency, amount]) => (
-                    <div key={currency}>{formatCurrency(amount, currency)}</div>
-                  ))}
-            </div>
+            <TotalLines
+              totals={dueSoonTotals}
+              fallbackCurrency={displayCurrency}
+              singleClassName="text-4xl font-bold font-mono tracking-tight"
+              multiClassName="text-2xl font-bold font-mono tracking-tight space-y-1"
+            />
             {dueSoonRenewals.length > 0 && (
               <p className="text-sm text-muted-foreground mt-3">
                 {dueSoonRenewals.length} {dueSoonRenewals.length === 1 ? 'renewal' : 'renewals'} upcoming
@@ -258,16 +326,12 @@ export default function Dashboard() {
                       ? ` · all ${summary.upcomingRenewals.length}`
                       : ''}
                   </span>
-                  <div className="text-right">
-                    {renewalTotals.map(([currency, amount]) => (
-                      <div
-                        key={currency}
-                        className={`font-mono font-bold text-foreground ${renewalTotals.length > 1 ? 'text-xl' : 'text-2xl'}`}
-                      >
-                        {formatCurrency(amount, currency)}
-                      </div>
-                    ))}
-                  </div>
+                  <TotalLines
+                    totals={upcomingTotals}
+                    fallbackCurrency={displayCurrency}
+                    singleClassName="text-right font-mono font-bold text-foreground text-2xl"
+                    multiClassName="text-right font-mono font-bold text-foreground text-xl"
+                  />
                 </div>
 
                 {summary.upcomingRenewals.length > 5 && (
@@ -284,79 +348,51 @@ export default function Dashboard() {
             )}
         </PaperSheet>
 
-        {/* Category breakdown chart */}
+        {/* Category breakdown chart — one per currency, since bars in different
+            currencies can't share an axis. */}
         <Card>
           <CardContent className="p-6">
-            {/* Header — mirrors the renewals card's mono column labels */}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                Spending by Category
-              </span>
-              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                Monthly
-              </span>
-            </div>
-
-            {/* Perforated separator */}
-            <div className="border-perf mb-4" />
-
-            {categoryData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <p className="text-muted-foreground mb-4">No subscriptions yet</p>
-                <Button onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
-                  Add Subscription
-                </Button>
-              </div>
+            {categoryGroups.length === 0 ? (
+              <>
+                {/* Header — mirrors the renewals card's mono column labels */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                    Spending by Category
+                  </span>
+                  <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                    Monthly
+                  </span>
+                </div>
+                <div className="border-perf mb-4" />
+                <div className="flex flex-col items-center justify-center py-12">
+                  <p className="text-muted-foreground mb-4">No subscriptions yet</p>
+                  <Button onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
+                    Add Subscription
+                  </Button>
+                </div>
+              </>
             ) : (
-              <ResponsiveContainer
-                width="100%"
-                height={250}
-                onResize={(width) => setChartWidth(width)}
-              >
-                <BarChart data={categoryData} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
-                  <CartesianGrid
-                    vertical={false}
-                    strokeDasharray="2 4"
-                    stroke="hsl(var(--border))"
-                  />
-                  <XAxis
-                    dataKey="name"
-                    interval={0}
-                    tickFormatter={formatCategoryTick}
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontFamily: 'Space Mono, monospace', fontSize: 11 }}
-                    tickLine={false}
-                    axisLine={{ stroke: 'hsl(var(--border))' }}
-                  />
-                  <YAxis
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontFamily: 'Space Mono, monospace', fontSize: 11 }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={44}
-                  />
-                  <Tooltip
-                    cursor={{ fill: 'hsl(var(--brand-orange) / 0.08)' }}
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '2px',
-                      fontFamily: 'Space Mono, monospace',
-                      fontSize: 12,
-                    }}
-                    // Without these, recharts colors the item text with the series
-                    // color (--accent, near-invisible on --card in both themes).
-                    labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
-                    itemStyle={{ color: 'hsl(var(--card-foreground))' }}
-                    formatter={(value: number) => [formatCurrency(value, displayCurrency), 'Monthly']}
-                  />
-                  <Bar
-                    dataKey="total"
-                    fill="hsl(var(--accent))"
-                    activeBar={{ fill: 'hsl(var(--brand-orange))' }}
-                    radius={[2, 2, 0, 0]}
-                    maxBarSize={56}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="space-y-6">
+                {categoryGroups.map((group) => (
+                  <div key={group.currency}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                        Spending by Category
+                      </span>
+                      <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                        {/* Name the currency only when there's more than one chart
+                            to tell apart — otherwise the header is as it always was. */}
+                        Monthly{categoryGroups.length > 1 ? ` · ${group.currency}` : ''}
+                      </span>
+                    </div>
+
+                    {/* Perforated separator */}
+                    <div className="border-perf mb-4" />
+
+                    <CategoryChart currency={group.currency} data={group.data} />
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>

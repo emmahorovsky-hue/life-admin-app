@@ -5,6 +5,26 @@ import { Prisma } from '@prisma/client';
 import { computeNextRenewal, toRenewalIsoString, daysUntil } from '../utils/renewal';
 import { reportServerError } from '../utils/reportError';
 
+// What one subscription contributes to the monthly and annual spend figures.
+const spendContribution = (
+  cost: Prisma.Decimal,
+  billingCycle: string
+): { monthly: Prisma.Decimal; annual: Prisma.Decimal } => {
+  switch (billingCycle.toLowerCase()) {
+    case 'annual':
+    case 'yearly':
+      return { monthly: cost.div(12), annual: cost };
+    case 'weekly':
+      return { monthly: cost.mul(52).div(12), annual: cost.mul(52) };
+    case 'quarterly':
+      return { monthly: cost.div(3), annual: cost.mul(4) };
+    case 'monthly':
+    default:
+      // Unknown cycles are treated as monthly, as they always have been.
+      return { monthly: cost, annual: cost.mul(12) };
+  }
+};
+
 export const getDashboardSummary = async (
   req: AuthRequest,
   res: Response
@@ -30,37 +50,55 @@ export const getDashboardSummary = async (
       },
     });
 
-    // Calculate totals
+    // Totals, per currency. There is no exchange-rate source in this project, so
+    // costs in different currencies cannot be added into one figure — a $10 +
+    // €10 total is meaningless (LIF-107). Clients render one line per currency.
+    const spendByCurrency = new Map<
+      string,
+      { monthly: Prisma.Decimal; annual: Prisma.Decimal; count: number }
+    >();
+
+    // Kept for older clients, which read these instead of spendByCurrency: the
+    // raw sum across every subscription. Only meaningful for a single-currency
+    // user, which is why it isn't what we render any more.
     let totalMonthlySpend = new Prisma.Decimal(0);
     let totalAnnualSpend = new Prisma.Decimal(0);
 
     subscriptions.forEach((sub) => {
-      const cost = new Prisma.Decimal(sub.cost);
-      
-      switch (sub.billingCycle.toLowerCase()) {
-        case 'monthly':
-          totalMonthlySpend = totalMonthlySpend.add(cost);
-          totalAnnualSpend = totalAnnualSpend.add(cost.mul(12));
-          break;
-        case 'annual':
-        case 'yearly':
-          totalMonthlySpend = totalMonthlySpend.add(cost.div(12));
-          totalAnnualSpend = totalAnnualSpend.add(cost);
-          break;
-        case 'weekly':
-          totalMonthlySpend = totalMonthlySpend.add(cost.mul(52).div(12));
-          totalAnnualSpend = totalAnnualSpend.add(cost.mul(52));
-          break;
-        case 'quarterly':
-          totalMonthlySpend = totalMonthlySpend.add(cost.div(3));
-          totalAnnualSpend = totalAnnualSpend.add(cost.mul(4));
-          break;
-        default:
-          // Default to monthly if billing cycle is unknown
-          totalMonthlySpend = totalMonthlySpend.add(cost);
-          totalAnnualSpend = totalAnnualSpend.add(cost.mul(12));
-      }
+      const { monthly, annual } = spendContribution(
+        new Prisma.Decimal(sub.cost),
+        sub.billingCycle
+      );
+
+      const entry = spendByCurrency.get(sub.currency) ?? {
+        monthly: new Prisma.Decimal(0),
+        annual: new Prisma.Decimal(0),
+        count: 0,
+      };
+      spendByCurrency.set(sub.currency, {
+        monthly: entry.monthly.add(monthly),
+        annual: entry.annual.add(annual),
+        count: entry.count + 1,
+      });
+
+      totalMonthlySpend = totalMonthlySpend.add(monthly);
+      totalAnnualSpend = totalAnnualSpend.add(annual);
     });
+
+    // Most-used currency first — that's the one the UI leads with.
+    const spend = [...spendByCurrency.entries()]
+      .map(([currency, { monthly, annual, count }]) => ({
+        currency,
+        totalMonthlySpend: monthly.toFixed(2),
+        totalAnnualSpend: annual.toFixed(2),
+        activeSubscriptions: count,
+      }))
+      .sort(
+        (a, b) =>
+          b.activeSubscriptions - a.activeSubscriptions ||
+          parseFloat(b.totalMonthlySpend) - parseFloat(a.totalMonthlySpend) ||
+          a.currency.localeCompare(b.currency)
+      );
 
     // Get upcoming renewals (next 30 days). renewalDate is an anchor; roll it
     // forward to the next future occurrence before filtering/sorting.
@@ -90,6 +128,7 @@ export const getDashboardSummary = async (
       totalMonthlySpend: totalMonthlySpend.toFixed(2),
       totalAnnualSpend: totalAnnualSpend.toFixed(2),
       activeSubscriptions: subscriptions.length,
+      spendByCurrency: spend,
       upcomingRenewals,
     });
   } catch (error) {

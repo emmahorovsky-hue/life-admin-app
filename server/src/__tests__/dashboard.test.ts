@@ -112,6 +112,67 @@ describe('dashboard renewals (compute-on-read)', () => {
     }
   });
 
+  it('reports spend per currency instead of one cross-currency sum (LIF-107)', async () => {
+    const anchor = new Date();
+    anchor.setUTCDate(anchor.getUTCDate() + 3);
+    anchor.setUTCHours(0, 0, 0, 0);
+
+    await prisma.subscription.createMany({
+      data: [
+        {
+          userId,
+          name: 'US Thing',
+          cost: '10.00',
+          currency: 'USD',
+          billingCycle: 'monthly',
+          renewalDate: anchor,
+          category: 'software',
+        },
+        {
+          userId,
+          name: 'Another US Thing',
+          cost: '120.00',
+          currency: 'USD',
+          billingCycle: 'annual',
+          renewalDate: anchor,
+          category: 'streaming',
+        },
+        {
+          userId,
+          name: 'EU Thing',
+          cost: '10.00',
+          currency: 'EUR',
+          billingCycle: 'monthly',
+          renewalDate: anchor,
+          category: 'music',
+        },
+      ],
+    });
+
+    const res = await request(app).get('/api/dashboard/summary').set('Cookie', cookie);
+
+    expect(res.status).toBe(200);
+    // USD leads: most subscriptions. Each currency keeps its own totals — they
+    // are never added together (no exchange-rate source exists).
+    expect(res.body.spendByCurrency).toEqual([
+      {
+        currency: 'USD',
+        totalMonthlySpend: '20.00', // 10.00 + 120.00/12
+        totalAnnualSpend: '240.00',
+        activeSubscriptions: 2,
+      },
+      {
+        currency: 'EUR',
+        totalMonthlySpend: '10.00',
+        totalAnnualSpend: '120.00',
+        activeSubscriptions: 1,
+      },
+    ]);
+    // The flat totals still add every currency up, and are still sent for
+    // already-shipped clients — that's exactly why nothing renders them now.
+    expect(res.body.totalMonthlySpend).toBe('30.00');
+  });
+
   it('excludes subscriptions whose next renewal is beyond 30 days', async () => {
     const anchor = new Date();
     anchor.setUTCDate(anchor.getUTCDate() + 60); // ~2 months out
