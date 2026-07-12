@@ -2,6 +2,16 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+// The API proxy has to be declared for `server` and `preview` separately — Vite
+// does not share one between them, and the Playwright e2e run is served by
+// `vite preview`, so without this every /api call in e2e would 404.
+const apiProxy = {
+  '/api': {
+    target: 'http://localhost:3001',
+    changeOrigin: true,
+  },
+};
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -13,12 +23,11 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-    },
+    proxy: apiProxy,
+  },
+  preview: {
+    port: 4173,
+    proxy: apiProxy,
   },
   test: {
     // jsdom so React component tests can render against a DOM.
