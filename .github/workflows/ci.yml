@@ -54,14 +54,24 @@ jobs:
         run: npm ci
         working-directory: .
 
+      # Typecheck before running anything: a type error surfaces here as a real
+      # `error TS…` in seconds, rather than as an opaque "Test suite failed to
+      # run" after the test database has been created and migrated (LIF-155).
+      - name: Check TypeScript compilation
+        run: npm run typecheck
+
+      # tsconfig.json excludes tests (they must stay out of dist/), so the build
+      # typecheck above cannot see them. ts-jest does check them at test time,
+      # but only the ones an executed test actually imports — and it reports
+      # failures as test failures. This covers every test file, up front.
+      - name: Check TypeScript compilation (tests)
+        run: npm run typecheck:test
+
       - name: Apply database migrations
         run: npm run prisma:migrate:deploy
 
       - name: Run tests
         run: npm test
-
-      - name: Check TypeScript compilation
-        run: npx tsc --noEmit
 
   frontend-lint-test:
     name: Frontend Lint & Test
