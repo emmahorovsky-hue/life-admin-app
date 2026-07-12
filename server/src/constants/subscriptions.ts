@@ -37,3 +37,20 @@ export const BILLING_CYCLES = [
 ] as const;
 
 export type BillingCycle = (typeof BILLING_CYCLES)[number];
+
+// Columns the subscriptions list endpoint may sort by (LIF-144). Whitelisted so a
+// raw query value never reaches Prisma's orderBy — an unknown column there throws
+// a PrismaClientValidationError and would surface as a 500.
+export const SUBSCRIPTION_SORT_FIELDS = [
+  'name',
+  'cost',
+  'renewalDate',
+  'category',
+  'createdAt',
+] as const;
+
+export type SubscriptionSortField = (typeof SUBSCRIPTION_SORT_FIELDS)[number];
+
+export const SORT_ORDERS = ['asc', 'desc'] as const;
+
+export type SortOrder = (typeof SORT_ORDERS)[number];
