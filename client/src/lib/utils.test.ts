@@ -4,6 +4,7 @@ import { cn, getApiErrorMessage } from './utils';
 
 describe('cn', () => {
   it('joins truthy class values and drops falsy ones', () => {
+    // eslint-disable-next-line no-constant-binary-expression -- the constant `false &&` mirrors real `condition && 'class'` call sites; dropping the falsy result is the behavior under test
     expect(cn('a', false && 'b', undefined, 'c')).toBe('a c');
   });
 
