@@ -149,7 +149,7 @@ export default function Dashboard() {
               Charged this month
             </p>
             <div className="text-4xl font-bold font-mono tracking-tight">
-              {formatCurrency(summary.totalMonthlySpend, displayCurrency)}
+              {formatCurrency(parseFloat(summary.totalMonthlySpend), displayCurrency)}
             </div>
             <p className="text-sm opacity-75 mt-3">
               {summary.activeSubscriptions} active {summary.activeSubscriptions === 1 ? 'subscription' : 'subscriptions'}
@@ -164,7 +164,7 @@ export default function Dashboard() {
               Per year
             </p>
             <div className="text-4xl font-bold font-mono tracking-tight">
-              {formatCurrency(summary.totalAnnualSpend, displayCurrency)}
+              {formatCurrency(parseFloat(summary.totalAnnualSpend), displayCurrency)}
             </div>
           </CardContent>
         </Card>
