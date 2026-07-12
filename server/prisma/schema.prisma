@@ -20,6 +20,7 @@ model User {
   emailVerifiedAt DateTime?                   // NEW
   deletionWarningSentAt DateTime?             // set when grace-period deletion warning email sent
   passwordChangedAt     DateTime?             // set on password reset; tokens issued before this are rejected
+  sessionsValidFrom     DateTime?             // set on logout; tokens issued before this are rejected (LIF-174)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   

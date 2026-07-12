@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/db';
-import { generateToken, passwordChangedAtNow } from '../utils/jwt';
+import { generateToken, passwordChangedAtNow, sessionsValidFromNow, verifyToken } from '../utils/jwt';
 import { issueEmailVerificationToken, consumeEmailVerificationToken } from '../services/emailVerificationService';
 import { issuePasswordResetToken, consumePasswordResetToken } from '../services/passwordResetService';
 import { initiateEmailChange, consumeEmailChangeToken } from '../services/emailChangeService';
@@ -214,6 +214,49 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
 };
 
 export const logout = async (req: AuthRequest, res: Response): Promise<void> => {
+  // Clearing the cookie only drops the client's copy — the JWT is stateless and
+  // stays valid until it expires. Stamping sessionsValidFrom is what actually
+  // revokes it: the auth middleware rejects any token whose iat predates it
+  // (LIF-174). This is a whole-account revocation, so logging out on one device
+  // ends every session — deliberate for a single-user personal app.
+  //
+  // The route is intentionally unauthenticated, so we resolve the user from the
+  // token by hand rather than trusting req.user. Revocation is best-effort: a
+  // missing, malformed or already-expired token has nothing left to revoke, and
+  // logout must stay idempotent and always return 200. Clients await this call
+  // before clearing local state, so a 401 here would strand them logged in.
+  const authHeader = req.headers['authorization'];
+  const rawToken =
+    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null) ?? req.cookies?.token;
+
+  // An absent, malformed or already-expired token is the normal case, not an
+  // error: there is no live session left to revoke. Resolve it quietly.
+  let userId: string | null = null;
+  if (rawToken) {
+    try {
+      userId = verifyToken(rawToken).userId;
+    } catch {
+      userId = null;
+    }
+  }
+
+  if (userId) {
+    try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { sessionsValidFrom: sessionsValidFromNow() },
+      });
+      logSecurityEvent('auth.logout', req, { userId });
+    } catch (error) {
+      // P2025 = user already deleted; their tokens die with the row, so there is
+      // nothing to revoke. Anything else is a real failure worth reporting — but
+      // it must not fail the request, or the client is stranded logged in.
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025')) {
+        reportServerError('Logout revocation failed', error);
+      }
+    }
+  }
+
   // clearCookie must use the same attributes the cookie was set with, or the
   // browser won't match and clear it (notably sameSite/secure cross-site).
   res.clearCookie('token', {
