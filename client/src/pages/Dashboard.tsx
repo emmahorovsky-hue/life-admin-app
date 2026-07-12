@@ -94,7 +94,7 @@ function CategoryChart({ data, currency }: CategorySpendGroup) {
           // color (--accent, near-invisible on --card in both themes).
           labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
           itemStyle={{ color: 'hsl(var(--card-foreground))' }}
-          formatter={(value: number) => [formatCurrency(value, currency), 'Monthly']}
+          formatter={(value) => [formatCurrency(Number(value ?? 0), currency), 'Monthly']}
         />
         <Bar
           dataKey="total"
