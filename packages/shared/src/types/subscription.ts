@@ -2,6 +2,9 @@ export interface Subscription {
   id: string;
   userId: string;
   name: string;
+  // Decimal string (e.g. "15.99") — Prisma Decimal serializes to a JSON string,
+  // and all money in API responses uses this shape (LIF-125). Parse once on the
+  // client for display math; never do float arithmetic server-side.
   cost: string;
   currency: string;
   billingCycle: string;
