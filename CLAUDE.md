@@ -68,6 +68,8 @@ JWT tokens are issued on login/register and delivered both ways: set as an **htt
 - **Web** uses the cookie: the axios client (`client/src/lib/api.ts`) sets `withCredentials: true` on every request so cookies are sent cross-origin.
 - **Mobile** can't rely on cookies: it stores the token from the response body in **expo-secure-store** (`mobile/lib/storage.ts`) and an axios request interceptor (`mobile/lib/api.ts`) attaches it as a Bearer header (plus an `X-Platform: mobile` header) on every request.
 
+**Session revocation.** The JWT is stateless, so clearing the cookie does not invalidate it. Two nullable `User` columns are the only things that can kill a live token, and `authenticateToken` rejects any token whose `iat` predates the later of them: `passwordChangedAt` (set on password reset/change) and `sessionsValidFrom` (set on logout — LIF-174). Both are floored to whole seconds because `iat` is whole seconds; see the comment in `server/src/utils/jwt.ts` before changing either. Logout is therefore **account-wide**: signing out on one device ends every session. Logout is also unauthenticated and idempotent — it always returns 200, even with a missing or expired token, because clients await it before clearing local state.
+
 Email verification uses a separate `EmailVerificationToken` table. On registration, a 32-byte token is generated, SHA-256 hashed before storage (raw token only travels in the email link), and expires in 24 hours. The verify endpoint lives at `GET /api/auth/verify-email?token=<raw>` and redirects the browser to `/verify-email/success` or `/verify-email/error`.
 
 ### Backend request lifecycle
