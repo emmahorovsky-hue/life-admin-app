@@ -20,6 +20,6 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "date-fns": ">=3.0.0"
+    "date-fns": "^4.4.0"
   }
 }
