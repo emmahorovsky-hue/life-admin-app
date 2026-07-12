@@ -1,0 +1,13 @@
+{
+  // ts-jest compiles test files with this config (see jest.config.js). TS 6 no
+  // longer auto-includes @types packages hoisted to the workspace root, so the
+  // jest globals must be pulled in explicitly via "types" (LIF-133).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "./src",
+    "types": ["jest", "node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}

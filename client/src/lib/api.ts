@@ -44,6 +44,56 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Routes that render without a session. A 401 while sitting on one of these is
+// expected (an anonymous /auth/me check, a failed login attempt) and must not
+// tear down auth state or bounce the user anywhere.
+const PUBLIC_PATHS = [
+  '/',
+  '/login',
+  '/register',
+  '/verify-email',
+  '/forgot-password',
+  '/reset-password',
+  '/terms',
+  '/privacy',
+];
+
+/**
+ * Precise public-path match: a path is public when it equals a public route or
+ * is nested beneath one at a segment boundary (`/verify-email/success`). A bare
+ * `startsWith` would over-match any future sibling route that merely shares a
+ * prefix (`/registered-devices`, `/terms-acceptance`, `/private`).
+ */
+export const isPublicPath = (pathname: string): boolean => {
+  const path =
+    pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+  return PUBLIC_PATHS.some(
+    (publicPath) =>
+      path === publicPath || (publicPath !== '/' && path.startsWith(`${publicPath}/`)),
+  );
+};
+
+// Session-expiry pub/sub. The interceptor lives outside React, so it can't call
+// hooks or the router. Instead of hard-navigating (`window.location.href`),
+// which reloads the whole SPA and destroys React state, it notifies subscribers;
+// AuthContext clears the user and ProtectedRoute performs the redirect with
+// <Navigate>, keeping navigation inside the router.
+type UnauthorizedListener = () => void;
+
+const unauthorizedListeners = new Set<UnauthorizedListener>();
+
+/** Subscribe to unauthorized (401) responses. Returns an unsubscribe function. */
+export const onUnauthorized = (listener: UnauthorizedListener): (() => void) => {
+  unauthorizedListeners.add(listener);
+  return () => {
+    unauthorizedListeners.delete(listener);
+  };
+};
+
+const emitUnauthorized = () => {
+  unauthorizedListeners.forEach((listener) => listener());
+};
+
 // Response interceptor: capture the rotating CSRF token, then handle errors.
 api.interceptors.response.use(
   (response) => {
@@ -52,21 +102,8 @@ api.interceptors.response.use(
   },
   (error) => {
     captureCsrfToken(error.response?.headers as Record<string, unknown> | undefined);
-    if (error.response?.status === 401) {
-      const publicPaths = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/terms', '/privacy'];
-      const currentPath = window.location.pathname;
-
-      // The landing page ('/') is public; match it exactly so an anonymous
-      // visitor isn't bounced to /login when the auth check 401s.
-      const isLandingPage = currentPath === '/';
-
-      // Use startsWith so that sub-paths (e.g. /verify-email/error/something)
-      // are also treated as public, preventing redirect loops.
-      const isPublicPath = publicPaths.some((p) => currentPath.startsWith(p));
-
-      if (!isLandingPage && !isPublicPath) {
-        window.location.href = '/login';
-      }
+    if (error.response?.status === 401 && !isPublicPath(window.location.pathname)) {
+      emitUnauthorized();
     }
     return Promise.reject(error);
   }
