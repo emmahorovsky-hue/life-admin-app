@@ -17,6 +17,8 @@ export interface Subscription {
   // Set when the user stops renewal. The sub stays active until nextRenewalDate
   // (frozen at cancel time), then is "ended". null = will renew normally.
   cancelledAt: string | null;
+  // Per-subscription opt-out from renewal reminders.
+  remindersMuted: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +41,7 @@ export interface UpdateSubscriptionData {
   renewalDate?: string;
   category?: string;
   notes?: string;
+  remindersMuted?: boolean;
 }
 
 // Fully-populated form state shared by the add / edit / review dialogs.

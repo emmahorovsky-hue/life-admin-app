@@ -139,6 +139,10 @@ router.patch(
       .trim()
       .isLength({ max: MAX_NOTES_LENGTH })
       .withMessage(`Notes must be at most ${MAX_NOTES_LENGTH} characters`),
+    body('remindersMuted')
+      .optional()
+      .isBoolean({ strict: true })
+      .withMessage('remindersMuted must be a boolean'),
   ],
   updateSubscription
 );

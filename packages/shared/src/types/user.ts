@@ -5,6 +5,9 @@ export interface User {
   surname: string | null;
   emailVerified: boolean;
   emailVerifiedAt: string | null;
+  reminderEmailsEnabled: boolean;
+  reminderPushEnabled: boolean;
+  timezone: string;
   createdAt: string;
   updatedAt: string;
 }

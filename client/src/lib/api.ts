@@ -123,7 +123,12 @@ export const resetPassword = async (token: string, password: string) => {
   return api.post('/auth/reset-password', { token, password });
 };
 
-export const updateProfile = async (data: { name?: string; surname?: string }) => {
+export const updateProfile = async (data: {
+  name?: string;
+  surname?: string;
+  reminderEmailsEnabled?: boolean;
+  timezone?: string;
+}) => {
   return api.patch<{ user: User }>('/auth/profile', data);
 };
 

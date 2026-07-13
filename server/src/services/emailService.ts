@@ -151,42 +151,64 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export async function sendRenewalReminderEmail({ to, subscriptionName, renewalDate, cost, currency, billingCycle, manageUrl }: {
-  to: string;
-  subscriptionName: string;
-  renewalDate: Date;
+export type DigestItem = {
+  name: string;
   cost: number;
   currency: string;
   billingCycle: string;
-  manageUrl?: string;
-}) {
-  const url = manageUrl ?? `${CLIENT_URL}/dashboard`;
-  const formattedDate = renewalDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-  const formattedCost = `${currency} ${cost.toFixed(2)}`;
+  renewalDate: Date;
+  daysUntil: number;
+};
+
+function daysUntilLabel(days: number): string {
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  return `in ${days} days`;
+}
+
+// One email per user per run covering every subscription due for a reminder,
+// instead of a separate email per subscription.
+export async function sendRenewalReminderDigest({ to, items }: { to: string; items: DigestItem[] }) {
+  const manageUrl = `${CLIENT_URL}/subscriptions`;
+  const formatDate = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const formatCost = (item: DigestItem) => `${item.currency} ${item.cost.toFixed(2)}`;
+
+  const subject = items.length === 1
+    ? `${items[0].name} renews ${daysUntilLabel(items[0].daysUntil)} (${formatCost(items[0])})`
+    : `${items.length} subscriptions renew soon`;
 
   if (!resend) {
-    console.log('[Email Service] Resend not configured. Would send renewal reminder to:', to);
-    console.log('[Email Service] Subscription:', subscriptionName, '| Renewal:', formattedDate);
+    console.log('[Email Service] Resend not configured. Would send renewal reminder digest to:', to);
+    console.log('[Email Service] Subscriptions:', items.map((i) => `${i.name} (${formatDate(i.renewalDate)})`).join(', '));
     return { id: 'mock-email-id' };
   }
 
-  const safeName = escapeHtml(subscriptionName);
-  const subject = `Your ${subscriptionName} subscription renews on ${formattedDate}`;
+  const rows = items
+    .map((item) => `
+        <tr>
+          <td style="padding: 8px 16px 8px 0; border-bottom: 1px dashed #CBC7C1;"><strong>${escapeHtml(item.name)}</strong><br><span style="color: #7F7B73; font-size: 12px;">${escapeHtml(item.billingCycle)}</span></td>
+          <td style="padding: 8px 16px 8px 0; border-bottom: 1px dashed #CBC7C1; white-space: nowrap;">${escapeHtml(formatCost(item))}</td>
+          <td style="padding: 8px 0; border-bottom: 1px dashed #CBC7C1; white-space: nowrap;">${formatDate(item.renewalDate)}<br><span style="color: #7F7B73; font-size: 12px;">renews ${daysUntilLabel(item.daysUntil)}</span></td>
+        </tr>`)
+    .join('');
+
   const html = buildEmailHtml({
-    heading: `Your ${safeName} subscription renews soon`,
+    heading: items.length === 1 ? `Your ${escapeHtml(items[0].name)} subscription renews soon` : `${items.length} of your subscriptions renew soon`,
     bodyHtml: `
-      <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.5;">This is a heads-up that your <strong>${safeName}</strong> subscription is due to renew on <strong>${formattedDate}</strong>.</p>
-      <table style="margin: 0 0 16px; font-size: 14px; color: #161616; border-collapse: collapse;">
-        <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Amount</td><td style="padding: 4px 0;"><strong>${escapeHtml(formattedCost)}</strong></td></tr>
-        <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Billing cycle</td><td style="padding: 4px 0;">${escapeHtml(billingCycle)}</td></tr>
-        <tr><td style="padding: 4px 16px 4px 0; color: #7F7B73;">Renewal date</td><td style="padding: 4px 0;">${formattedDate}</td></tr>
+      <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.5;">This is a heads-up about upcoming charges, so you have time to cancel anything you no longer need.</p>
+      <table style="margin: 0 0 16px; font-size: 14px; color: #161616; border-collapse: collapse; width: 100%;">${rows}
       </table>
     `,
     ctaText: 'Manage subscriptions',
-    ctaUrl: url,
-    footerNote: "You're receiving this because you have renewal reminders enabled on Paypr. To stop these, remove the subscription from your account.",
+    ctaUrl: manageUrl,
+    footerNote: `You're getting these because renewal reminders are on. You can turn them off or mute individual subscriptions in your <a href="${CLIENT_URL}/profile" style="color: #7F7B73;">profile settings</a>.`,
   });
-  const text = `Your ${subscriptionName} subscription renews on ${formattedDate}.\nAmount: ${formattedCost} (${billingCycle})\nManage your subscriptions: ${url}`;
+  const text = [
+    'Upcoming subscription renewals:',
+    ...items.map((item) => `- ${item.name}: ${formatCost(item)} (${item.billingCycle}), renews ${daysUntilLabel(item.daysUntil)} on ${formatDate(item.renewalDate)}`),
+    `Manage your subscriptions: ${manageUrl}`,
+    `Turn reminders off in your profile settings: ${CLIENT_URL}/profile`,
+  ].join('\n');
 
   const res = await resend!.emails.send({ from: FROM, to, subject, html, text });
   if (res.error) throw new Error(`${res.error.name}: ${res.error.message}`);

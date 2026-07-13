@@ -21,6 +21,9 @@ model User {
   deletionWarningSentAt DateTime?             // set when grace-period deletion warning email sent
   passwordChangedAt     DateTime?             // set on password reset; tokens issued before this are rejected
   sessionsValidFrom     DateTime?             // set on logout; tokens issued before this are rejected (LIF-174)
+  reminderEmailsEnabled Boolean @default(true)  // global toggle for renewal reminder emails
+  reminderPushEnabled   Boolean @default(true)  // global toggle for renewal reminder pushes (inert until push ships)
+  timezone              String  @default("UTC") // IANA name, auto-detected client-side; drives local-time delivery later
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
@@ -43,6 +46,7 @@ model Subscription {
   notes        String?  // Optional user notes
   isActive     Boolean  @default(true) // Soft delete (hard "delete" from tracking)
   cancelledAt  DateTime? // Set when the user stops renewal; null = will renew. Sub stays active until renewalDate, then is "ended".
+  remindersMuted Boolean @default(false) // per-subscription opt-out from renewal reminders
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   
@@ -58,9 +62,10 @@ model NotificationLog {
   userId         String
   subscriptionId String
   type           String   // "renewal_reminder"
+  channel        String   @default("email") // "email" | "push" — each channel dedups independently
   sentAt         DateTime @default(now())
   status         String   // "sent" | "failed"
-  renewalDate    DateTime? // renewal occurrence this reminder targeted — dedup key with subscriptionId+type
+  renewalDate    DateTime? // renewal occurrence this reminder targeted — dedup key with subscriptionId+type+channel
 
   @@index([userId])
   @@index([subscriptionId])

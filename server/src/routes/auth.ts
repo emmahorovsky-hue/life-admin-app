@@ -268,6 +268,23 @@ router.patch(
       .trim()
       .isLength({ max: MAX_NAME_LENGTH })
       .withMessage(`Surname must be at most ${MAX_NAME_LENGTH} characters`),
+    body('reminderEmailsEnabled')
+      .optional()
+      .isBoolean({ strict: true })
+      .withMessage('reminderEmailsEnabled must be a boolean'),
+    body('timezone')
+      .optional()
+      .isString()
+      .custom((tz: string) => {
+        // Accepts any zone the runtime knows, including aliases — broader than
+        // Intl.supportedValuesOf, which omits some legacy names browsers send.
+        try {
+          new Intl.DateTimeFormat('en', { timeZone: tz });
+          return true;
+        } catch {
+          throw new Error('Invalid timezone');
+        }
+      }),
   ],
   updateProfile
 );

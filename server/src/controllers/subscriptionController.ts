@@ -281,7 +281,7 @@ export const updateSubscription = async (
 
     const { id } = req.params;
     const subscriptionId = typeof id === 'string' ? id : id[0];
-    const { name, cost, currency, billingCycle, renewalDate, category, notes } =
+    const { name, cost, currency, billingCycle, renewalDate, category, notes, remindersMuted } =
       req.body;
 
     // Check if subscription exists, belongs to user, and isn't soft-deleted
@@ -312,6 +312,7 @@ export const updateSubscription = async (
     if (renewalDate !== undefined) data.renewalDate = new Date(renewalDate);
     if (category !== undefined) data.category = category;
     if (notes !== undefined) data.notes = notes;
+    if (remindersMuted !== undefined) data.remindersMuted = remindersMuted;
 
     const subscription = await prisma.subscription.update({
       where: { id: subscriptionId },

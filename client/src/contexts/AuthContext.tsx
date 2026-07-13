@@ -37,6 +37,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // redirects with <Navigate> — a router navigation, so React state survives.
   useEffect(() => onUnauthorized(() => setUser(null)), []);
 
+  // Keep the stored timezone in sync with the browser's, silently — it drives
+  // when renewal reminders are delivered. Best-effort: a failure just means
+  // reminders keep using the previously stored zone.
+  const userId = user?.id;
+  const userTimezone = user?.timezone;
+  useEffect(() => {
+    if (!userId) return;
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!detected || detected === userTimezone) return;
+    api
+      .patch('/auth/profile', { timezone: detected })
+      .then((response) => setUser(response.data.user))
+      .catch(() => {
+        // Ignored on purpose — timezone sync must never surface an error.
+      });
+  }, [userId, userTimezone]);
+
   const login = async (email: string, password: string) => {
     const response = await api.post('/auth/login', { email, password });
     setUser(response.data.user);

@@ -12,6 +12,7 @@ import { formatCurrency } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { categoryIconFor } from '@/lib/subscriptionLogo';
@@ -57,6 +58,9 @@ export interface SubscriptionModalProps {
   onCancelRenewal?: () => void;
   onResume?: () => void;
   onDelete?: () => void;
+  /** Per-subscription reminder mute (edit mode; rendered only when the handler is provided). */
+  remindersMuted?: boolean;
+  onRemindersMutedChange?: (muted: boolean) => void;
 }
 
 // Segmented billing control — 4 canonical cycles. Legacy 'annual' maps to 'yearly'.
@@ -138,6 +142,8 @@ export default function SubscriptionModal({
   onCancelRenewal,
   onResume,
   onDelete,
+  remindersMuted = false,
+  onRemindersMutedChange,
 }: SubscriptionModalProps) {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [confirm, setConfirm] = useState<null | 'cancel' | 'delete'>(null);
@@ -406,6 +412,24 @@ export default function SubscriptionModal({
             />
             {renderHint('notes')}
           </div>
+
+          {/* Renewal reminders (edit mode) */}
+          {onRemindersMutedChange && (
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <FieldLabel>Renewal reminders</FieldLabel>
+                <p className="text-[13px] text-muted-foreground">
+                  Include this subscription in reminder emails before it renews.
+                </p>
+              </div>
+              <Switch
+                aria-label="Renewal reminders"
+                checked={!remindersMuted}
+                disabled={loading}
+                onCheckedChange={(enabled) => onRemindersMutedChange(!enabled)}
+              />
+            </div>
+          )}
         </div>
 
         {error && (
