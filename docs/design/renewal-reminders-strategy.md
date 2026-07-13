@@ -69,6 +69,10 @@ duplicate risk.
 - `User.reminderPushEnabled` (default `true`) — inert until Phase 3; stored now so the
   push rollout needs no migration.
 - `User.timezone` (default `"UTC"`) — IANA name, silently synced from the browser.
+  ⚠️ Phase 2's manual override dropdown conflicts with this sync as-is: the web client
+  re-syncs on every load, so it would clobber a manually chosen zone whenever it differs
+  from the browser's. Phase 2 must add a "set manually" marker (e.g.
+  `User.timezoneSetManually`) and skip the auto-sync when it's set.
 - `Subscription.remindersMuted` (default `false`) — per-subscription mute for the "I know,
   stop telling me" case, editable in the subscription edit dialog.
 
