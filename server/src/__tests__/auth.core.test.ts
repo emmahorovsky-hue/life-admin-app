@@ -55,9 +55,12 @@ describe('Core auth endpoints (LIF-128)', () => {
         surname: null,
         emailVerified: false,
         emailVerifiedAt: null,
+        passwordChangedAt: null,
         reminderEmailsEnabled: true,
         reminderPushEnabled: true,
         timezone: 'UTC',
+        theme: 'light',
+        defaultCurrency: 'SGD',
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });

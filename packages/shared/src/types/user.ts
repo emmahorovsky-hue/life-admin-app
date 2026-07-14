@@ -1,3 +1,5 @@
+import type { Theme } from './preferences';
+
 export interface User {
   id: string;
   email: string;
@@ -5,9 +7,12 @@ export interface User {
   surname: string | null;
   emailVerified: boolean;
   emailVerifiedAt: string | null;
+  passwordChangedAt: string | null;
   reminderEmailsEnabled: boolean;
   reminderPushEnabled: boolean;
   timezone: string;
+  theme: Theme;
+  defaultCurrency: string;
   createdAt: string;
   updatedAt: string;
 }

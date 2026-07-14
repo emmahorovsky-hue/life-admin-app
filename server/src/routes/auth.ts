@@ -19,6 +19,8 @@ import {
 import { authenticateToken } from '../middleware/auth';
 import { logSecurityEvent } from '../utils/securityLog';
 import { MAX_NAME_LENGTH } from '../constants/validation';
+import { THEMES } from '@life-admin/shared';
+import { currencies } from '../constants/subscriptions';
 
 const router = express.Router();
 
@@ -285,6 +287,14 @@ router.patch(
           throw new Error('Invalid timezone');
         }
       }),
+    body('theme')
+      .optional()
+      .isIn(THEMES)
+      .withMessage(`theme must be one of: ${THEMES.join(', ')}`),
+    body('defaultCurrency')
+      .optional()
+      .isIn(currencies)
+      .withMessage(`defaultCurrency must be one of: ${currencies.join(', ')}`),
   ],
   updateProfile
 );

@@ -11,6 +11,7 @@ import { initiateEmailChange, consumeEmailChangeToken } from '../services/emailC
 import { registerDeviceToken } from '../services/deviceTokenService';
 import { reportServerError } from '../utils/reportError';
 import { logSecurityEvent } from '../utils/securityLog';
+import { PUBLIC_USER_SELECT, toPublicUser } from '../constants/user';
 
 // The frontend (Vercel) and backend (Railway) are served from different sites
 // in production, so the auth cookie must be SameSite=None to be sent on the
@@ -67,21 +68,7 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
         password: hashedPassword,
         name,
       },
-      // Keep this select in sync with login/getMe so all auth paths return the
-      // full shared `User` shape (LIF-132).
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        surname: true,
-        emailVerified: true,
-        emailVerifiedAt: true,
-        reminderEmailsEnabled: true,
-        reminderPushEnabled: true,
-        timezone: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: PUBLIC_USER_SELECT,
     });
 
     // Issue email verification token and send email. Await token creation
@@ -194,19 +181,7 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
     res.status(200).json({
       message: 'Login successful',
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        surname: user.surname,
-        emailVerified: user.emailVerified,
-        emailVerifiedAt: user.emailVerifiedAt,
-        reminderEmailsEnabled: user.reminderEmailsEnabled,
-        reminderPushEnabled: user.reminderPushEnabled,
-        timezone: user.timezone,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      user: toPublicUser(user),
     });
   } catch (error) {
     reportServerError('Login error', error);
@@ -289,19 +264,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        surname: true,
-        emailVerified: true,
-        emailVerifiedAt: true,
-        reminderEmailsEnabled: true,
-        reminderPushEnabled: true,
-        timezone: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: PUBLIC_USER_SELECT,
     });
 
     if (!user) {
@@ -461,7 +424,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    const { name, surname, reminderEmailsEnabled, timezone } = req.body;
+    const { name, surname, reminderEmailsEnabled, timezone, theme, defaultCurrency } = req.body;
 
     const user = await prisma.user.update({
       where: { id: req.user.userId },
@@ -470,20 +433,10 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
         surname: surname ?? undefined,
         reminderEmailsEnabled: reminderEmailsEnabled ?? undefined,
         timezone: timezone ?? undefined,
+        theme: theme ?? undefined,
+        defaultCurrency: defaultCurrency ?? undefined,
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        surname: true,
-        emailVerified: true,
-        emailVerifiedAt: true,
-        reminderEmailsEnabled: true,
-        reminderPushEnabled: true,
-        timezone: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: PUBLIC_USER_SELECT,
     });
 
     res.status(200).json({ user });
