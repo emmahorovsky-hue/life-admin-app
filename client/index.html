@@ -42,6 +42,22 @@
     <meta name="twitter:image" content="https://paypr.live/og-image.png" />
   </head>
   <body>
+    <!-- FOUC guard: apply the cached theme before first paint. Mirrors
+         ThemeProvider (src/contexts/ThemeContext.tsx) — keep the key and the
+         resolution logic in sync. -->
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('paypr-theme');
+          var dark =
+            theme === 'dark' ||
+            (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          /* default to light */
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

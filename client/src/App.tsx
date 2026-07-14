@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 // Landing is the marketing entry point ('/') — eager-import it so it paints on
@@ -39,6 +40,9 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 function App() {
   return (
     <AuthProvider>
+      {/* ThemeProvider sits under AuthProvider so it can adopt the server
+          theme preference, and above Router so every route is themed. */}
+      <ThemeProvider>
       <Router>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
@@ -107,6 +111,7 @@ function App() {
         </Suspense>
       </Router>
       <Toaster />
+      </ThemeProvider>
     </AuthProvider>
   );
 }
