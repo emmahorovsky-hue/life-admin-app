@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth';
+import accountRoutes from './routes/account';
 import subscriptionRoutes from './routes/subscriptions';
 import dashboardRoutes from './routes/dashboard';
 import { errorHandler } from './middleware/errorHandler';
@@ -131,6 +132,7 @@ app.get('/health', (req, res) => {
 // API; auth routes layer their own tighter per-endpoint limiters on top.
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
+app.use('/api/account', accountRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 

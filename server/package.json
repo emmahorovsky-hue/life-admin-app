@@ -36,8 +36,8 @@
     "@sentry/node": "^10.65.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
-    "date-fns": "^4.4.0",
     "cors": "^2.8.5",
+    "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
     "expo-server-sdk": "^6.1.0",
     "express": "^5.2.1",
@@ -48,7 +48,8 @@
     "multer": "^2.2.0",
     "node-cron": "^4.6.0",
     "prisma": "^5.22.0",
-    "resend": "^6.17.2"
+    "resend": "^6.17.2",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",

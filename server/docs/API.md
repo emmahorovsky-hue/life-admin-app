@@ -214,6 +214,43 @@ Clear JWT cookie and end session.
 
 ---
 
+## Account Endpoints
+
+Self-only: identity always comes from the auth token, never the URL.
+
+### Upload Avatar
+
+**POST** `/api/account/avatar`
+
+Upload a profile photo as `multipart/form-data` field `file`. JPG or PNG, max 2 MB. The image is re-encoded server-side to a 256×256 WebP; the response user's `avatarUpdatedAt` doubles as the cache-buster for the GET below.
+
+**Authentication required:** Yes (rate limited: 20 uploads / 15 min)
+
+**Response (200):** `{ "user": { "...": "full public user" } }`
+
+**Error responses:**
+- `400`: `FILE_TOO_LARGE` | `UNSUPPORTED_FILE_TYPE` | `INVALID_IMAGE` | `NO_FILE`
+- `401 Unauthorized`: Not authenticated
+- `429`: `RATE_LIMITED`
+
+### Get Avatar
+
+**GET** `/api/account/avatar`
+
+Serves the authenticated user's avatar (`image/webp`) with an `ETag`; supports `If-None-Match` → `304`. `Cache-Control: private, max-age=0, must-revalidate`.
+
+**Error responses:**
+- `404`: `NO_AVATAR`
+- `401 Unauthorized`: Not authenticated
+
+### Delete Avatar
+
+**DELETE** `/api/account/avatar`
+
+Removes the avatar. Idempotent — returns `200` with the fresh user either way.
+
+---
+
 ## Subscription Endpoints
 
 All subscription endpoints require authentication.
