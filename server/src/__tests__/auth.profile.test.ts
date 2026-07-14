@@ -325,6 +325,9 @@ describe('Auth Profile Endpoints', () => {
 
       expect(res.status).toBe(302);
       expect(res.headers.location).toContain('emailChanged=true');
+      // Web confirmations land on the Settings account tab (LIF-181/LIF-190).
+      expect(res.headers.location).toContain('settings/account');
+      expect(res.headers.location).not.toContain('/profile');
       expect(res.headers['referrer-policy']).toBe('no-referrer');
 
       const updated = await prisma.user.findUnique({ where: { id: user.id } });
@@ -386,6 +389,20 @@ describe('Auth Profile Endpoints', () => {
 
       const updated = await prisma.user.findUnique({ where: { id: user.id } });
       expect(updated!.email).toBe('mover@example.com'); // unchanged
+    });
+
+    it('keeps the mobile deep link on the profile screen', async () => {
+      const user = await createUser('m-old@example.com');
+      const raw = await seedEmailChangeToken(user.id, 'm-new@example.com');
+
+      const res = await request(app).get(
+        `/api/auth/verify-email-change?token=${raw}&platform=mobile`
+      );
+
+      expect(res.status).toBe(302);
+      // The Expo app routes to `profile`; only web moved to settings/account.
+      expect(res.headers.location).toContain('profile?emailChanged=true');
+      expect(res.headers.location).not.toContain('settings/account');
     });
   });
 });

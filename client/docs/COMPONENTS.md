@@ -16,7 +16,11 @@ App (Root)
 │   │   │   ├── SubscriptionList
 │   │   │   │   └── SubscriptionItem
 │   │   │   └── AddSubscriptionDialog
-│   │   └── Profile
+│   │   └── SettingsShell (/settings)
+│   │       ├── AccountPanel (+ Edit name / Change email / Change password dialogs)
+│   │       ├── NotificationsPanel
+│   │       ├── AppearancePanel
+│   │       └── PrivacyPanel (Delete account)
 │   ├── Login
 │   ├── Register
 │   └── NotFound

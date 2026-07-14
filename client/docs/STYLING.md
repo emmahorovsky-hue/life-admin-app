@@ -1,5 +1,13 @@
 # Design System & Styling Guide
 
+> ⚠️ **Outdated — do not trust the specifics below.** This documents an earlier
+> direction (Inter font, indigo/teal palette) that predates the shipped
+> **receipt aesthetic** (Archivo + Space Mono, brand orange `#E53D00`, 2px
+> radius, dashed/dotted rules). The source of truth is
+> `client/src/index.css` + `client/tailwind.config.js`, with live examples in
+> `client/src/pages/DesignSystem.tsx`. This file is kept only for its
+> general Tailwind/shadcn conventions.
+
 Complete design system documentation for Life Admin App frontend.
 
 ## Overview
