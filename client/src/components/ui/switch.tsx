@@ -7,6 +7,9 @@ export interface SwitchProps
   onCheckedChange: (checked: boolean) => void;
 }
 
+// Receipt-style toggle (design 1D): 44×24 track with a 1.5px border and the
+// system's sharp 2px corners — on = orange track/white knob, off = sand
+// track/ink knob.
 const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
   ({ className, checked, onCheckedChange, disabled, ...props }, ref) => (
     <button
@@ -17,16 +20,16 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-        checked ? "bg-primary" : "bg-input",
+        "inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-[2px] border-[1.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+        checked ? "border-brand-orange bg-brand-orange" : "border-border bg-secondary",
         className
       )}
       {...props}
     >
       <span
         className={cn(
-          "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform",
-          checked ? "translate-x-5" : "translate-x-0"
+          "pointer-events-none block h-4 w-4 rounded-[1px] transition-transform",
+          checked ? "translate-x-[23px] bg-[#FAFAF8]" : "translate-x-[2px] bg-primary"
         )}
       />
     </button>
