@@ -13,6 +13,7 @@ export interface User {
   timezone: string;
   theme: Theme;
   defaultCurrency: string;
+  avatarUpdatedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -61,6 +61,7 @@ describe('Core auth endpoints (LIF-128)', () => {
         timezone: 'UTC',
         theme: 'light',
         defaultCurrency: 'SGD',
+        avatarUpdatedAt: null,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });

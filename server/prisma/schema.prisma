@@ -34,6 +34,16 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   emailChangeTokens       EmailChangeToken[]
   deviceTokens            DeviceToken[]
+  avatar                  UserAvatar?
+}
+
+model UserAvatar {
+  userId    String   @id
+  data      Bytes    // processed server-side to a small square WebP; never the raw upload
+  mimeType  String   // always "image/webp" after processing; stored for forward-compat
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Subscription {

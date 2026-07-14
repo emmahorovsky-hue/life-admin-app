@@ -92,7 +92,7 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
     res.status(201).json({
       message: 'User registered successfully',
       token,
-      user,
+      user: toPublicUser(user),
     });
   } catch (error) {
     // Concurrent registrations with the same email can both pass the existence
@@ -136,9 +136,11 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
 
     const { email, password } = req.body;
 
-    // Find user
+    // Find user — full row (the password hash is needed for the comparison
+    // below); toPublicUser picks only the public fields for the response.
     const user = await prisma.user.findUnique({
       where: { email },
+      include: { avatar: { select: { updatedAt: true } } },
     });
 
     if (!user) {
@@ -277,7 +279,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
 
-    res.status(200).json({ user });
+    res.status(200).json({ user: toPublicUser(user) });
   } catch (error) {
     reportServerError('GetMe error', error);
     res.status(500).json({
@@ -439,7 +441,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
       select: PUBLIC_USER_SELECT,
     });
 
-    res.status(200).json({ user });
+    res.status(200).json({ user: toPublicUser(user) });
   } catch (error) {
     reportServerError('Update profile error', error);
     res.status(500).json({ error: { message: 'Failed to update profile', code: 'UPDATE_PROFILE_FAILED' } });
