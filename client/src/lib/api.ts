@@ -141,3 +141,24 @@ export const changePassword = async (data: { currentPassword: string; newPasswor
 export const initiateEmailChange = async (data: { email: string }) => {
   return api.post('/auth/change-email', data);
 };
+
+// Same origin as the axios base so the auth cookie rides along on the <img>
+// request (same-origin via the Vite proxy / Vercel rewrite).
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api') as string;
+
+/** Full URL for the current user's avatar image, cache-busted by its version. */
+export const avatarUrl = (version: string) =>
+  `${API_BASE_URL}/account/avatar?v=${encodeURIComponent(version)}`;
+
+export const uploadAvatar = async (file: File) => {
+  const form = new FormData();
+  form.append('file', file);
+  // Let the browser set the multipart boundary; overriding Content-Type breaks it.
+  return api.post<{ user: User }>('/account/avatar', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+export const deleteAvatar = async () => {
+  return api.delete<{ user: User }>('/account/avatar');
+};
