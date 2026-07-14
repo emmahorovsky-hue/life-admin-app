@@ -37,7 +37,7 @@ export function PaperSheet<T extends ElementType = 'div'>({
   const Component: ElementType = as ?? 'div';
   return (
     <Component
-      className={cn('relative overflow-hidden rounded-[3px] border border-black/[0.06]', className)}
+      className={cn('paper-light relative overflow-hidden rounded-[3px] border border-black/[0.06] text-foreground', className)}
       style={{ backgroundColor: tint, boxShadow: PAPER_SHADOW, ...style }}
       {...rest}
     >
