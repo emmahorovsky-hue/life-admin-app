@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -18,7 +18,20 @@ const VerifyEmailSuccess = lazy(() => import('./pages/VerifyEmailSuccess'));
 const VerifyEmailError = lazy(() => import('./pages/VerifyEmailError'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-const Profile = lazy(() => import('./pages/Profile'));
+// /profile was replaced by /settings (LIF-181). Keep redirecting forever —
+// bookmarks and email-change confirmations target it — and preserve the query
+// string, which carries the confirmation outcome AccountPanel reads.
+export function ProfileRedirect() {
+  const location = useLocation();
+  return <Navigate to={{ pathname: '/settings/account', search: location.search }} replace />;
+}
+
+const SettingsShell = lazy(() => import('./pages/settings/SettingsShell'));
+const SettingsIndexOrRedirect = lazy(() => import('./pages/settings/SettingsIndexOrRedirect'));
+const AccountPanel = lazy(() => import('./pages/settings/AccountPanel'));
+const NotificationsPanel = lazy(() => import('./pages/settings/NotificationsPanel'));
+const AppearancePanel = lazy(() => import('./pages/settings/AppearancePanel'));
+const PrivacyPanel = lazy(() => import('./pages/settings/PrivacyPanel'));
 const DesignSystem = lazy(() => import('./pages/DesignSystem'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
@@ -66,15 +79,24 @@ function App() {
               }
             />
             <Route
-              path="/profile"
+              path="/settings"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <Profile />
+                    <SettingsShell />
                   </Layout>
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route index element={<SettingsIndexOrRedirect />} />
+              <Route path="account" element={<AccountPanel />} />
+              <Route path="notifications" element={<NotificationsPanel />} />
+              <Route path="appearance" element={<AppearancePanel />} />
+              <Route path="privacy" element={<PrivacyPanel />} />
+            </Route>
+            {/* Permanent redirect: bookmarks and email-change confirmation
+                links (web + already-sent emails) still target /profile. */}
+            <Route path="/profile" element={<ProfileRedirect />} />
             {import.meta.env.DEV && (
               <Route path="/design-system" element={<DesignSystem />} />
             )}
