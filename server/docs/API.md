@@ -156,6 +156,44 @@ Get authenticated user's profile.
 
 ---
 
+### Update Profile
+
+**PATCH** `/api/auth/profile`
+
+Update the authenticated user's profile and preferences. All fields optional; only sent fields are changed.
+
+**Authentication required:** Yes
+
+**Request body:**
+```json
+{
+  "name": "John",
+  "surname": "Doe",
+  "reminderEmailsEnabled": true,
+  "timezone": "Asia/Singapore",
+  "theme": "dark",
+  "defaultCurrency": "EUR"
+}
+```
+
+- `theme`: one of `light` | `dark` | `system`
+- `defaultCurrency`: one of the shared supported currencies (`USD` | `EUR` | `GBP` | `SGD`)
+- `timezone`: any IANA zone the runtime recognizes
+- `reminderEmailsEnabled`: strict boolean
+
+**Response (200):**
+```json
+{
+  "user": { "...": "full public user, same shape as GET /api/auth/me" }
+}
+```
+
+**Error responses:**
+- `400 Bad Request`: Validation failed (`VALIDATION_ERROR`)
+- `401 Unauthorized`: Not authenticated
+
+---
+
 ### Logout
 
 **POST** `/api/auth/logout`

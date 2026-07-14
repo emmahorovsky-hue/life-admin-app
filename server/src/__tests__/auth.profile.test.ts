@@ -157,6 +157,61 @@ describe('Auth Profile Endpoints', () => {
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
+
+    it('updates theme and default currency', async () => {
+      const user = await createUser();
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ theme: 'dark', defaultCurrency: 'EUR' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.theme).toBe('dark');
+      expect(res.body.user.defaultCurrency).toBe('EUR');
+
+      const updated = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(updated!.theme).toBe('dark');
+      expect(updated!.defaultCurrency).toBe('EUR');
+    });
+
+    it('returns preference defaults and passwordChangedAt when only other fields are sent', async () => {
+      const user = await createUser();
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ name: 'Ada' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.theme).toBe('light');
+      expect(res.body.user.defaultCurrency).toBe('SGD');
+      expect(res.body.user.passwordChangedAt).toBeNull();
+    });
+
+    it('rejects an unknown theme', async () => {
+      const user = await createUser();
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ theme: 'blue' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects a currency outside the supported list', async () => {
+      const user = await createUser();
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ defaultCurrency: 'SEK' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
   });
 
   describe('POST /api/auth/change-password', () => {

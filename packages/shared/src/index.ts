@@ -1,4 +1,5 @@
 export * from './types/user';
+export * from './types/preferences';
 export * from './types/subscription';
 export * from './types/dashboard';
 export * from './constants/subscriptions';

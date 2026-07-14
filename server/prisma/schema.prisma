@@ -24,6 +24,8 @@ model User {
   reminderEmailsEnabled Boolean @default(true)  // global toggle for renewal reminder emails
   reminderPushEnabled   Boolean @default(true)  // global toggle for renewal reminder pushes (inert until push ships)
   timezone              String  @default("UTC") // IANA name, auto-detected client-side; drives local-time delivery later
+  theme                 String  @default("light") // UI theme: "light" | "dark" | "system"
+  defaultCurrency       String  @default("SGD")  // preferred display/new-subscription currency; one of shared `currencies`
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
