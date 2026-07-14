@@ -31,6 +31,19 @@ const emails = [
     }),
   },
   {
+    name: 'account-deleted',
+    html: buildEmailHtml({
+      heading: 'Your account has been deleted',
+      bodyHtml: `
+        <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.5;">Your Paypr account and all of its data — subscriptions, reminders, and settings — have been permanently deleted, as you requested.</p>
+        <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5;">Thanks for giving Paypr a try. If you change your mind, you're always welcome to create a new account.</p>
+      `,
+      ctaText: 'Back to Paypr',
+      ctaUrl: 'http://localhost:3000',
+      footerNote: "If you didn't request this deletion, please contact us immediately by replying to this email.",
+    }),
+  },
+  {
     name: 'password-reset',
     html: buildEmailHtml({
       heading: 'Reset your password',

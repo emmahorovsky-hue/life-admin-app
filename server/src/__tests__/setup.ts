@@ -24,6 +24,7 @@ jest.mock('../services/emailService', () => ({
   ...jest.requireActual('../services/emailService'),
   sendVerificationEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
   sendDeletionWarningEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
+  sendAccountDeletedEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
   sendEmailChangeVerificationEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
   sendEmailChangedNoticeEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
   sendPasswordResetEmail: jest.fn().mockResolvedValue({ id: 'test-email-id' }),
