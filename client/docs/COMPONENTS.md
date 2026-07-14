@@ -24,6 +24,17 @@ App (Root)
 
 ## Base Components
 
+### Toaster (toasts)
+
+Global toast region (`client/src/components/ui/toaster.tsx`, wraps [sonner](https://sonner.emilkowal.ski/)), mounted once in `App.tsx` and styled to the receipt aesthetic (2px corners, ink border, paper surface). Fire from anywhere:
+
+```tsx
+import { toast } from 'sonner';
+
+toast.success('Settings saved');
+toast.error('Could not save. Please try again.');
+```
+
 ### Layout
 
 Main layout component wrapping all pages.
