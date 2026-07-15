@@ -26,8 +26,7 @@ export default function SettingsShell() {
     <div>
       {/* Desktop: title + top tab bar */}
       <div className="hidden md:block">
-        {/* Matches the page heading on Dashboard/Subscriptions/Timeline. */}
-        <h2 className="text-3xl font-bold">
+        <h2 className="text-[32px] font-extrabold tracking-tight">
           Settings<span className="text-brand-orange">.</span>
         </h2>
         <nav aria-label="Settings sections" className="mt-5 flex gap-7 border-b-[1.5px] border-border">
@@ -69,7 +68,7 @@ export default function SettingsShell() {
           >
             <ChevronLeft className="h-6 w-6" />
           </Link>
-          <h2 className="text-[17px] font-bold">
+          <h2 className="text-[17px] font-extrabold">
             {tab.label}
             <span className="text-brand-orange">.</span>
           </h2>
