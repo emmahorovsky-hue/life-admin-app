@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Camera } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Camera, Pencil, Upload, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { avatarUrl, uploadAvatar, deleteAvatar } from '@/lib/api';
@@ -17,25 +17,55 @@ const sizes = {
 
 interface AvatarTileProps {
   size?: keyof typeof sizes;
-  /** Show the "Remove photo" affordance under the tile when an avatar exists. */
-  allowRemove?: boolean;
   className?: string;
 }
 
 /**
- * Ink initials tile with the orange camera badge — the design's only photo
- * control (LIF-187). The badge opens the file picker; uploads and removals go
- * through the account avatar endpoints and refresh the user.
+ * Ink initials tile with the orange photo badge — the design's only photo
+ * control (LIF-187). With no photo the badge is a camera that opens the file
+ * picker directly. Once the user has their own photo the badge becomes a pencil
+ * that opens a small menu (Upload new photo / Remove photo — LIF-192). Uploads
+ * and removals go through the account avatar endpoints and refresh the user.
  */
-export function AvatarTile({ size = 'lg', allowRemove = false, className }: AvatarTileProps) {
+export function AvatarTile({ size = 'lg', className }: AvatarTileProps) {
   const { user, updateUser } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const s = sizes[size];
 
   const version = user?.avatarUpdatedAt ?? null;
   const showImage = Boolean(version) && !imgError;
+
+  // Close the edit menu on outside pointer or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
+
+  const openPicker = () => {
+    setMenuOpen(false);
+    inputRef.current?.click();
+  };
+
+  const handleBadgeClick = () => {
+    // Pristine tile → straight to the picker; own photo → the edit menu.
+    if (showImage) setMenuOpen((v) => !v);
+    else openPicker();
+  };
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
@@ -61,6 +91,7 @@ export function AvatarTile({ size = 'lg', allowRemove = false, className }: Avat
   };
 
   const handleRemove = async () => {
+    setMenuOpen(false);
     setBusy(true);
     try {
       const res = await deleteAvatar();
@@ -74,59 +105,82 @@ export function AvatarTile({ size = 'lg', allowRemove = false, className }: Avat
   };
 
   return (
-    <div className={cn('flex shrink-0 flex-col items-center gap-1.5', className)}>
-      <div className="relative">
-        <div
-          className={cn(
-            'flex items-center justify-center overflow-hidden rounded-[2px] bg-primary font-extrabold text-primary-foreground',
-            s.tile
-          )}
-        >
-          {showImage && version ? (
-            <img
-              key={version}
-              src={avatarUrl(version)}
-              alt="Your profile photo"
-              className="h-full w-full object-cover"
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            getInitials(user)
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={busy}
-          aria-label="Change photo"
-          className={cn(
-            'absolute -bottom-1.5 -right-1.5 flex items-center justify-center rounded-[2px] border-2 border-white bg-brand-orange text-[#FAFAF8] disabled:opacity-60 dark:border-card',
-            s.badge
-          )}
-        >
-          <Camera className={s.badgeIcon} strokeWidth={2} />
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png"
-          className="hidden"
-          onChange={(e) => {
-            void handleFile(e.target.files?.[0]);
-            // Allow re-selecting the same file after a failed/removed upload.
-            e.target.value = '';
-          }}
-        />
+    <div className={cn('relative shrink-0', className)} ref={menuRef}>
+      <div
+        className={cn(
+          'flex items-center justify-center overflow-hidden rounded-[2px] bg-primary font-extrabold text-primary-foreground',
+          s.tile
+        )}
+      >
+        {showImage && version ? (
+          <img
+            key={version}
+            src={avatarUrl(version)}
+            alt="Your profile photo"
+            className="h-full w-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          getInitials(user)
+        )}
       </div>
-      {allowRemove && showImage && (
-        <button
-          type="button"
-          onClick={handleRemove}
-          disabled={busy}
-          className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground hover:text-foreground disabled:opacity-60"
+      <button
+        type="button"
+        onClick={handleBadgeClick}
+        disabled={busy}
+        aria-label={showImage ? 'Edit photo' : 'Add photo'}
+        aria-haspopup={showImage ? 'menu' : undefined}
+        aria-expanded={showImage ? menuOpen : undefined}
+        className={cn(
+          'absolute -bottom-1.5 -right-1.5 flex items-center justify-center rounded-[2px] border-2 border-white bg-brand-orange text-[#FAFAF8] disabled:opacity-60 dark:border-card',
+          s.badge
+        )}
+      >
+        {showImage ? (
+          <Pencil className={s.badgeIcon} strokeWidth={2} />
+        ) : (
+          <Camera className={s.badgeIcon} strokeWidth={2} />
+        )}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png"
+        className="hidden"
+        onChange={(e) => {
+          void handleFile(e.target.files?.[0]);
+          // Allow re-selecting the same file after a failed/removed upload.
+          e.target.value = '';
+        }}
+      />
+
+      {showImage && menuOpen && (
+        <div
+          role="menu"
+          aria-label="Photo options"
+          className="absolute left-1/2 top-full z-40 mt-2 w-44 -translate-x-1/2 overflow-hidden rounded-[2px] border border-foreground bg-card py-1 shadow-2xl"
         >
-          Remove photo
-        </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={openPicker}
+            disabled={busy}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-secondary disabled:opacity-60"
+          >
+            <Upload className="h-4 w-4 shrink-0 text-muted-foreground" />
+            Upload new photo
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={handleRemove}
+            disabled={busy}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
+          >
+            <Trash2 className="h-4 w-4 shrink-0" />
+            Remove photo
+          </button>
+        </div>
       )}
     </div>
   );
