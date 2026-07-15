@@ -23,17 +23,17 @@ export type SubscriptionModalMode = 'add' | 'edit';
 export type EditStatus = 'active' | 'cancelling' | 'ended';
 
 /**
- * className for the shadcn <DialogContent> that hosts this two-pane modal.
+ * className for the <DialogContent> that hosts this two-pane modal.
  * Below 720px (same breakpoint as the pane stack) it's a full-screen sheet:
  * fills the viewport with square corners so it sits flush to the edges. At
  * ≥720px it becomes the centered floating card — widens to 800px, caps at
- * 90dvh, rounds the corners, and gets the warm shadow (a one-off value — not
- * a design-system token). `max-w-none` overrides the base `max-w-lg` so the
- * mobile sheet fills the width on tablets too. Padding is dropped and panes
- * clipped in both layouts.
+ * 90dvh, and takes the shared modal chrome (ink hairline border, 2px corners,
+ * `shadow-2xl`) so it matches the Settings/AppDialog surfaces. `max-w-none`
+ * overrides the base `max-w-lg` so the mobile sheet fills the width on tablets
+ * too. Padding is dropped and panes clipped in both layouts.
  */
 export const SUBSCRIPTION_MODAL_CONTENT_CLASS =
-  'h-dvh w-full max-w-none rounded-none overflow-y-auto overflow-x-hidden p-0 shadow-[0_26px_58px_rgba(73,60,74,.32),0_6px_16px_rgba(40,33,20,.10)] min-[720px]:h-auto min-[720px]:max-h-[90dvh] min-[720px]:max-w-[800px] min-[720px]:rounded-lg';
+  'h-dvh w-full max-w-none rounded-none overflow-y-auto overflow-x-hidden p-0 shadow-2xl min-[720px]:h-auto min-[720px]:max-h-[90dvh] min-[720px]:max-w-[800px] min-[720px]:rounded-[2px] min-[720px]:border-foreground';
 
 export interface SubscriptionModalProps {
   mode: SubscriptionModalMode;
@@ -201,17 +201,22 @@ export default function SubscriptionModal({
     <div className="flex flex-col min-[720px]:flex-row">
       {/* ── Left pane: form ─────────────────────────────────────────────── */}
       <form onSubmit={handleFormSubmit} className="flex min-w-0 flex-1 flex-col">
-        {/* Header */}
-        <div className="border-perf flex items-start justify-between px-[22px] pb-3.5 pt-5">
-          <h2 className="text-[22px] font-extrabold tracking-tight text-foreground">{title}</h2>
-          <button
+        {/* Header — shared modal chrome: orange-period title + icon-only close */}
+        <div className="border-perf flex items-start justify-between gap-4 px-[22px] pb-3.5 pt-5">
+          <h2 className="text-[22px] font-extrabold tracking-tight text-foreground">
+            {title.replace(/\.$/, '')}
+            <span className="text-brand-orange">.</span>
+          </h2>
+          <Button
             type="button"
+            variant="outline"
+            size="icon"
             onClick={onDismiss}
             aria-label="Close"
-            className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground transition-colors hover:bg-secondary"
+            className="h-8 w-8 -mr-1 shrink-0"
           >
-            <X size={15} strokeWidth={2} />
-          </button>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         {banner && <div className="px-[22px] pt-4">{banner}</div>}
