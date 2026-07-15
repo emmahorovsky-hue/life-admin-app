@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { User } from '@life-admin/shared';
+import type { User, Theme } from '@life-admin/shared';
 
 export type { User, AuthResponse, ErrorResponse } from '@life-admin/shared';
 
@@ -128,6 +128,8 @@ export const updateProfile = async (data: {
   surname?: string;
   reminderEmailsEnabled?: boolean;
   timezone?: string;
+  theme?: Theme;
+  defaultCurrency?: string;
 }) => {
   return api.patch<{ user: User }>('/auth/profile', data);
 };
