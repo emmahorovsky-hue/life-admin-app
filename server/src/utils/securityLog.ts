@@ -33,7 +33,9 @@ export type SecurityEventType =
   | 'auth.email_change.requested'
   | 'auth.email_change.completed'
   | 'auth.email_change.failed'
-  | 'auth.rate_limit.exceeded';
+  | 'auth.rate_limit.exceeded'
+  | 'account.deleted'
+  | 'account.delete_failed';
 
 export interface SecurityEventDetails {
   userId?: string;
@@ -58,6 +60,7 @@ const FAILURE_EVENTS: ReadonlySet<SecurityEventType> = new Set([
   'auth.email_verification.failure',
   'auth.email_change.failed',
   'auth.rate_limit.exceeded',
+  'account.delete_failed',
 ]);
 
 export function logSecurityEvent(

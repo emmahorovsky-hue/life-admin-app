@@ -98,6 +98,29 @@ export async function sendDeletionWarningEmail({ to, deleteInHours, loginUrl }: 
   return res.data!;
 }
 
+export async function sendAccountDeletedEmail({ to }: { to: string }) {
+  if (!resend) {
+    logEmailNotSent('account-deleted email', to, 'Site URL', CLIENT_URL);
+    return { id: 'mock-email-id' };
+  }
+  const subject = 'Your Paypr account has been deleted';
+  const html = buildEmailHtml({
+    heading: 'Your account has been deleted',
+    bodyHtml: `
+      <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.5;">Your Paypr account and all of its data — subscriptions, reminders, and settings — have been permanently deleted, as you requested.</p>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5;">Thanks for giving Paypr a try. If you change your mind, you're always welcome to create a new account.</p>
+    `,
+    ctaText: 'Back to Paypr',
+    ctaUrl: CLIENT_URL,
+    footerNote: "If you didn't request this deletion, please contact us immediately by replying to this email.",
+  });
+  const text = `Your Paypr account and all of its data have been permanently deleted, as you requested.\nThanks for giving Paypr a try — you're always welcome to create a new account: ${CLIENT_URL}\nIf you didn't request this deletion, reply to this email immediately.`;
+
+  const res = await resend!.emails.send({ from: FROM, to, subject, html, text });
+  if (res.error) throw new Error(`${res.error.name}: ${res.error.message}`);
+  return res.data!;
+}
+
 export async function sendEmailChangeVerificationEmail({ to, verifyUrl, expiresInHours }: { to: string; verifyUrl: string; expiresInHours: number }) {
   if (!resend) {
     logEmailNotSent('email-change verification email', to, 'Verification URL', verifyUrl);

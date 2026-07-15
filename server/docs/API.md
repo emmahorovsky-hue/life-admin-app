@@ -249,6 +249,26 @@ Serves the authenticated user's avatar (`image/webp`) with an `ETag`; supports `
 
 Removes the avatar. Idempotent — returns `200` with the fresh user either way.
 
+### Delete Account
+
+**DELETE** `/api/account`
+
+Permanently deletes the authenticated user's account and all data (subscriptions, tokens, device tokens, notification logs, avatar). Requires re-authentication with the current password. Clears the auth cookie and sends a best-effort farewell email after the delete commits.
+
+**Authentication required:** Yes (rate limited: 5 attempts / 15 min)
+
+**Request body:**
+```json
+{ "password": "current password" }
+```
+
+**Response (200):** `{ "message": "Account deleted" }`
+
+**Error responses:**
+- `400`: `VALIDATION_ERROR` (missing password) | `INVALID_CURRENT_PASSWORD`
+- `401 Unauthorized`: Not authenticated
+- `429`: rate limited
+
 ---
 
 ## Subscription Endpoints

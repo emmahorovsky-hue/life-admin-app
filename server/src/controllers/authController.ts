@@ -19,7 +19,9 @@ import { PUBLIC_USER_SELECT, toPublicUser } from '../constants/user';
 // is same-site on localhost, where Lax works and Secure can't be guaranteed
 // over plain HTTP, so we fall back to lax/insecure there.
 const isProduction = process.env.NODE_ENV === 'production';
-const COOKIE_OPTIONS = {
+// Exported for the account controller: clearing the cookie on account deletion
+// must use the exact same attributes it was set with, or browsers won't match.
+export const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: isProduction,
   sameSite: isProduction ? ('none' as const) : ('lax' as const),
