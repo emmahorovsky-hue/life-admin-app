@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   CalendarClock,
   RefreshCw,
-  User,
+  Settings,
   LogOut,
   type LucideIcon,
 } from 'lucide-react';
@@ -39,7 +39,7 @@ const navItems: NavItem[] = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/timeline', label: 'Timeline', icon: CalendarClock },
   { path: '/subscriptions', label: 'Subscriptions', icon: RefreshCw },
-  { path: '/profile', label: 'Profile', icon: User },
+  { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
 type SidebarSize = 'sidebar' | 'overlay';
@@ -105,7 +105,9 @@ function SidebarContent({ currentPath, userEmail, size, onNav, onLogout, onClose
       {/* Nav rows */}
       <nav className={s.nav}>
         {navItems.map((item) => {
-          const active = currentPath === item.path;
+          // Prefix match so nested routes (/settings/account, …) keep their
+          // parent nav item lit; exact match handles the flat routes.
+          const active = currentPath === item.path || currentPath.startsWith(item.path + '/');
           const Icon = item.icon;
           return (
             <button

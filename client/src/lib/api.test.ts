@@ -28,7 +28,7 @@ describe('isPublicPath', () => {
     expect(isPublicPath(path)).toBe(true);
   });
 
-  it.each(['/dashboard', '/subscriptions', '/timeline', '/profile'])(
+  it.each(['/dashboard', '/subscriptions', '/timeline', '/settings', '/settings/privacy'])(
     'treats %s as protected',
     (path) => {
       expect(isPublicPath(path)).toBe(false);
