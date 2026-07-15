@@ -25,7 +25,7 @@ export default function SettingsIndex() {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold">
+      <h2 className="text-[32px] font-extrabold tracking-tight">
         Settings<span className="text-brand-orange">.</span>
       </h2>
 
