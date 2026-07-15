@@ -26,7 +26,7 @@ export default function SettingsShell() {
     <div>
       {/* Desktop: title + top tab bar */}
       <div className="hidden md:block">
-        <h2 className="text-[32px] font-extrabold tracking-tight">
+        <h2 className="text-3xl font-bold">
           Settings<span className="text-brand-orange">.</span>
         </h2>
         <nav aria-label="Settings sections" className="mt-5 flex gap-7 border-b-[1.5px] border-border">

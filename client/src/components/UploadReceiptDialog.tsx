@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import { Upload } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { AppDialog } from '@/components/ui/AppDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -82,47 +75,20 @@ export default function UploadReceiptDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Upload Receipt</DialogTitle>
-          <DialogDescription>
-            Upload a receipt or invoice (PDF or image) and we&apos;ll extract the
-            subscription details for you to review.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleExtract} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="receipt">Receipt file</Label>
-            <Input
-              id="receipt"
-              type="file"
-              accept={ACCEPTED}
-              onChange={(e) => {
-                setFile(e.target.files?.[0] ?? null);
-                setError('');
-              }}
-              disabled={loading}
-            />
-            <p className="text-xs text-muted-foreground">
-              PDF, PNG, JPEG, or WebP. Max 10 MB.
-            </p>
-          </div>
-
-          {error && (
-            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-              {error}
-            </div>
-          )}
-
-          <DialogFooter className="gap-2">
+    <>
+      <AppDialog
+        open={open}
+        onOpenChange={handleClose}
+        title="Upload receipt"
+        onSubmit={handleExtract}
+        footer={
+          <>
             <Button
               type="button"
               variant="link"
               onClick={handleManual}
               disabled={loading}
-              className="px-0 sm:mr-auto"
+              className="px-0 mr-auto"
             >
               Enter manually instead
             </Button>
@@ -138,11 +104,39 @@ export default function UploadReceiptDialog({
               <Upload className="mr-2 h-4 w-4" />
               Extract
             </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Upload a receipt or invoice (PDF or image) and we&apos;ll extract the
+          subscription details for you to review.
+        </p>
+
+        <div className="mt-4 space-y-2">
+          <Label htmlFor="receipt">Receipt file</Label>
+          <Input
+            id="receipt"
+            type="file"
+            accept={ACCEPTED}
+            onChange={(e) => {
+              setFile(e.target.files?.[0] ?? null);
+              setError('');
+            }}
+            disabled={loading}
+          />
+          <p className="text-xs text-muted-foreground">
+            PDF, PNG, JPEG, or WebP. Max 10 MB.
+          </p>
+        </div>
+
+        {error && (
+          <div className="mt-4 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+            {error}
+          </div>
+        )}
+      </AppDialog>
 
       <ExtractionLoadingOverlay open={loading} />
-    </Dialog>
+    </>
   );
 }
