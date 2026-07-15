@@ -95,23 +95,58 @@ describe('AvatarTile', () => {
     expect(toast.error).toHaveBeenCalledWith('Unsupported file type. Choose a JPG or PNG.');
   });
 
-  it('removes the photo when allowRemove and an avatar exists', async () => {
+  it('shows a camera badge (no menu) when there is no avatar', () => {
+    render(<AvatarTile />);
+    const badge = screen.getByRole('button', { name: 'Add photo' });
+    expect(badge).not.toHaveAttribute('aria-haspopup', 'menu');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('opens an edit menu from the badge when an avatar exists', async () => {
+    const user = userEvent.setup();
+    setUser({ avatarUpdatedAt: '2026-07-14T00:00:00.000Z' });
+    render(<AvatarTile />);
+
+    // No stray "Remove photo" text control — the badge is the only affordance.
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Edit photo' }));
+
+    expect(screen.getByRole('menu', { name: 'Photo options' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Upload new photo' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Remove photo' })).toBeInTheDocument();
+  });
+
+  it('removes the photo from the edit menu', async () => {
     const user = userEvent.setup();
     setUser({ avatarUpdatedAt: '2026-07-14T00:00:00.000Z' });
     mockedDelete.mockResolvedValue({
       data: { user: { avatarUpdatedAt: null } },
     } as Awaited<ReturnType<typeof deleteAvatar>>);
-    render(<AvatarTile allowRemove />);
+    render(<AvatarTile />);
 
-    await user.click(screen.getByRole('button', { name: 'Remove photo' }));
+    await user.click(screen.getByRole('button', { name: 'Edit photo' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Remove photo' }));
 
     await waitFor(() => expect(mockedDelete).toHaveBeenCalled());
     expect(updateUser).toHaveBeenCalledWith(expect.objectContaining({ avatarUpdatedAt: null }));
     expect(toast.success).toHaveBeenCalledWith('Photo removed.');
   });
 
-  it('hides the remove control when there is no avatar', () => {
-    render(<AvatarTile allowRemove />);
-    expect(screen.queryByRole('button', { name: 'Remove photo' })).not.toBeInTheDocument();
+  it('uploads a new photo from the edit menu', async () => {
+    const user = userEvent.setup();
+    setUser({ avatarUpdatedAt: '2026-07-14T00:00:00.000Z' });
+    mockedUpload.mockResolvedValue({
+      data: { user: { avatarUpdatedAt: '2026-07-15T00:00:00.000Z' } },
+    } as Awaited<ReturnType<typeof uploadAvatar>>);
+    const { container } = render(<AvatarTile />);
+
+    await user.click(screen.getByRole('button', { name: 'Edit photo' }));
+    // The menu's "Upload new photo" item drives the same hidden file input.
+    expect(screen.getByRole('menuitem', { name: 'Upload new photo' })).toBeInTheDocument();
+    const input = container.querySelector('input[type=file]') as HTMLInputElement;
+    await user.upload(input, pngFile());
+
+    await waitFor(() => expect(mockedUpload).toHaveBeenCalled());
+    expect(toast.success).toHaveBeenCalledWith('Photo updated.');
   });
 });
