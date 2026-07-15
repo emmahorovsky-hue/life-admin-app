@@ -162,3 +162,7 @@ export const uploadAvatar = async (file: File) => {
 export const deleteAvatar = async () => {
   return api.delete<{ user: User }>('/account/avatar');
 };
+
+export const deleteAccount = async (data: { password: string }) => {
+  return api.delete('/account', { data });
+};
