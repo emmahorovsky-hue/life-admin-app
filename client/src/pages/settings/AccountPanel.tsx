@@ -49,7 +49,7 @@ export default function AccountPanel() {
     <div className="space-y-4">
       {/* Profile card */}
       <section className="flex items-center gap-5 rounded-[2px] border border-border bg-white p-6 dark:bg-card">
-        <AvatarTile user={user} size="lg" />
+        <AvatarTile size="lg" allowRemove />
         <div className="min-w-0">
           <p className="truncate text-xl font-extrabold">{displayName}</p>
           <p className="truncate font-mono text-[13px] text-muted-foreground">{user?.email}</p>

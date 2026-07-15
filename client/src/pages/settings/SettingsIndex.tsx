@@ -31,7 +31,7 @@ export default function SettingsIndex() {
 
       {/* Identity block */}
       <div className="mt-5 flex items-center gap-4">
-        <AvatarTile user={user} size="md" />
+        <AvatarTile size="md" />
         <div className="min-w-0">
           <p className="truncate text-[17px] font-extrabold">{displayName}</p>
           <p className="truncate font-mono text-[12px] text-muted-foreground">{user?.email}</p>
