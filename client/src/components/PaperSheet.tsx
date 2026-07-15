@@ -1,6 +1,6 @@
 import type { CSSProperties, ComponentPropsWithoutRef, ElementType, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { PAPER_TINT, PAPER_SHADOW, PAPER_MARGIN_RULE } from '@/lib/paper';
+import { PAPER_TINT, PAPER_MARGIN_RULE } from '@/lib/paper';
 
 type PaperSheetOwnProps<T extends ElementType> = {
   /** Element to render the sheet as, e.g. "button" for interactive cards. Defaults to "div". */
@@ -38,7 +38,9 @@ export function PaperSheet<T extends ElementType = 'div'>({
   return (
     <Component
       className={cn('paper-light relative overflow-hidden rounded-[3px] border border-black/[0.06] text-foreground', className)}
-      style={{ backgroundColor: tint, boxShadow: PAPER_SHADOW, ...style }}
+      // The cream tint drives the fill via a CSS var so dark mode can retune the
+      // whole surface (see .paper-light / .dark .paper-light in index.css).
+      style={{ '--paper-tint': tint, ...style } as CSSProperties}
       {...rest}
     >
       {backdrop}
