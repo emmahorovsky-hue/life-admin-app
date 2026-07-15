@@ -81,6 +81,37 @@
     --warning: 40 90% 55%;
   }
 
+  /* Surfaces that stay on the light "paper" palette regardless of theme — the
+     filed-receipt look is cream by metaphor, so a dark page floats light
+     receipts on it. Re-declares the light tokens so semantic classes inside
+     (text-foreground, border-border, …) resolve to their light values even
+     under .dark, keeping paper text readable in dark mode. */
+  .paper-light {
+    --background: 60 17% 98%;
+    --foreground: 0 0% 9%;
+    --card: 60 17% 98%;
+    --card-foreground: 0 0% 9%;
+    --popover: 60 17% 98%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 60 17% 98%;
+    --primary-hover: 0 0% 18%;
+    --brand-orange: 16 100% 45%;
+    --secondary: 35 26% 91%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 35 26% 91%;
+    --muted-foreground: 36 5% 50%;
+    --accent: 35 26% 91%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 16 100% 45%;
+    --destructive-foreground: 60 17% 98%;
+    --border: 36 9% 78%;
+    --input: 36 9% 78%;
+    --ring: 16 100% 45%;
+    --success: 146 97% 38%;
+    --warning: 40 90% 55%;
+  }
+
   * {
     @apply border-border;
   }
