@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
+import type { User } from '@life-admin/shared';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { avatarUrl } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { getInitials } from './settings/initials';
 import { UnverifiedEmailBanner } from './UnverifiedEmailBanner';
 import { Logo } from './Logo';
 import {
@@ -24,7 +28,8 @@ interface LayoutProps {
  *
  * Reads like a receipt: a wordmark row, a perforated (dashed) divider under it,
  * icon-led nav rows where the active row gets a Sand fill with a 3px orange left
- * rail, and the account docked beneath a double-hairline rule with the P. mark.
+ * rail, and the account (avatar/initials + display name) docked beneath a
+ * double-hairline rule.
  *
  * The same content renders in the desktop sidebar and the mobile full-screen
  * overlay; `size` scales the rows, icons, and account tile up on mobile.
@@ -76,15 +81,42 @@ const sizing: Record<
 
 interface SidebarContentProps {
   currentPath: string;
-  userEmail: string | undefined;
+  user: User | null;
   size: SidebarSize;
   onNav: (path: string) => void;
   onLogout: () => void;
   onClose?: () => void;
 }
 
-function SidebarContent({ currentPath, userEmail, size, onNav, onLogout, onClose }: SidebarContentProps) {
+/** Small account avatar: the uploaded photo, or the initials tile as fallback. */
+function AccountAvatar({ user, className }: { user: User | null; className: string }) {
+  const [imgError, setImgError] = useState(false);
+  const version = user?.avatarUpdatedAt ?? null;
+  if (version && !imgError) {
+    return (
+      <img
+        src={avatarUrl(version)}
+        alt=""
+        className={cn('shrink-0 rounded object-cover', className)}
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  return (
+    <div
+      className={cn(
+        'shrink-0 rounded bg-primary text-primary-foreground flex items-center justify-center font-extrabold',
+        className
+      )}
+    >
+      {getInitials(user)}
+    </div>
+  );
+}
+
+function SidebarContent({ currentPath, user, size, onNav, onLogout, onClose }: SidebarContentProps) {
   const s = sizing[size];
+  const displayName = [user?.name, user?.surname].filter(Boolean).join(' ') || user?.email;
   return (
     <>
       {/* Wordmark row */}
@@ -139,18 +171,10 @@ function SidebarContent({ currentPath, userEmail, size, onNav, onLogout, onClose
       {/* Account — docked under a double hairline */}
       <div className="px-4 pb-4 pt-3.5">
         <div className="border-t-[3px] border-double border-border pt-3.5 flex items-center gap-3">
-          <div
-            className={[
-              'shrink-0 rounded bg-primary text-primary-foreground flex items-center justify-center font-extrabold',
-              s.tile,
-            ].join(' ')}
-          >
-            P<span className="text-brand-orange">.</span>
-          </div>
+          <AccountAvatar user={user} className={s.tile} />
           <div className="min-w-0 flex-1">
-            {/* Swap for the user's display name once available. */}
-            <p className="text-sm font-semibold leading-tight truncate">{userEmail ?? 'Account'}</p>
-            <p className="font-mono text-[11px] text-muted-foreground truncate">{userEmail}</p>
+            <p className="text-sm font-semibold leading-tight truncate">{displayName ?? 'Account'}</p>
+            <p className="font-mono text-[11px] text-muted-foreground truncate">{user?.email}</p>
           </div>
           <Button
             variant="outline"
@@ -213,7 +237,7 @@ export default function Layout({ children }: LayoutProps) {
         <aside className="hidden md:flex flex-col w-[262px] border-r bg-card shrink-0 overflow-y-auto">
           <SidebarContent
             currentPath={location.pathname}
-            userEmail={user?.email}
+            user={user}
             size="sidebar"
             onNav={handleNav}
             onLogout={handleLogout}
@@ -240,7 +264,7 @@ export default function Layout({ children }: LayoutProps) {
             >
               <SidebarContent
                 currentPath={location.pathname}
-                userEmail={user?.email}
+                user={user}
                 size="overlay"
                 onNav={handleNav}
                 onLogout={handleLogout}

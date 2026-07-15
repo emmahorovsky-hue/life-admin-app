@@ -588,12 +588,15 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
   const webUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
   const mobileUrl = (process.env.MOBILE_URL || 'lifeadmin://').replace(/([^/])$/, '$1/');
   const url = (path: string) => isMobile ? `${mobileUrl}${path}` : `${webUrl}/${path}`;
+  // The confirmation lands on the profile/settings screen. Web moved to
+  // /settings/account (LIF-181); the Expo app still routes to `profile`.
+  const dest = (query: string) => url(isMobile ? `profile${query}` : `settings/account${query}`);
   try {
     const { token } = req.query;
 
     if (!token || typeof token !== 'string') {
       logSecurityEvent('auth.email_change.failed', req, { reason: 'missing_token' });
-      res.redirect(url('profile?error=invalid-token'));
+      res.redirect(dest('?error=invalid-token'));
       return;
     }
 
@@ -602,15 +605,15 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
     if (!result.ok) {
       logSecurityEvent('auth.email_change.failed', req, { reason: result.reason });
       const errorParam = result.reason === 'email_taken' ? 'email-taken' : 'invalid-token';
-      res.redirect(url(`profile?error=${errorParam}`));
+      res.redirect(dest(`?error=${errorParam}`));
       return;
     }
 
     logSecurityEvent('auth.email_change.completed', req, { userId: result.userId });
-    res.redirect(url('profile?emailChanged=true'));
+    res.redirect(dest('?emailChanged=true'));
   } catch (error) {
     reportServerError('Verify email change error', error);
-    res.redirect(url('profile?error=invalid-token'));
+    res.redirect(dest('?error=invalid-token'));
   }
 };
 
