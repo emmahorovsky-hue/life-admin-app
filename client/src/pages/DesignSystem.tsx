@@ -6,14 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { AppDialog } from '@/components/ui/AppDialog';
 import { Bell, CreditCard, LayoutDashboard, Plus, Trash2, Upload } from 'lucide-react';
 
 // ─── Section wrapper ────────────────────────────────────────────────────────
@@ -280,30 +273,31 @@ export default function DesignSystem() {
         <Section title="Dialog">
           <Row>
             <Button variant="outline" onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4" />Open dialog</Button>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add subscription</DialogTitle>
-                  <DialogDescription>
-                    Track a new recurring service. Fill in the details below.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="ds-dialog-name">Service name</Label>
-                    <Input id="ds-dialog-name" placeholder="e.g. Spotify" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ds-dialog-amount">Amount</Label>
-                    <Input id="ds-dialog-amount" placeholder="9.99" type="number" />
-                  </div>
-                </div>
-                <DialogFooter>
+            <AppDialog
+              open={dialogOpen}
+              onOpenChange={setDialogOpen}
+              title="Add subscription"
+              footer={
+                <>
                   <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
                   <Button onClick={() => setDialogOpen(false)}>Save</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </>
+              }
+            >
+              <p className="text-sm text-muted-foreground">
+                Track a new recurring service. Fill in the details below.
+              </p>
+              <div className="mt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ds-dialog-name">Service name</Label>
+                  <Input id="ds-dialog-name" placeholder="e.g. Spotify" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ds-dialog-amount">Amount</Label>
+                  <Input id="ds-dialog-amount" placeholder="9.99" type="number" />
+                </div>
+              </div>
+            </AppDialog>
           </Row>
         </Section>
 

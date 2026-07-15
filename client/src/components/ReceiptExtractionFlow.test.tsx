@@ -93,7 +93,9 @@ describe('receipt upload -> review flow', () => {
     expect(mockedExtract.mock.calls[0][0]).toBeInstanceOf(File);
 
     // Review dialog opens with the candidate's values pre-filled.
-    await waitFor(() => expect(screen.getByText('Review subscription.')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Review subscription.' })).toBeInTheDocument()
+    );
     expect(screen.getByLabelText('Service name')).toHaveValue('Netflix');
     expect(screen.getByLabelText('Cost')).toHaveValue(15.99);
     // Billing cycle + category are segmented/tiled controls (aria-pressed on the active option).
@@ -115,7 +117,9 @@ describe('receipt upload -> review flow', () => {
     expect(
       await screen.findByText(/couldn't read a subscription/i)
     ).toBeInTheDocument();
-    expect(screen.queryByText('Review subscription.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Review subscription.' })
+    ).not.toBeInTheDocument();
   });
 
   it('confirming the review creates the subscription with the edited values', async () => {
@@ -161,7 +165,9 @@ describe('receipt upload -> review flow', () => {
 
     const nameInput = await screen.findByLabelText('Service name');
     expect(nameInput).toHaveValue('');
-    expect(screen.queryByText('Review subscription.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Review subscription.' })
+    ).not.toBeInTheDocument();
 
     await user.type(nameInput, 'Spotify');
     await user.click(screen.getByRole('button', { name: /^add subscription$/i }));
