@@ -8,7 +8,7 @@ import { formatCurrency } from '@/lib/currency';
 import { getApiErrorMessage } from '@/lib/utils';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { PaperSheet } from '@/components/PaperSheet';
-import { PAPER_RULING } from '@/lib/paper';
+import { PAPER_RULING_INK } from '@/lib/paper';
 import { parseRenewalDate, relativeDays, bucketFor } from '@life-admin/shared';
 import type { BucketId } from '@life-admin/shared';
 
@@ -111,14 +111,6 @@ export default function Timeline() {
         <PaperSheet
           className="pt-7 pr-7 pb-7 pl-12 [transform:rotate(-0.4deg)]"
           innerClassName="space-y-9"
-          backdrop={
-            /* Horizontal paper ruling — matches the Subscriptions cards */
-            <span
-              aria-hidden="true"
-              className="absolute inset-0 pointer-events-none"
-              style={{ backgroundImage: PAPER_RULING, backgroundPosition: '0 76px' }}
-            />
-          }
         >
           {(Object.keys(buckets) as BucketId[])
               .filter((id) => buckets[id].length > 0)
@@ -144,12 +136,19 @@ export default function Timeline() {
                       )}
                     </div>
 
-                    <div className="divide-y divide-dashed divide-black/[0.08]">
+                    <div>
                       {buckets[id].map((sub) => {
                         const renewal = parseRenewalDate(sub.nextRenewalDate);
                         const days = differenceInCalendarDays(renewal, today);
                         return (
-                          <div key={sub.id} className="flex items-center gap-3.5 py-3 first:pt-0 last:pb-0">
+                          <div
+                            key={sub.id}
+                            // Fixed row height + a ruled line under each row, so every
+                            // subscription sits on a line (the Timeline's lined-paper
+                            // answer to the Subscriptions cards' ruling).
+                            className="flex items-center gap-3.5 h-14 border-b"
+                            style={{ borderBottomColor: PAPER_RULING_INK }}
+                          >
                             <SubscriptionLogo
                               name={sub.name}
                               category={sub.category}
