@@ -103,7 +103,7 @@ export default function Timeline() {
       {!hasAny ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">Nothing due in the next two months.</p>
-          <Button onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
+          <Button variant="outline" onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
             Add a subscription
           </Button>
         </div>
