@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { lightColors } from '@life-admin/shared';
 
 // Light palette sourced from the shared design tokens (LIF-196) — the same
@@ -21,4 +20,22 @@ export const colors = {
   white: lightColors.white.hex,
 };
 
-export const fontMono = Platform.select({ ios: 'Menlo', default: 'monospace' });
+// Typefaces matching the web app (LIF-197), loaded in app/_layout.tsx via
+// expo-font. RN static fonts are one family per weight: never pair these with
+// fontWeight — pick the weight-specific family instead.
+export const fonts = {
+  sans: {
+    regular: 'Archivo_400Regular',
+    medium: 'Archivo_500Medium',
+    semibold: 'Archivo_600SemiBold',
+    bold: 'Archivo_700Bold',
+    extrabold: 'Archivo_800ExtraBold',
+  },
+  mono: {
+    regular: 'SpaceMono_400Regular',
+    bold: 'SpaceMono_700Bold',
+  },
+};
+
+export const fontMono = fonts.mono.regular;
+export const fontMonoBold = fonts.mono.bold;
