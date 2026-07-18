@@ -35,7 +35,7 @@ import { categoryIconFor } from '../lib/subscriptionLogo';
 import { filterSuggestions, ServiceSuggestion } from '../lib/suggestions';
 import { getApiErrorMessage } from '../lib/utils';
 import { SubscriptionLogo } from './SubscriptionLogo';
-import { colors, fontMono } from '../lib/theme';
+import { colors, fontMono, fontMonoBold } from '../lib/theme';
 
 // Segmented billing control — 4 canonical cycles. Legacy 'annual' maps to 'yearly'.
 const CYCLE_SEGMENTS = [
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   costSymbol: { fontFamily: fontMono, fontSize: 15, color: colors.mutedForeground, marginRight: 4 },
-  costInput: { flex: 1, fontFamily: fontMono, fontSize: 15, fontWeight: '700', color: colors.foreground },
+  costInput: { flex: 1, fontFamily: fontMonoBold, fontSize: 15, color: colors.foreground },
 
   segmentRow: {
     flexDirection: 'row',

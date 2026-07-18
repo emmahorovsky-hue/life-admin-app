@@ -32,7 +32,7 @@ import { subscriptionApi } from '../../lib/subscriptions';
 import { SubscriptionLogo } from '../../components/SubscriptionLogo';
 import { Perforation } from '../../components/Perforation';
 import { useAuth } from '../../contexts/AuthContext';
-import { colors, fontMono } from '../../lib/theme';
+import { colors, fontMono, fontMonoBold } from '../../lib/theme';
 
 const chartFont = matchFont({
   fontFamily: Platform.select({ ios: 'Helvetica', default: 'sans-serif' }),
@@ -353,9 +353,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   featuredLabel: { color: 'rgba(255,255,255,0.8)' },
-  tileValue: { fontFamily: fontMono, fontSize: 34, fontWeight: '700', color: colors.foreground },
+  tileValue: { fontFamily: fontMonoBold, fontSize: 34, color: colors.foreground },
   featuredValue: { color: colors.white },
-  tileValueSmall: { fontFamily: fontMono, fontSize: 22, fontWeight: '700', color: colors.foreground },
+  tileValueSmall: { fontFamily: fontMonoBold, fontSize: 22, color: colors.foreground },
   tileFootnote: { fontSize: 12, color: colors.mutedForeground, marginTop: 8 },
 
   receiptHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
@@ -374,10 +374,10 @@ const styles = StyleSheet.create({
   },
   dueSoonStampText: { fontFamily: fontMono, fontSize: 9, letterSpacing: 1.4, color: colors.brandOrange },
   renewalRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  rowName: { fontFamily: fontMono, fontWeight: '700', fontSize: 13, color: colors.foreground, flexShrink: 1 },
+  rowName: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground, flexShrink: 1 },
   rowDate: { fontFamily: fontMono, fontSize: 11, color: colors.mutedForeground },
   leader: { flex: 1, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border, marginHorizontal: 6 },
-  rowAmount: { fontFamily: fontMono, fontWeight: '700', fontSize: 13, color: colors.foreground },
+  rowAmount: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground },
   doubleRule: {
     borderTopWidth: 1,
     borderBottomWidth: 1,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   },
   totalRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   totalValues: { alignItems: 'flex-end' },
-  totalValue: { fontFamily: fontMono, fontWeight: '700', fontSize: 22, color: colors.foreground },
+  totalValue: { fontFamily: fontMonoBold, fontSize: 22, color: colors.foreground },
   // Several currencies stack vertically, so each line gets a size the tiles can
   // fit; a single-currency total keeps its original size.
   totalLineMulti: { fontSize: 18 },

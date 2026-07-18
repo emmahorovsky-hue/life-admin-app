@@ -4,6 +4,15 @@ import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { useFonts } from 'expo-font';
+import {
+  Archivo_400Regular,
+  Archivo_500Medium,
+  Archivo_600SemiBold,
+  Archivo_700Bold,
+  Archivo_800ExtraBold,
+} from '@expo-google-fonts/archivo';
+import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -12,11 +21,26 @@ function RootLayoutNav() {
   const router = useRouter();
   const { loading } = useAuth();
 
+  // The web app's typefaces (LIF-197): Archivo for sans, Space Mono for the
+  // receipt-style mono. One family per weight — RN static fonts don't
+  // synthesize weights, so styles reference these names via lib/theme.ts
+  // `fonts` instead of pairing fontFamily with fontWeight.
+  const [fontsLoaded] = useFonts({
+    Archivo_400Regular,
+    Archivo_500Medium,
+    Archivo_600SemiBold,
+    Archivo_700Bold,
+    Archivo_800ExtraBold,
+    SpaceMono_400Regular,
+    SpaceMono_700Bold,
+  });
+
   // Hide the splash here (not in a group layout) so it can't get stuck when an
-  // early navigation unmounts a group before auth loading resolves.
+  // early navigation unmounts a group before auth loading resolves. Also gated
+  // on fonts so screens never flash system typefaces.
   useEffect(() => {
-    if (!loading) SplashScreen.hideAsync();
-  }, [loading]);
+    if (!loading && fontsLoaded) SplashScreen.hideAsync();
+  }, [loading, fontsLoaded]);
 
   useEffect(() => {
     const handle = (url: string) => {
