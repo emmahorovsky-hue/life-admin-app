@@ -27,7 +27,7 @@ import {
   SubscriptionFormSheet,
   SubscriptionFormSheetHandle,
 } from '../../components/SubscriptionFormSheet';
-import { colors, fontMono } from '../../lib/theme';
+import { colors, fontMono, fontMonoBold } from '../../lib/theme';
 
 const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
 
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 10, fontWeight: '600', color: colors.foreground },
   badgeTextLight: { color: colors.white },
   rowMetaLine: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rowCost: { fontFamily: fontMono, fontSize: 13, fontWeight: '700', color: colors.foreground },
+  rowCost: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground },
   rowMeta: { fontSize: 12, color: colors.mutedForeground },
   rowNotes: { fontSize: 12, color: colors.mutedForeground },
 
