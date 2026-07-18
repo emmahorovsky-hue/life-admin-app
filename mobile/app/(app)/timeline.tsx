@@ -24,7 +24,7 @@ import { subscriptionApi } from '../../lib/subscriptions';
 import { getApiErrorMessage } from '../../lib/utils';
 import { SubscriptionLogo } from '../../components/SubscriptionLogo';
 import { Perforation } from '../../components/Perforation';
-import { colors, fontMono } from '../../lib/theme';
+import { colors, fontMono, fontMonoBold } from '../../lib/theme';
 
 const BUCKET_LABELS: Record<BucketId, string> = {
   thisWeek: 'This Week',
@@ -216,12 +216,12 @@ const styles = StyleSheet.create({
 
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   rowBody: { flex: 1 },
-  rowName: { fontFamily: fontMono, fontWeight: '700', fontSize: 13, color: colors.foreground },
+  rowName: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground },
   rowMeta: { fontFamily: fontMono, fontSize: 11, color: colors.mutedForeground, marginTop: 1 },
   rowRight: { alignItems: 'flex-end' },
   rowRelative: { fontFamily: fontMono, fontSize: 11, color: colors.mutedForeground },
   rowRelativeAccent: { color: colors.brandOrange },
-  rowAmount: { fontFamily: fontMono, fontWeight: '700', fontSize: 13, color: colors.foreground, marginTop: 1 },
+  rowAmount: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground, marginTop: 1 },
 
   empty: { alignItems: 'center', paddingVertical: 48, gap: 16 },
   primaryButton: {
