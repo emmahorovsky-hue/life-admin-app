@@ -49,6 +49,9 @@ rather than silently pointing at a dev machine. See "Part 6: Mobile Builds (EAS)
 
 ## Shared code
 
-`@life-admin/shared` (`packages/shared`) holds the types, constants, and subscription/date utilities
-used by both mobile and web. It ships raw TypeScript — Metro transpiles it from source — so import
-from it freely, but keep React code out of it (see the React version split above).
+`@life-admin/shared` (`packages/shared`) holds the types, constants, design tokens, and
+subscription/date utilities used by both mobile and web. Metro consumes its **built** output
+(`dist/`, via package `exports`), so edits to shared code — including the design tokens that
+`lib/theme.ts` sources its colors from — need a rebuild to show up here:
+`npm run build:watch --workspace=packages/shared` during dev. Keep React code out of the package
+(see the React version split above).
