@@ -21,16 +21,23 @@ function resolveApiUrl(): string | undefined {
 
 export default {
   expo: {
-    name: 'Life Admin',
-    slug: 'life-admin',
+    name: 'Paypr',
+    slug: 'paypr-live',
+    owner: 'paypr-lives-team',
     version: '1.0.0',
     orientation: 'portrait',
     scheme: 'lifeadmin',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     ios: {
-      bundleIdentifier: 'com.yourname.lifeadmin',
+      bundleIdentifier: 'com.paypr.live',
       supportsTablet: true,
+      infoPlist: {
+        // Paypr uses only standard TLS/HTTPS and Keychain (expo-secure-store),
+        // which are exempt from US export encryption rules. Declaring this here
+        // skips the manual export-compliance prompt on every TestFlight build.
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     android: {
       adaptiveIcon: {
@@ -52,6 +59,9 @@ export default {
       '@react-native-community/datetimepicker',
     ],
     extra: {
+      eas: {
+        projectId: '173c8d3b-4b6b-4ff1-9988-010e8d138228',
+      },
       apiUrl: resolveApiUrl(),
       logoDevToken: process.env.LOGO_DEV_TOKEN,
     },

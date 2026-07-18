@@ -20,7 +20,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "API_URL": "https://REPLACE-WITH-PRODUCTION-API-URL/api"
+        "API_URL": "https://loyal-magic-production.up.railway.app/api"
       }
     }
   },
