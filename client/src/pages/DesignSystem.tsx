@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AppDialog } from '@/components/ui/AppDialog';
-import { Bell, CreditCard, LayoutDashboard, Plus, Trash2, Upload } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
+import { Bell, CreditCard, LayoutDashboard, Plus, Search, Trash2, Upload } from 'lucide-react';
 
 // ─── Section wrapper ────────────────────────────────────────────────────────
 
@@ -249,6 +250,47 @@ export default function DesignSystem() {
               </CardFooter>
             </Card>
           </div>
+        </Section>
+
+        {/* ── Empty states ──────────────────────────────────────────────── */}
+        <Section title="Empty States">
+          <Row label="tone=&quot;sheet&quot; — first-run (owns a page region)">
+            <div className="w-full max-w-md">
+              <EmptyState
+                kicker="Nothing filed yet"
+                title="No subscriptions yet"
+                description="Add your first one and we'll keep an eye on every renewal."
+                action={<Button>Add your first subscription</Button>}
+              />
+            </div>
+          </Row>
+          <Row label="tone=&quot;sheet&quot; — filtered / no results">
+            <div className="w-full max-w-md">
+              <EmptyState
+                icon={
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-foreground/[0.06]">
+                    <Search className="h-5 w-5 text-muted-foreground" />
+                  </span>
+                }
+                kicker="No matches"
+                title="No subscriptions match your filters"
+                description="Try a different category or clear the search to see everything."
+                action={<Button variant="outline">Clear filters</Button>}
+              />
+            </div>
+          </Row>
+          <Row label="tone=&quot;inline&quot; — compact, for inside a card">
+            <Card className="w-full max-w-md">
+              <CardContent className="p-6">
+                <EmptyState
+                  tone="inline"
+                  title="No subscriptions yet"
+                  description="Add one to see where your money goes."
+                  action={<Button>Add subscription</Button>}
+                />
+              </CardContent>
+            </Card>
+          </Row>
         </Section>
 
         {/* ── Form elements ─────────────────────────────────────────────── */}

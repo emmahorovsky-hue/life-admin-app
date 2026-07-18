@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { PaperSheet } from '@/components/PaperSheet';
+import { EmptyState } from '@/components/EmptyState';
 import { PAPER_TINTS, PAPER_RULING } from '@/lib/paper';
 import AddSubscriptionDialog from '@/components/AddSubscriptionDialog';
 import EditSubscriptionDialog from '@/components/EditSubscriptionDialog';
@@ -199,20 +200,52 @@ export default function Subscriptions() {
       )}
 
       {/* Empty State */}
-      {!loading && sortedSubscriptions.length === 0 && (
-        <div className="space-y-4">
-          <div className="py-10 text-center border border-dashed border-border rounded-lg font-mono text-xs uppercase tracking-[0.1em] text-muted-foreground">
-            {isFiltered ? 'No subscriptions match your filters' : 'No subscriptions yet'}
-          </div>
-          {!isFiltered && (
-            <div className="text-center">
-              <Button onClick={() => setUploadDialogOpen(true)}>
-                Add Your First Subscription
+      {!loading &&
+        sortedSubscriptions.length === 0 &&
+        (isFiltered ? (
+          <EmptyState
+            icon={
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-foreground/[0.06]">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                  className="text-muted-foreground"
+                >
+                  <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="2" />
+                  <path d="M15.5 15.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </span>
+            }
+            kicker="No matches"
+            title="No subscriptions match your filters"
+            description="Try a different category or clear the search to see everything."
+            action={
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm('');
+                  setCategoryFilter('all');
+                }}
+              >
+                Clear filters
               </Button>
-            </div>
-          )}
-        </div>
-      )}
+            }
+          />
+        ) : (
+          <EmptyState
+            kicker="Nothing filed yet"
+            title="No subscriptions yet"
+            description="Add your first one and we'll keep an eye on every renewal."
+            action={
+              <Button onClick={() => setUploadDialogOpen(true)}>
+                Add your first subscription
+              </Button>
+            }
+          />
+        ))}
 
       {/* Card grid */}
       {!loading && sortedSubscriptions.length > 0 && (
