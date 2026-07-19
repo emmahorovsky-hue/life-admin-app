@@ -55,19 +55,28 @@ Have ready:
 
 ### 1.3 Configure Monorepo
 
-**Critical:** Railway must know where the deployable code is (in `./server`).
+**Critical:** the server depends on the local `@life-admin/shared` workspace
+package (`packages/shared`, not published to npm), so the build must install
+from the **monorepo root** — a `server`-only build context fails with an npm
+E404 on `@life-admin/shared` (LIF-176).
 
 1. In Railway project dashboard
 2. Go to "Settings" → "Root Directory"
-3. Set to `server/`
-4. Save
+3. Leave it **empty** (repo root) — do **not** set it to `server/`
+4. Go to "Settings" → "Config-as-code" (Railway config file path)
+5. Set it to `server/railway.json`
+6. Save
 
-**Without this, build fails with "No Procfile detected"**
-
-> With Root Directory set to `server/`, Railway reads the canonical build/deploy
-> config from `server/railway.json` and `server/nixpacks.toml` (and `server/Procfile`
-> as a fallback). There are no root-level Railway config files — they were removed
-> to avoid two divergent build definitions.
+> `server/railway.json` is the canonical build/deploy config: it points Nixpacks
+> at `server/nixpacks.toml` (via `build.nixpacksConfigPath`), installs with
+> `npm ci --workspace=server --workspace=packages/shared` against the root
+> lockfile (which builds `packages/shared/dist` via its `prepare` script), and
+> builds/starts the server with `npm run ... --workspace=server`. Its
+> `watchPatterns` (`server/**`, `packages/shared/**`, root `package.json` /
+> `package-lock.json`) keep pushes that only touch `client/` or `mobile/` from
+> redeploying the API. There are no root-level Railway config files — they were
+> removed to avoid two divergent build definitions. `server/Procfile` is a
+> legacy fallback and is not read when the Root Directory is the repo root.
 
 ### 1.4 Add PostgreSQL Service
 
@@ -311,9 +320,15 @@ npx eas build --profile production --platform all
 
 ### Common Issues
 
+#### "npm error 404 '@life-admin/shared@*' is not in this registry"
+**Problem:** Railway's Root Directory is set to `server/`, so npm can't see the
+`packages/shared` workspace and tries the public registry
+**Solution:** Clear Root Directory (repo root) and set the config file path to
+`server/railway.json` — see section 1.3
+
 #### "No Procfile detected"
-**Problem:** Railway can't find Node.js app
-**Solution:** Set root directory to `server/` in Railway settings
+**Problem:** Railway isn't reading the service config
+**Solution:** Set the config-as-code file path to `server/railway.json` in Railway settings (Root Directory stays empty)
 
 #### "Cannot connect to database"
 **Problem:** `DATABASE_URL` env var missing
