@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { avatarUrl } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { getInitials } from './settings/initials';
+import { getInitials } from '@life-admin/shared';
 import { UnverifiedEmailBanner } from './UnverifiedEmailBanner';
 import { Logo } from './Logo';
 import {

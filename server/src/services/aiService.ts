@@ -8,7 +8,10 @@ const anthropic = process.env.ANTHROPIC_API_KEY
   : null;
 
 // Haiku 4.5 is vision-capable and the cheapest model that handles receipt/invoice OCR well.
-// Override with AI_MODEL to trade cost for accuracy (e.g. claude-sonnet-4-6 / claude-opus-4-8).
+// Override with AI_MODEL to trade cost for accuracy. Recommended production override:
+// claude-sonnet-5 ($3/$15 per MTok vs Haiku's $1/$5) — high-resolution vision (2576px vs
+// 1568px long edge) reads small print on receipts markedly better, and it supports the
+// strict tool schema below. claude-opus-4-8 is the step above if Sonnet still misreads.
 const MODEL = process.env.AI_MODEL || 'claude-haiku-4-5';
 
 // Authoritative enums live in constants/subscriptions.ts; re-exported here for the extraction schema
@@ -70,11 +73,25 @@ const EXTRACTION_TOOL: Anthropic.Tool = {
       },
       cost: {
         type: ['number', 'null'],
-        description: 'The recurring charge amount as a number, or null if not determinable.',
+        description:
+          'The amount actually charged for the subscription period: the final charged total ' +
+          'including tax (the "Total" / "Amount due" / "Amount paid" line). Never the pre-tax ' +
+          'subtotal, a tax/VAT line on its own, a per-item or per-seat price, or a discount line — ' +
+          'when a receipt shows subtotal, tax, and total, pick the total. If both a per-period and ' +
+          'a full-term amount appear (e.g. monthly price on an annual invoice), pick the amount that ' +
+          'matches billingCycle. Read number formats from locale context: European "1.234,56" means ' +
+          '1234.56, and "1,234.56" also means 1234.56 — a comma followed by exactly two digits at the ' +
+          'end is a decimal separator. Output a plain JSON number (dot decimal, no thousands ' +
+          'separators or currency symbols). If the charged amount cannot be determined confidently, ' +
+          'use null and add "cost" to uncertainFields.',
       },
       currency: {
         type: ['string', 'null'],
-        description: 'ISO 4217 currency code, e.g. "USD", "EUR", "SGD". Null if unclear.',
+        description:
+          'ISO 4217 currency code, e.g. "USD", "EUR", "SGD". Map unambiguous symbols to codes ' +
+          '("€" -> "EUR", "£" -> "GBP", "zł" -> "PLN"). "$" alone is ambiguous (USD/CAD/AUD/SGD...) — ' +
+          'use other evidence like the merchant country or tax type; if still unclear, use null and ' +
+          'add "currency" to uncertainFields.',
       },
       billingCycle: {
         type: 'string',
@@ -131,7 +148,13 @@ const EXTRACTION_TOOL: Anthropic.Tool = {
 const SYSTEM_PROMPT =
   'You extract subscription details from an uploaded receipt or invoice image/PDF. ' +
   'Call the record_subscription tool exactly once with your best extraction. ' +
-  'Normalize the merchant name. If a value is not present in the document, set it to null and add the field name to uncertainFields. ' +
+  'Normalize the merchant name. ' +
+  'For cost, report the amount actually charged — the final total including tax — never a subtotal, ' +
+  'a tax line, or a per-item price. Watch for European number formats where the comma is the decimal ' +
+  'separator (e.g. "1.234,56" is 1234.56). ' +
+  'If a value is not present in the document, set it to null and add the field name to uncertainFields. ' +
+  'If you are not confident in a value you did extract (hard-to-read print, several plausible amounts), ' +
+  'still provide your best guess but add that field name to uncertainFields and lower confidence. ' +
   'If the document is a one-off purchase rather than a recurring subscription, set isSubscription to false.';
 
 /** True if the mime type is one we can send to Claude (PDF document or supported image). */
@@ -231,6 +254,11 @@ export async function extractSubscription(
 
 /**
  * Coerce the model's tool input into a safe SubscriptionCandidate, clamping enums to valid values.
+ *
+ * Amount guards (LIF-76): a cost that isn't a finite, non-negative number is nulled rather than
+ * passed through, and whenever cost ends up null, "cost" is added to uncertainFields so the review
+ * dialog always flags a missing amount even if the model forgot to. Currency is trimmed/uppercased
+ * and must look like an ISO 4217 code (3 letters), otherwise it is nulled.
  */
 export function normalizeCandidate(input: unknown): SubscriptionCandidate {
   const raw = (input ?? {}) as Record<string, unknown>;
@@ -246,18 +274,33 @@ export function normalizeCandidate(input: unknown): SubscriptionCandidate {
       ? raw.confidence
       : 'low';
 
+  const cost =
+    typeof raw.cost === 'number' && Number.isFinite(raw.cost) && raw.cost >= 0
+      ? raw.cost
+      : null;
+
+  const trimmedCurrency =
+    typeof raw.currency === 'string' ? raw.currency.trim().toUpperCase() : null;
+  const currency =
+    trimmedCurrency !== null && /^[A-Z]{3}$/.test(trimmedCurrency) ? trimmedCurrency : null;
+
+  const uncertainFields = Array.isArray(raw.uncertainFields)
+    ? raw.uncertainFields.filter((f): f is string => typeof f === 'string')
+    : [];
+  if (cost === null && !uncertainFields.includes('cost')) {
+    uncertainFields.push('cost');
+  }
+
   return {
     name: typeof raw.name === 'string' ? raw.name : '',
-    cost: typeof raw.cost === 'number' ? raw.cost : null,
-    currency: typeof raw.currency === 'string' ? raw.currency : null,
+    cost,
+    currency,
     billingCycle,
     renewalDate: typeof raw.renewalDate === 'string' ? raw.renewalDate : null,
     category,
     notes: typeof raw.notes === 'string' ? raw.notes : null,
     isSubscription: raw.isSubscription !== false, // default to true unless explicitly false
     confidence,
-    uncertainFields: Array.isArray(raw.uncertainFields)
-      ? raw.uncertainFields.filter((f): f is string => typeof f === 'string')
-      : [],
+    uncertainFields,
   };
 }
