@@ -25,7 +25,7 @@ function RootLayoutNav() {
   // receipt-style mono. One family per weight — RN static fonts don't
   // synthesize weights, so styles reference these names via lib/theme.ts
   // `fonts` instead of pairing fontFamily with fontWeight.
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Archivo_400Regular,
     Archivo_500Medium,
     Archivo_600SemiBold,
@@ -37,10 +37,12 @@ function RootLayoutNav() {
 
   // Hide the splash here (not in a group layout) so it can't get stuck when an
   // early navigation unmounts a group before auth loading resolves. Also gated
-  // on fonts so screens never flash system typefaces.
+  // on fonts so screens never flash system typefaces — but a font-load failure
+  // must still release the splash (fall back to system fonts) rather than
+  // stranding the app on it forever.
   useEffect(() => {
-    if (!loading && fontsLoaded) SplashScreen.hideAsync();
-  }, [loading, fontsLoaded]);
+    if (!loading && (fontsLoaded || fontError)) SplashScreen.hideAsync();
+  }, [loading, fontsLoaded, fontError]);
 
   useEffect(() => {
     const handle = (url: string) => {
