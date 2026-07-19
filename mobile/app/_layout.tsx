@@ -3,6 +3,8 @@ import { Stack, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useFonts } from 'expo-font';
 import {
@@ -15,6 +17,7 @@ import {
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ToastProvider } from '../components/ui';
+import { colors } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -80,7 +83,16 @@ function RootLayoutNav() {
     return () => sub.remove();
   }, [router]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  // The tab group and root Stack both run headerShown:false, so no native
+  // header reserves the top safe area. Apply the top inset once here — every
+  // screen (tabs, auth, settings detail) inherits it and clears the notch.
+  // Top edge only: the tab bar and Toast own the bottom inset.
+  return (
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar style="dark" />
+      <Stack screenOptions={{ headerShown: false }} />
+    </SafeAreaView>
+  );
 }
 
 export default function RootLayout() {
