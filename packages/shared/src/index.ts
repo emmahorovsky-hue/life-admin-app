@@ -8,5 +8,6 @@ export * from './utils/currency';
 export * from './utils/dashboard';
 export * from './utils/timeline';
 export * from './utils/subscription';
+export * from './utils/initials';
 export * from './utils/logo';
 export * from './utils/password';

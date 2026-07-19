@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { avatarUrl, uploadAvatar, deleteAvatar } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { getInitials } from './initials';
+import { getInitials } from '@life-admin/shared';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB — matches the server limit
