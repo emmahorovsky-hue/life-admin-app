@@ -31,6 +31,8 @@ import { dashboardApi } from '../../lib/dashboard';
 import { subscriptionApi } from '../../lib/subscriptions';
 import { SubscriptionLogo } from '../../components/SubscriptionLogo';
 import { Perforation } from '../../components/Perforation';
+import { EmptyState } from '../../components/EmptyState';
+import { Button } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors, fontMono, fontMonoBold } from '../../lib/theme';
 
@@ -199,7 +201,7 @@ export default function DashboardScreen() {
       {/* Upcoming renewals — receipt style */}
       <View style={styles.card}>
         {summary.upcomingRenewals.length === 0 ? (
-          <Text style={styles.mutedText}>No renewals in the next 30 days</Text>
+          <EmptyState tone="inline" iconName={null} title="No renewals in the next 30 days" />
         ) : (
           <>
             <View style={styles.receiptHeader}>
@@ -263,15 +265,17 @@ export default function DashboardScreen() {
         {categoryGroups.length === 0 ? (
           <>
             <Text style={styles.cardTitle}>Spending by Category</Text>
-            <View style={styles.emptyChart}>
-              <Text style={styles.mutedText}>No subscriptions yet</Text>
-              <Pressable
-                style={styles.primaryButton}
-                onPress={() => router.push({ pathname: '/(app)/subscriptions', params: { openAdd: '1' } })}
-              >
-                <Text style={styles.primaryButtonText}>Add Subscription</Text>
-              </Pressable>
-            </View>
+            <EmptyState
+              tone="inline"
+              title="No subscriptions yet"
+              description="Add one to see where your money goes."
+              action={
+                <Button
+                  title="Add subscription"
+                  onPress={() => router.push({ pathname: '/(app)/subscriptions', params: { openAdd: '1' } })}
+                />
+              }
+            />
           </>
         ) : (
           categoryGroups.map((group) => (
@@ -394,7 +398,6 @@ const styles = StyleSheet.create({
   totalLineMulti: { fontSize: 18 },
 
   chartBox: { height: 250 },
-  emptyChart: { alignItems: 'center', paddingVertical: 32, gap: 16 },
 
   primaryButton: {
     backgroundColor: colors.foreground,

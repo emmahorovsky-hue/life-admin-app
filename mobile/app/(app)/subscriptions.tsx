@@ -27,6 +27,8 @@ import {
   SubscriptionFormSheet,
   SubscriptionFormSheetHandle,
 } from '../../components/SubscriptionFormSheet';
+import { EmptyState } from '../../components/EmptyState';
+import { Button } from '../../components/ui';
 import { colors, fontMono, fontMonoBold } from '../../lib/theme';
 
 const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
@@ -229,18 +231,37 @@ export default function SubscriptionsScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.mutedText}>
-                {searchTerm || categoryFilter !== 'all'
-                  ? 'No subscriptions match your filters'
-                  : 'No subscriptions yet'}
-              </Text>
-              {!searchTerm && categoryFilter === 'all' && (
-                <Pressable style={styles.primaryButton} onPress={() => sheetRef.current?.open(null)}>
-                  <Text style={styles.primaryButtonText}>Add Your First Subscription</Text>
-                </Pressable>
-              )}
-            </View>
+            searchTerm || categoryFilter !== 'all' ? (
+              <EmptyState
+                iconName="search-outline"
+                iconVariant="muted"
+                kicker="No matches"
+                title="No subscriptions match your filters"
+                description="Try a different category or clear the search to see everything."
+                action={
+                  <Button
+                    title="Clear filters"
+                    variant="outline"
+                    onPress={() => {
+                      setSearchTerm('');
+                      setCategoryFilter('all');
+                    }}
+                  />
+                }
+              />
+            ) : (
+              <EmptyState
+                kicker="Nothing filed yet"
+                title="No subscriptions yet"
+                description="Add your first one and we'll keep an eye on every renewal."
+                action={
+                  <Button
+                    title="Add your first subscription"
+                    onPress={() => sheetRef.current?.open(null)}
+                  />
+                }
+              />
+            )
           }
           ListFooterComponent={
             filtered.length > 0 ? (
@@ -355,15 +376,7 @@ const styles = StyleSheet.create({
   },
   deleteActionText: { color: colors.white, fontSize: 11, fontWeight: '600' },
 
-  empty: { alignItems: 'center', paddingVertical: 48, gap: 16 },
   mutedText: { color: colors.mutedForeground, fontSize: 14 },
-  primaryButton: {
-    backgroundColor: colors.foreground,
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  primaryButtonText: { color: colors.background, fontWeight: '600' },
   footerCount: {
     textAlign: 'center',
     color: colors.mutedForeground,

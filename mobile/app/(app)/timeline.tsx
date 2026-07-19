@@ -24,6 +24,8 @@ import { subscriptionApi } from '../../lib/subscriptions';
 import { getApiErrorMessage } from '../../lib/utils';
 import { SubscriptionLogo } from '../../components/SubscriptionLogo';
 import { Perforation } from '../../components/Perforation';
+import { EmptyState } from '../../components/EmptyState';
+import { Button } from '../../components/ui';
 import { colors, fontMono, fontMonoBold } from '../../lib/theme';
 
 const BUCKET_LABELS: Record<BucketId, string> = {
@@ -120,15 +122,18 @@ export default function TimelineScreen() {
         </Text>
       }
       ListEmptyComponent={
-        <View style={styles.empty}>
-          <Text style={styles.mutedText}>Nothing due in the next two months.</Text>
-          <Pressable
-            style={styles.primaryButton}
-            onPress={() => router.push({ pathname: '/(app)/subscriptions', params: { openAdd: '1' } })}
-          >
-            <Text style={styles.primaryButtonText}>Add a subscription</Text>
-          </Pressable>
-        </View>
+        <EmptyState
+          iconName="calendar-outline"
+          kicker="All clear"
+          title="Nothing due in the next two months"
+          description="Renewals will show up here as they approach."
+          action={
+            <Button
+              title="Add a subscription"
+              onPress={() => router.push({ pathname: '/(app)/subscriptions', params: { openAdd: '1' } })}
+            />
+          }
+        />
       }
       renderSectionHeader={({ section }) => {
         const isThisWeek = section.id === 'thisWeek';
@@ -223,7 +228,6 @@ const styles = StyleSheet.create({
   rowRelativeAccent: { color: colors.brandOrange },
   rowAmount: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground, marginTop: 1 },
 
-  empty: { alignItems: 'center', paddingVertical: 48, gap: 16 },
   primaryButton: {
     backgroundColor: colors.foreground,
     borderRadius: 8,
