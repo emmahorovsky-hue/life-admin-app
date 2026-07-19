@@ -14,6 +14,7 @@ import {
 } from '@expo-google-fonts/archivo';
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { ToastProvider } from '../components/ui';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -87,7 +88,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <BottomSheetModalProvider>
-          <RootLayoutNav />
+          <ToastProvider>
+            <RootLayoutNav />
+          </ToastProvider>
         </BottomSheetModalProvider>
       </AuthProvider>
     </GestureHandlerRootView>
