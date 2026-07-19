@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleProp,
@@ -32,9 +31,9 @@ import { subscriptionApi } from '../../lib/subscriptions';
 import { SubscriptionLogo } from '../../components/SubscriptionLogo';
 import { Perforation } from '../../components/Perforation';
 import { EmptyState } from '../../components/EmptyState';
-import { Button } from '../../components/ui';
+import { Button, Card, ScreenTitle } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
-import { colors, fontMono, fontMonoBold } from '../../lib/theme';
+import { colors, fontMono, fontMonoBold, fonts } from '../../lib/theme';
 
 const chartFont = matchFont({
   fontFamily: Platform.select({ ios: 'Helvetica', default: 'sans-serif' }),
@@ -127,9 +126,7 @@ export default function DashboardScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.mutedText}>Failed to load dashboard</Text>
-        <Pressable style={styles.primaryButton} onPress={() => { setLoading(true); load(); }}>
-          <Text style={styles.primaryButtonText}>Retry</Text>
-        </Pressable>
+        <Button title="Retry" onPress={() => { setLoading(true); load(); }} />
       </View>
     );
   }
@@ -155,13 +152,12 @@ export default function DashboardScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={styles.h1}>
+      <ScreenTitle style={styles.title}>
         Welcome back, {user?.name || user?.email?.split('@')[0]}
-        <Text style={styles.accent}>.</Text>
-      </Text>
+      </ScreenTitle>
 
       {/* Summary tiles */}
-      <View style={[styles.card, styles.featuredCard]}>
+      <Card style={styles.featuredCard}>
         <Text style={[styles.tileLabel, styles.featuredLabel]}>CHARGED THIS MONTH</Text>
         <TotalLines
           totals={spend.monthly}
@@ -172,18 +168,18 @@ export default function DashboardScreen() {
           {summary.activeSubscriptions} active{' '}
           {summary.activeSubscriptions === 1 ? 'subscription' : 'subscriptions'}
         </Text>
-      </View>
+      </Card>
 
       <View style={styles.tileRow}>
-        <View style={[styles.card, styles.tileHalf]}>
+        <Card style={styles.tileHalf}>
           <Text style={styles.tileLabel}>PER YEAR</Text>
           <TotalLines
             totals={spend.annual}
             fallbackCurrency={displayCurrency}
             style={styles.tileValueSmall}
           />
-        </View>
-        <View style={[styles.card, styles.tileHalf]}>
+        </Card>
+        <Card style={styles.tileHalf}>
           <Text style={styles.tileLabel}>DUE IN 7 DAYS</Text>
           <TotalLines
             totals={dueSoonTotals}
@@ -195,11 +191,11 @@ export default function DashboardScreen() {
               {dueSoonRenewals.length} {dueSoonRenewals.length === 1 ? 'renewal' : 'renewals'} upcoming
             </Text>
           )}
-        </View>
+        </Card>
       </View>
 
       {/* Upcoming renewals — receipt style */}
-      <View style={styles.card}>
+      <Card>
         {summary.upcomingRenewals.length === 0 ? (
           <EmptyState tone="inline" iconName={null} title="No renewals in the next 30 days" />
         ) : (
@@ -246,22 +242,20 @@ export default function DashboardScreen() {
             </View>
 
             {summary.upcomingRenewals.length > 5 && (
-              <Pressable
-                style={styles.outlineButton}
+              <Button
+                title={`View all ${summary.upcomingRenewals.length} renewals`}
+                variant="outline"
+                style={styles.viewAllButton}
                 onPress={() => router.push('/(app)/subscriptions')}
-              >
-                <Text style={styles.outlineButtonText}>
-                  View all {summary.upcomingRenewals.length} renewals
-                </Text>
-              </Pressable>
+              />
             )}
           </>
         )}
-      </View>
+      </Card>
 
       {/* Category breakdown — one chart per currency, since bars in different
           currencies can't share an axis. */}
-      <View style={styles.card}>
+      <Card>
         {categoryGroups.length === 0 ? (
           <>
             <Text style={styles.cardTitle}>Spending by Category</Text>
@@ -317,7 +311,7 @@ export default function DashboardScreen() {
             </View>
           ))
         )}
-      </View>
+      </Card>
     </ScrollView>
   );
 }
@@ -333,18 +327,10 @@ const styles = StyleSheet.create({
     gap: 16,
     padding: 24,
   },
-  h1: { fontSize: 26, fontWeight: '800', color: colors.foreground, marginBottom: 4, marginTop: 8 },
-  accent: { color: colors.brandOrange },
-  mutedText: { color: colors.mutedForeground, fontSize: 14 },
+  title: { marginBottom: 4, marginTop: 8 },
+  mutedText: { fontFamily: fonts.sans.regular, color: colors.mutedForeground, fontSize: 14 },
 
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 18,
-  },
-  cardTitle: { fontSize: 17, fontWeight: '700', color: colors.foreground, marginBottom: 12 },
+  cardTitle: { fontFamily: fonts.sans.bold, fontSize: 17, color: colors.foreground, marginBottom: 12 },
 
   featuredCard: { backgroundColor: colors.brandOrange, borderColor: colors.brandOrange },
   tileRow: { flexDirection: 'row', gap: 12 },
@@ -360,7 +346,12 @@ const styles = StyleSheet.create({
   tileValue: { fontFamily: fontMonoBold, fontSize: 34, color: colors.foreground },
   featuredValue: { color: colors.white },
   tileValueSmall: { fontFamily: fontMonoBold, fontSize: 22, color: colors.foreground },
-  tileFootnote: { fontSize: 12, color: colors.mutedForeground, marginTop: 8 },
+  tileFootnote: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 12,
+    color: colors.mutedForeground,
+    marginTop: 8,
+  },
 
   receiptHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   receiptHeading: {
@@ -399,20 +390,5 @@ const styles = StyleSheet.create({
 
   chartBox: { height: 250 },
 
-  primaryButton: {
-    backgroundColor: colors.foreground,
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  primaryButtonText: { color: colors.background, fontWeight: '600' },
-  outlineButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    alignItems: 'center',
-    paddingVertical: 10,
-    marginTop: 14,
-  },
-  outlineButtonText: { color: colors.foreground, fontWeight: '600', fontSize: 13 },
+  viewAllButton: { marginTop: 14 },
 });
