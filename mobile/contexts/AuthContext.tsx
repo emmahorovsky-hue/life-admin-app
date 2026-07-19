@@ -16,6 +16,13 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /**
+   * Local-only session teardown: clears the stored token, push registration
+   * and in-memory user without calling the server. For flows where the server
+   * side is already dealt with — e.g. account deletion (LIF-203), where the
+   * account row is gone and a /auth/logout round-trip would be pointless.
+   */
+  clearSession: () => Promise<void>;
   updateUser: (user: User) => void;
 }
 
@@ -24,6 +31,14 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Once user turns null the (app) layout guard redirects to login, so callers
+  // never navigate themselves.
+  const clearSession = useCallback(async () => {
+    await tokenStorage.remove();
+    invalidatePushRegistration();
+    setUser(null);
+  }, []);
 
   const logout = useCallback(async () => {
     // Tell the server first, while the token is still in storage for the request
@@ -36,10 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Ignored on purpose — local logout must always succeed.
     }
-    await tokenStorage.remove();
-    invalidatePushRegistration();
-    setUser(null);
-  }, []);
+    await clearSession();
+  }, [clearSession]);
 
   // Register logout in the bridge so api.ts can call it on 401 without a circular import
   useEffect(() => {
@@ -106,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateUser = (updatedUser: User) => setUser(updatedUser);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, clearSession, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
