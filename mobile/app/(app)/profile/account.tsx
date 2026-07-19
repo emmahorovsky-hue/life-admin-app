@@ -2,8 +2,9 @@ import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { getInitials, hairline, radius, spacing } from '@life-admin/shared';
+import { hairline, radius, spacing } from '@life-admin/shared';
 import { useAuth } from '../../../contexts/AuthContext';
+import { AvatarTile } from '../../../components/settings/AvatarTile';
 import { SettingsDetailHeader } from '../../../components/settings/SettingsDetailHeader';
 import { EditNameDialog } from '../../../components/settings/EditNameDialog';
 import { ChangeEmailDialog } from '../../../components/settings/ChangeEmailDialog';
@@ -35,7 +36,6 @@ function DottedRule() {
  * (client/src/pages/settings/AccountPanel.tsx): profile card + details rows
  * opening name/email/password dialogs, plus the default-currency picker that
  * web keeps in AppearancePanel (folded in here until mobile dark mode lands).
- * The initials tile is a placeholder until the real AvatarTile (LIF-202).
  */
 export default function AccountScreen() {
   const { user } = useAuth();
@@ -53,9 +53,7 @@ export default function AccountScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Profile card */}
         <Card style={styles.profileCard}>
-          <View style={styles.initialsTile}>
-            <Text style={styles.initialsText}>{getInitials(user)}</Text>
-          </View>
+          <AvatarTile size="lg" />
           <View style={styles.profileText}>
             <Text numberOfLines={1} style={styles.profileName}>
               {displayName}
@@ -142,15 +140,6 @@ const styles = StyleSheet.create({
   content: { paddingTop: spacing.lg, paddingBottom: 48, gap: spacing.lg },
 
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  initialsTile: {
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.base,
-    backgroundColor: colors.foreground,
-  },
-  initialsText: { fontFamily: fonts.sans.extrabold, fontSize: 24, color: colors.background },
   profileText: { flex: 1, minWidth: 0 },
   profileName: { fontFamily: fonts.sans.extrabold, fontSize: 20, color: colors.foreground },
   profileEmail: {
