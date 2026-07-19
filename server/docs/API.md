@@ -475,6 +475,54 @@ Soft delete a subscription (mark as inactive).
 
 ---
 
+### Extract Subscription from Receipt (AI)
+
+**POST** `/api/subscriptions/extract`
+
+Uploads a receipt/invoice (multipart `file`: PDF, PNG, JPEG, WebP, or GIF; max 10 MB) and runs Claude-based extraction. Returns review **candidates** only — nothing is created; the client confirms via the normal create endpoint. Rate limited to 20 requests per user per 10 minutes.
+
+**Response (200):**
+```json
+{
+  "source": "ai",
+  "candidates": [
+    {
+      "name": "Netflix",
+      "cost": 15.99,
+      "currency": "USD",
+      "billingCycle": "monthly",
+      "renewalDate": "2026-08-01",
+      "category": "streaming",
+      "notes": "Premium plan",
+      "isSubscription": true,
+      "confidence": "high",
+      "uncertainFields": []
+    }
+  ]
+}
+```
+
+- `cost` is the amount actually charged (the invoice total including tax) — the extraction prompt explicitly steers the model away from subtotals, tax lines, and per-item prices, and handles European decimal formats (`1.234,56`). Server-side guards null out negative/non-finite amounts.
+- `uncertainFields` lists field names the model was unsure about so the review dialog can flag them. A `null` cost is always flagged here.
+
+**Error responses:**
+- `400 Bad Request`: No file (`NO_FILE`), too large (`FILE_TOO_LARGE`), or unsupported type (`UNSUPPORTED_FILE_TYPE`)
+- `401 Unauthorized`: Not authenticated
+- `429 Too Many Requests`: Rate limited (`RATE_LIMITED`)
+- `503 Service Unavailable`: Extraction unavailable (`EXTRACTION_NOT_CONFIGURED` when `ANTHROPIC_API_KEY` is missing, `EXTRACTION_FAILED` on provider errors)
+
+**Model configuration (`AI_MODEL` env var):**
+
+| Model | Price (in/out per MTok) | Notes |
+|---|---|---|
+| `claude-haiku-4-5` (default) | $1 / $5 | Cheapest vision-capable model; adequate for clean receipts |
+| `claude-sonnet-5` (**recommended for production**) | $3 / $15 (intro $2 / $10 through 2026-08-31) | High-resolution vision (2576px vs 1568px long edge) reads small receipt print far more accurately; supports the strict extraction tool schema |
+| `claude-opus-4-8` | $5 / $25 | Step up if Sonnet still misreads amounts |
+
+At typical receipt sizes (one image + a short tool call), a single extraction costs well under a cent on any of these models, so the accuracy upgrade to `claude-sonnet-5` is cheap in absolute terms. Set `AI_MODEL` in the Railway service variables (LIF-76).
+
+---
+
 ## Dashboard Endpoints
 
 All dashboard endpoints require authentication.
