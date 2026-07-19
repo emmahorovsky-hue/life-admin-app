@@ -63,7 +63,7 @@ export default function LoginScreen() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Button title="Sign In" onPress={handleLogin} loading={loading} style={styles.button} />
+      <Button title="Sign in" onPress={handleLogin} loading={loading} style={styles.button} />
 
       <Link href="/(auth)/forgot-password" style={styles.linkSecondary}>
         Forgot password?

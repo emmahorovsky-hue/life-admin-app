@@ -68,7 +68,7 @@ export default function ForgotPasswordScreen() {
       ) : null}
 
       <Button
-        title="Send Reset Link"
+        title="Send reset link"
         onPress={handleSubmit}
         loading={loading}
         style={styles.button}

@@ -89,7 +89,7 @@ export default function RegisterScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Button
-        title="Create Account"
+        title="Create account"
         onPress={handleRegister}
         loading={loading}
         style={styles.button}

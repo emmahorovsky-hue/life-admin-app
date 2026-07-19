@@ -62,7 +62,7 @@ export default function ResetPasswordScreen() {
         <ScreenTitle style={styles.title}>Password updated</ScreenTitle>
         <Text style={styles.body}>Your password has been reset. You can now sign in.</Text>
         <Button
-          title="Go to Sign In"
+          title="Go to sign in"
           onPress={() => router.replace('/(auth)/login')}
           style={styles.button}
         />
@@ -101,7 +101,7 @@ export default function ResetPasswordScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Button
-        title="Reset Password"
+        title="Reset password"
         onPress={handleSubmit}
         loading={loading}
         style={styles.button}
