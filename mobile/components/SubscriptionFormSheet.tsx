@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format, differenceInCalendarDays } from 'date-fns';
 import {
   Subscription,
+  SubscriptionCandidate,
   SubscriptionFormValues,
   defaultSubscriptionFormValues,
   categories,
@@ -32,6 +33,7 @@ import {
   getSubscriptionStatus,
 } from '@life-admin/shared';
 import { subscriptionApi } from '../lib/subscriptions';
+import { candidateToFormPrefill } from '../lib/receiptScan';
 import { categoryIconFor } from '../lib/subscriptionLogo';
 import { filterSuggestions, ServiceSuggestion } from '../lib/suggestions';
 import { getApiErrorMessage } from '../lib/utils';
@@ -50,7 +52,20 @@ const CYCLE_SEGMENTS = [
 export interface SubscriptionFormSheetHandle {
   /** Open the sheet — pass a subscription to edit, or null to add. */
   open: (subscription: Subscription | null) => void;
+  /** Open the add sheet pre-filled with a receipt-extracted candidate for review. */
+  openWithCandidate: (candidate: SubscriptionCandidate) => void;
 }
+
+// Friendly names for fields the extraction was unsure about, shown in the review banner.
+const UNCERTAIN_FIELD_LABELS: Record<string, string> = {
+  name: 'name',
+  cost: 'cost',
+  currency: 'currency',
+  billingCycle: 'billing cycle',
+  renewalDate: 'renewal date',
+  category: 'category',
+  notes: 'notes',
+};
 
 interface Props {
   /** Called after any successful mutation (create/update/cancel/resume/delete). */
@@ -68,6 +83,9 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
     const [loading, setLoading] = useState(false);
     const [suggestionsOpen, setSuggestionsOpen] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
+    // Fields the receipt extraction flagged as low-confidence, for the review banner.
+    // Empty for a plain add/edit.
+    const [uncertainFields, setUncertainFields] = useState<string[]>([]);
 
     const mode = editing ? 'edit' : 'add';
 
@@ -93,6 +111,18 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           setValues(defaultSubscriptionFormValues());
           setCostText('');
         }
+        setUncertainFields([]);
+        setError('');
+        setSuggestionsOpen(false);
+        setShowDatePicker(false);
+        sheetRef.current?.present();
+      },
+      openWithCandidate: (candidate) => {
+        setEditing(null);
+        const prefill = candidateToFormPrefill(candidate);
+        setValues({ ...defaultSubscriptionFormValues(), ...prefill.values });
+        setCostText(prefill.costText);
+        setUncertainFields(prefill.uncertainFields);
         setError('');
         setSuggestionsOpen(false);
         setShowDatePicker(false);
@@ -234,6 +264,17 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
       >
         <BottomSheetScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>{mode === 'add' ? 'Add subscription' : 'Edit subscription'}</Text>
+
+          {/* Receipt-scan review banner — flags fields the extraction was unsure about. */}
+          {uncertainFields.length > 0 && (
+            <View style={styles.reviewBanner}>
+              <Ionicons name="scan-outline" size={16} color={colors.brandOrange} />
+              <Text style={styles.reviewBannerText}>
+                Scanned from your receipt — please double-check{' '}
+                {uncertainFields.map((f) => UNCERTAIN_FIELD_LABELS[f] ?? f).join(', ')}.
+              </Text>
+            </View>
+          )}
 
           {/* Service (autocomplete) */}
           <FieldLabel style={styles.fieldLabel}>SERVICE</FieldLabel>
@@ -436,6 +477,18 @@ const styles = StyleSheet.create({
   sheetBackground: { backgroundColor: colors.background },
   content: { padding: 22, paddingBottom: 48 },
   title: { fontFamily: fonts.sans.extrabold, fontSize: 22, color: colors.foreground, marginBottom: 16 },
+
+  reviewBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(229,61,0,0.08)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 4,
+  },
+  reviewBannerText: { flex: 1, fontSize: 12, color: colors.foreground },
 
   fieldLabel: { marginTop: 14 },
   fieldRow: { flexDirection: 'row', gap: 12 },
