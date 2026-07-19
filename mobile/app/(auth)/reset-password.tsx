@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
-import { isValidPassword } from '@life-admin/shared';
+import { isValidPassword, spacing } from '@life-admin/shared';
+import { colors, fonts } from '../../lib/theme';
+import { Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
 import { api } from '../../lib/api';
 
 export default function ResetPasswordScreen() {
@@ -43,7 +45,7 @@ export default function ResetPasswordScreen() {
   if (!token) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Invalid link</Text>
+        <ScreenTitle style={styles.title}>Invalid link</ScreenTitle>
         <Text style={styles.body}>
           This password reset link is invalid or incomplete. Please request a new one.
         </Text>
@@ -57,77 +59,94 @@ export default function ResetPasswordScreen() {
   if (done) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Password updated</Text>
+        <ScreenTitle style={styles.title}>Password updated</ScreenTitle>
         <Text style={styles.body}>Your password has been reset. You can now sign in.</Text>
-        <Pressable onPress={() => router.replace('/(auth)/login')} style={styles.button}>
-          <Text style={styles.buttonText}>Go to Sign In</Text>
-        </Pressable>
+        <Button
+          title="Go to sign in"
+          onPress={() => router.replace('/(auth)/login')}
+          style={styles.button}
+        />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Reset Password</Text>
+      <ScreenTitle style={styles.title}>Reset password</ScreenTitle>
       <Text style={styles.body}>Choose a new password for your account.</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="New Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoComplete="new-password"
-      />
-      <Text style={styles.hint}>
-        Must be at least 8 characters with 1 uppercase letter, 1 number, and 1 symbol.
-      </Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm New Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-        autoComplete="new-password"
-      />
+      <View style={styles.field}>
+        <FieldLabel>New password</FieldLabel>
+        <Input
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="new-password"
+        />
+        <Text style={styles.hint}>
+          Must be at least 8 characters with 1 uppercase letter, 1 number, and 1 symbol.
+        </Text>
+      </View>
+
+      <View style={styles.field}>
+        <FieldLabel>Confirm new password</FieldLabel>
+        <Input
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          autoComplete="new-password"
+        />
+      </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable onPress={handleSubmit} disabled={loading} style={styles.button}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Reset Password</Text>
-        )}
-      </Pressable>
+      <Button
+        title="Reset password"
+        onPress={handleSubmit}
+        loading={loading}
+        style={styles.button}
+      />
 
       <Link href="/(auth)/login" style={styles.link}>
-        Back to Sign In
+        Back to sign in
       </Link>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 12 },
-  body: { color: '#6b7280', marginBottom: 24 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    fontSize: 16,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    padding: spacing.xl,
   },
-  hint: { fontSize: 12, color: '#6b7280', marginBottom: 12 },
-  error: { color: '#ef4444', marginBottom: 12 },
-  button: {
-    backgroundColor: '#3b82f6',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
+  title: { marginBottom: spacing.md },
+  body: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 14,
+    color: colors.mutedForeground,
+    marginBottom: spacing.xl,
   },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  link: { marginTop: 20, textAlign: 'center', color: '#3b82f6' },
+  field: { marginBottom: spacing.md },
+  hint: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 12,
+    color: colors.mutedForeground,
+    marginTop: 6,
+  },
+  error: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 14,
+    color: colors.destructive,
+    marginBottom: spacing.md,
+  },
+  button: { marginTop: spacing.sm },
+  link: {
+    fontFamily: fonts.sans.semibold,
+    fontSize: 14,
+    color: colors.brandOrange,
+    textAlign: 'center',
+    marginTop: spacing.xl,
+  },
 });

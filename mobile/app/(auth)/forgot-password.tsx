@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import axios from 'axios';
+import { spacing } from '@life-admin/shared';
+import { colors, fonts } from '../../lib/theme';
+import { Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
 import { api } from '../../lib/api';
 
 export default function ForgotPasswordScreen() {
@@ -33,12 +36,12 @@ export default function ForgotPasswordScreen() {
   if (submitted) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Check your email</Text>
+        <ScreenTitle style={styles.title}>Check your email</ScreenTitle>
         <Text style={styles.body}>
           If that address is registered, you'll receive a password reset link shortly.
         </Text>
         <Link href="/(auth)/login" style={styles.link}>
-          Back to Sign In
+          Back to sign in
         </Link>
       </View>
     );
@@ -46,57 +49,65 @@ export default function ForgotPasswordScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Forgot Password</Text>
+      <ScreenTitle style={styles.title}>Forgot password</ScreenTitle>
       <Text style={styles.body}>Enter your email and we'll send you a reset link.</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoComplete="email"
-      />
+      <View style={styles.field}>
+        <FieldLabel>Email</FieldLabel>
+        <Input
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+        />
+      </View>
 
       {networkError ? (
         <Text style={styles.error}>No connection. Check your network and try again.</Text>
       ) : null}
 
-      <Pressable onPress={handleSubmit} disabled={loading} style={styles.button}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Send Reset Link</Text>
-        )}
-      </Pressable>
+      <Button
+        title="Send reset link"
+        onPress={handleSubmit}
+        loading={loading}
+        style={styles.button}
+      />
 
       <Link href="/(auth)/login" style={styles.link}>
-        Back to Sign In
+        Back to sign in
       </Link>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 12 },
-  body: { color: '#6b7280', marginBottom: 24 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 16,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    padding: spacing.xl,
   },
-  error: { color: '#ef4444', marginBottom: 12 },
-  button: {
-    backgroundColor: '#3b82f6',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
+  title: { marginBottom: spacing.md },
+  body: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 14,
+    color: colors.mutedForeground,
+    marginBottom: spacing.xl,
   },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  link: { marginTop: 20, textAlign: 'center', color: '#3b82f6' },
+  field: { marginBottom: spacing.md },
+  error: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 14,
+    color: colors.destructive,
+    marginBottom: spacing.md,
+  },
+  button: { marginTop: spacing.sm },
+  link: {
+    fontFamily: fonts.sans.semibold,
+    fontSize: 14,
+    color: colors.brandOrange,
+    textAlign: 'center',
+    marginTop: spacing.xl,
+  },
 });

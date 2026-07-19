@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
+import { spacing } from '@life-admin/shared';
+import { colors, fonts } from '../../lib/theme';
+import { Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginScreen() {
@@ -33,37 +36,34 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sign In</Text>
+      <ScreenTitle style={styles.title}>Sign in</ScreenTitle>
 
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoComplete="email"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoComplete="current-password"
-      />
+      <View style={styles.field}>
+        <FieldLabel>Email</FieldLabel>
+        <Input
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+        />
+      </View>
+
+      <View style={styles.field}>
+        <FieldLabel>Password</FieldLabel>
+        <Input
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="current-password"
+        />
+      </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable onPress={handleLogin} disabled={loading} style={styles.button}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Sign In</Text>
-        )}
-      </Pressable>
+      <Button title="Sign in" onPress={handleLogin} loading={loading} style={styles.button} />
 
       <Link href="/(auth)/forgot-password" style={styles.linkSecondary}>
         Forgot password?
@@ -76,26 +76,39 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 32 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 16,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    padding: spacing.xl,
   },
-  error: { color: '#ef4444', marginBottom: 12 },
-  notice: { color: '#059669', marginBottom: 16 },
-  button: {
-    backgroundColor: '#3b82f6',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 4,
+  title: { marginBottom: spacing.xl },
+  field: { marginBottom: spacing.md },
+  notice: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 14,
+    color: colors.success,
+    marginBottom: spacing.lg,
   },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  linkSecondary: { marginTop: 20, textAlign: 'center', color: '#6b7280' },
-  linkPrimary: { marginTop: 8, textAlign: 'center', color: '#3b82f6' },
+  error: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 14,
+    color: colors.destructive,
+    marginBottom: spacing.md,
+  },
+  button: { marginTop: spacing.sm },
+  linkSecondary: {
+    fontFamily: fonts.sans.medium,
+    fontSize: 14,
+    color: colors.mutedForeground,
+    textAlign: 'center',
+    marginTop: spacing.xl,
+  },
+  linkPrimary: {
+    fontFamily: fonts.sans.semibold,
+    fontSize: 14,
+    color: colors.brandOrange,
+    textAlign: 'center',
+    marginTop: spacing.md,
+  },
 });
