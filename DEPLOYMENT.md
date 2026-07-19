@@ -55,28 +55,44 @@ Have ready:
 
 ### 1.3 Configure Monorepo
 
-**Critical:** the server depends on the local `@life-admin/shared` workspace
-package (`packages/shared`, not published to npm), so the build must install
-from the **monorepo root** — a `server`-only build context fails with an npm
-E404 on `@life-admin/shared` (LIF-176).
+**The build is configured in the Railway dashboard, not in this repo.** There
+are no Railway config files here: no `railway.json`, no `nixpacks.toml`, no
+`Procfile`. Earlier versions of this document described such files as
+"canonical" — they were never read by the running service, and the resulting
+drift cost a full investigation (LIF-176). If you change the deploy, change it
+in the dashboard and update the snapshot below.
 
-1. In Railway project dashboard
-2. Go to "Settings" → "Root Directory"
-3. Leave it **empty** (repo root) — do **not** set it to `server/`
-4. Go to "Settings" → "Config-as-code" (Railway config file path)
-5. Set it to `server/railway.json`
-6. Save
+**Why the root directory matters:** the server depends on the local
+`@life-admin/shared` workspace package (`packages/shared`, unpublished), so the
+install must run from the **monorepo root**. A `server`-only build context fails
+with an npm E404 on `@life-admin/shared`.
 
-> `server/railway.json` is the canonical build/deploy config: it points Nixpacks
-> at `server/nixpacks.toml` (via `build.nixpacksConfigPath`), installs with
-> `npm ci --workspace=server --workspace=packages/shared` against the root
-> lockfile (which builds `packages/shared/dist` via its `prepare` script), and
-> builds/starts the server with `npm run ... --workspace=server`. Its
-> `watchPatterns` (`server/**`, `packages/shared/**`, root `package.json` /
-> `package-lock.json`) keep pushes that only touch `client/` or `mobile/` from
-> redeploying the API. There are no root-level Railway config files — they were
-> removed to avoid two divergent build definitions. `server/Procfile` is a
-> legacy fallback and is not read when the Root Directory is the repo root.
+Settings → Source → Root Directory must be `/` (the repo root) — **not**
+`server/`.
+
+#### Current configuration (verified 2026-07-19 against the Railway API)
+
+| Setting | Value |
+|---|---|
+| Project / environment | `life-admin-backend` / `production` |
+| Service | `loyal-magic`, deployed from `emmahorovsky-hue/life-admin-app`, branch `main` |
+| Root Directory | `/` |
+| Builder | **Railpack** (Railway's default; *not* Nixpacks) |
+| Install | `npm ci` at the repo root — Railpack's default for a detected npm workspace; installs all four workspaces |
+| Build Command | `npm run prisma:generate -w server && npm run build -w server` |
+| Start Command | `npm run prisma:migrate:deploy -w server && npm run start -w server` |
+| Watch Paths | `/server/**`, `/packages/shared/**`, `/package.json`, `/package-lock.json` |
+| Restart policy | `ON_FAILURE`, max 10 retries |
+
+`packages/shared/**` must stay in the watch paths: the server consumes that
+package's built `dist/`, so a shared-only change has to redeploy the API.
+
+> **Migrating to config-as-code (optional, not done).** Versioning this in the
+> repo is reasonable, but do it deliberately: the file must declare
+> `"builder": "RAILPACK"` and mirror the commands above exactly. Committing a
+> config that names a different builder and then pointing Railway at it would
+> switch a working production service onto a build system it has never used.
+> Validate on a PR environment before switching production.
 
 ### 1.4 Add PostgreSQL Service
 
@@ -323,12 +339,13 @@ npx eas build --profile production --platform all
 #### "npm error 404 '@life-admin/shared@*' is not in this registry"
 **Problem:** Railway's Root Directory is set to `server/`, so npm can't see the
 `packages/shared` workspace and tries the public registry
-**Solution:** Clear Root Directory (repo root) and set the config file path to
-`server/railway.json` — see section 1.3
+**Solution:** Set Root Directory back to `/` (repo root) — see section 1.3
 
-#### "No Procfile detected"
-**Problem:** Railway isn't reading the service config
-**Solution:** Set the config-as-code file path to `server/railway.json` in Railway settings (Root Directory stays empty)
+#### A change to `packages/shared` didn't redeploy the API
+**Problem:** `/packages/shared/**` is missing from Settings → Build → Watch Paths
+**Solution:** Restore the full watch-path set from the table in section 1.3. The
+server consumes the shared package's built `dist/`, so shared-only commits must
+trigger a deploy or production runs against stale shared code.
 
 #### "Cannot connect to database"
 **Problem:** `DATABASE_URL` env var missing

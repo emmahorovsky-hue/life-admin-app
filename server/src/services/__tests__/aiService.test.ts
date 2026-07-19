@@ -86,7 +86,9 @@ describe('aiService.normalizeCandidate', () => {
       notes: null,
       isSubscription: true,
       confidence: 'low',
-      uncertainFields: [],
+      // LIF-76: a null cost is always surfaced for review, even when the model
+      // (or, here, an empty input) didn't flag it.
+      uncertainFields: ['cost'],
     });
   });
 });
