@@ -19,6 +19,7 @@ import {
   categories,
   formatCurrency,
   getSubscriptionStatus,
+  radius,
 } from '@life-admin/shared';
 import { subscriptionApi } from '../../lib/subscriptions';
 import { getApiErrorMessage } from '../../lib/utils';
@@ -28,8 +29,8 @@ import {
   SubscriptionFormSheetHandle,
 } from '../../components/SubscriptionFormSheet';
 import { EmptyState } from '../../components/EmptyState';
-import { Button } from '../../components/ui';
-import { colors, fontMono, fontMonoBold } from '../../lib/theme';
+import { Button, ScreenTitle } from '../../components/ui';
+import { colors, fontMonoBold, fonts } from '../../lib/theme';
 
 const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
 
@@ -168,9 +169,7 @@ export default function SubscriptionsScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.h1}>
-          Subscriptions<Text style={styles.accent}>.</Text>
-        </Text>
+        <ScreenTitle>Subscriptions</ScreenTitle>
         <Pressable style={styles.addButton} onPress={() => sheetRef.current?.open(null)}>
           <Ionicons name="add" size={18} color={colors.background} />
           <Text style={styles.addButtonText}>Add</Text>
@@ -288,19 +287,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
   },
-  h1: { fontSize: 26, fontWeight: '800', color: colors.foreground },
-  accent: { color: colors.brandOrange },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
     backgroundColor: colors.foreground,
-    borderRadius: 8,
+    borderRadius: radius.base,
     paddingLeft: 8,
     paddingRight: 12,
     paddingVertical: 8,
   },
-  addButtonText: { color: colors.background, fontWeight: '600', fontSize: 14 },
+  addButtonText: { fontFamily: fonts.sans.semibold, color: colors.background, fontSize: 14 },
 
   searchBox: {
     flexDirection: 'row',
@@ -311,27 +308,28 @@ const styles = StyleSheet.create({
     height: 42,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.base,
     backgroundColor: colors.card,
     paddingHorizontal: 12,
   },
-  searchInput: { flex: 1, fontSize: 14, color: colors.foreground },
+  searchInput: { flex: 1, fontFamily: fonts.sans.regular, fontSize: 14, color: colors.foreground },
 
   chips: { flexGrow: 0, marginBottom: 6 },
   chipsContent: { paddingHorizontal: 16, gap: 6 },
   chip: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: radius.base,
     backgroundColor: colors.card,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   chipActive: { backgroundColor: colors.foreground, borderColor: colors.foreground },
-  chipText: { fontSize: 12, fontWeight: '500', color: colors.foreground },
+  chipText: { fontFamily: fonts.sans.medium, fontSize: 12, color: colors.foreground },
   chipTextActive: { color: colors.background },
 
   error: {
+    fontFamily: fonts.sans.regular,
     color: colors.destructive,
     fontSize: 13,
     marginHorizontal: 16,
@@ -351,21 +349,26 @@ const styles = StyleSheet.create({
   rowEnded: { opacity: 0.6 },
   rowBody: { flex: 1, gap: 3 },
   rowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  rowName: { fontSize: 16, fontWeight: '600', color: colors.foreground, flexShrink: 1 },
+  rowName: {
+    fontFamily: fonts.sans.semibold,
+    fontSize: 16,
+    color: colors.foreground,
+    flexShrink: 1,
+  },
   badge: {
     backgroundColor: colors.secondary,
-    borderRadius: 10,
+    borderRadius: radius.base,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   badgeWarning: { backgroundColor: colors.warning },
   badgeDestructive: { backgroundColor: colors.destructive },
-  badgeText: { fontSize: 10, fontWeight: '600', color: colors.foreground },
+  badgeText: { fontFamily: fonts.sans.semibold, fontSize: 10, color: colors.foreground },
   badgeTextLight: { color: colors.white },
   rowMetaLine: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   rowCost: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground },
-  rowMeta: { fontSize: 12, color: colors.mutedForeground },
-  rowNotes: { fontSize: 12, color: colors.mutedForeground },
+  rowMeta: { fontFamily: fonts.sans.regular, fontSize: 12, color: colors.mutedForeground },
+  rowNotes: { fontFamily: fonts.sans.regular, fontSize: 12, color: colors.mutedForeground },
 
   deleteAction: {
     backgroundColor: colors.destructive,
@@ -374,10 +377,10 @@ const styles = StyleSheet.create({
     width: 84,
     gap: 2,
   },
-  deleteActionText: { color: colors.white, fontSize: 11, fontWeight: '600' },
+  deleteActionText: { fontFamily: fonts.sans.semibold, color: colors.white, fontSize: 11 },
 
-  mutedText: { color: colors.mutedForeground, fontSize: 14 },
   footerCount: {
+    fontFamily: fonts.sans.regular,
     textAlign: 'center',
     color: colors.mutedForeground,
     fontSize: 12,

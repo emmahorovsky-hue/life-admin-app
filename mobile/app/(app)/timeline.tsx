@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   RefreshControl,
   SectionList,
   StyleSheet,
@@ -25,8 +24,8 @@ import { getApiErrorMessage } from '../../lib/utils';
 import { SubscriptionLogo } from '../../components/SubscriptionLogo';
 import { Perforation } from '../../components/Perforation';
 import { EmptyState } from '../../components/EmptyState';
-import { Button } from '../../components/ui';
-import { colors, fontMono, fontMonoBold } from '../../lib/theme';
+import { Button, ScreenTitle } from '../../components/ui';
+import { colors, fontMono, fontMonoBold, fonts } from '../../lib/theme';
 
 const BUCKET_LABELS: Record<BucketId, string> = {
   thisWeek: 'This Week',
@@ -82,9 +81,7 @@ export default function TimelineScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.mutedText}>{error}</Text>
-        <Pressable style={styles.primaryButton} onPress={() => { setLoading(true); load(); }}>
-          <Text style={styles.primaryButtonText}>Retry</Text>
-        </Pressable>
+        <Button title="Retry" onPress={() => { setLoading(true); load(); }} />
       </View>
     );
   }
@@ -116,11 +113,7 @@ export default function TimelineScreen() {
       keyExtractor={(sub) => sub.id}
       stickySectionHeadersEnabled={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      ListHeaderComponent={
-        <Text style={styles.h1}>
-          What's due next<Text style={styles.accent}>.</Text>
-        </Text>
-      }
+      ListHeaderComponent={<ScreenTitle style={styles.title}>What's due next</ScreenTitle>}
       ListEmptyComponent={
         <EmptyState
           iconName="calendar-outline"
@@ -192,9 +185,8 @@ const styles = StyleSheet.create({
     gap: 16,
     padding: 24,
   },
-  h1: { fontSize: 26, fontWeight: '800', color: colors.foreground, marginBottom: 16, marginTop: 8 },
-  accent: { color: colors.brandOrange },
-  mutedText: { color: colors.mutedForeground, fontSize: 14 },
+  title: { marginBottom: 16, marginTop: 8 },
+  mutedText: { fontFamily: fonts.sans.regular, color: colors.mutedForeground, fontSize: 14 },
 
   sectionHeader: {
     flexDirection: 'row',
@@ -227,12 +219,4 @@ const styles = StyleSheet.create({
   rowRelative: { fontFamily: fontMono, fontSize: 11, color: colors.mutedForeground },
   rowRelativeAccent: { color: colors.brandOrange },
   rowAmount: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground, marginTop: 1 },
-
-  primaryButton: {
-    backgroundColor: colors.foreground,
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  primaryButtonText: { color: colors.background, fontWeight: '600' },
 });

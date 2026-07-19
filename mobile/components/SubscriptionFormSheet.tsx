@@ -27,6 +27,7 @@ import {
   formatCurrency,
   normalizeToMonthlyCost,
   parseRenewalDate,
+  radius,
   relativeDaysSigned,
   getSubscriptionStatus,
 } from '@life-admin/shared';
@@ -35,7 +36,8 @@ import { categoryIconFor } from '../lib/subscriptionLogo';
 import { filterSuggestions, ServiceSuggestion } from '../lib/suggestions';
 import { getApiErrorMessage } from '../lib/utils';
 import { SubscriptionLogo } from './SubscriptionLogo';
-import { colors, fontMono, fontMonoBold } from '../lib/theme';
+import { Button, FieldLabel } from './ui';
+import { colors, fontMono, fontMonoBold, fonts } from '../lib/theme';
 
 // Segmented billing control — 4 canonical cycles. Legacy 'annual' maps to 'yearly'.
 const CYCLE_SEGMENTS = [
@@ -234,7 +236,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           <Text style={styles.title}>{mode === 'add' ? 'Add subscription' : 'Edit subscription'}</Text>
 
           {/* Service (autocomplete) */}
-          <Text style={styles.fieldLabel}>SERVICE</Text>
+          <FieldLabel style={styles.fieldLabel}>SERVICE</FieldLabel>
           <View style={styles.serviceRow}>
             <SubscriptionLogo name={values.name || '?'} category={values.category} size={36} />
             <BottomSheetTextInput
@@ -267,7 +269,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           {/* Cost + Currency */}
           <View style={styles.fieldRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>COST</Text>
+              <FieldLabel style={styles.fieldLabel}>COST</FieldLabel>
               <View style={styles.costBox}>
                 <Text style={styles.costSymbol}>{currencySymbol(values.currency)}</Text>
                 <BottomSheetTextInput
@@ -282,7 +284,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
               </View>
             </View>
             <View style={{ width: 150 }}>
-              <Text style={styles.fieldLabel}>CURRENCY</Text>
+              <FieldLabel style={styles.fieldLabel}>CURRENCY</FieldLabel>
               <View style={styles.segmentRow}>
                 {currencies.map((code) => {
                   const active = values.currency === code;
@@ -302,7 +304,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           </View>
 
           {/* Billing cycle — segmented */}
-          <Text style={styles.fieldLabel}>BILLING CYCLE</Text>
+          <FieldLabel style={styles.fieldLabel}>BILLING CYCLE</FieldLabel>
           <View style={styles.segmentRow}>
             {CYCLE_SEGMENTS.map((seg) => {
               const active = activeCycle === seg.id;
@@ -320,7 +322,9 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           </View>
 
           {/* Date */}
-          <Text style={styles.fieldLabel}>{mode === 'edit' ? 'NEXT RENEWAL' : 'FIRST PAYMENT'}</Text>
+          <FieldLabel style={styles.fieldLabel}>
+            {mode === 'edit' ? 'NEXT RENEWAL' : 'FIRST PAYMENT'}
+          </FieldLabel>
           <Pressable
             style={styles.dateBox}
             disabled={loading}
@@ -345,7 +349,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           )}
 
           {/* Category tiles */}
-          <Text style={styles.fieldLabel}>CATEGORY</Text>
+          <FieldLabel style={styles.fieldLabel}>CATEGORY</FieldLabel>
           <View style={styles.categoryGrid}>
             {categories.map((cat) => {
               const active = values.category === cat.id;
@@ -370,7 +374,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           </View>
 
           {/* Notes */}
-          <Text style={styles.fieldLabel}>NOTES — OPTIONAL</Text>
+          <FieldLabel style={styles.fieldLabel}>NOTES — OPTIONAL</FieldLabel>
           <BottomSheetTextInput
             style={styles.notesInput}
             value={values.notes}
@@ -391,15 +395,12 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <Pressable
-            style={[styles.submitButton, loading && styles.disabled]}
-            disabled={loading}
+          <Button
+            title={mode === 'add' ? 'Add subscription' : 'Save changes'}
+            loading={loading}
             onPress={handleSubmit}
-          >
-            <Text style={styles.submitButtonText}>
-              {loading ? 'Saving…' : mode === 'add' ? 'Add subscription' : 'Save changes'}
-            </Text>
-          </Pressable>
+            style={styles.submitButton}
+          />
 
           {mode === 'edit' && (
             <View style={styles.editActions}>
@@ -434,16 +435,9 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
 const styles = StyleSheet.create({
   sheetBackground: { backgroundColor: colors.background },
   content: { padding: 22, paddingBottom: 48 },
-  title: { fontSize: 22, fontWeight: '800', color: colors.foreground, marginBottom: 16 },
+  title: { fontFamily: fonts.sans.extrabold, fontSize: 22, color: colors.foreground, marginBottom: 16 },
 
-  fieldLabel: {
-    fontFamily: fontMono,
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: colors.mutedForeground,
-    marginBottom: 6,
-    marginTop: 14,
-  },
+  fieldLabel: { marginTop: 14 },
   fieldRow: { flexDirection: 'row', gap: 12 },
 
   serviceRow: {
@@ -453,16 +447,16 @@ const styles = StyleSheet.create({
     height: 52,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.base,
     backgroundColor: colors.card,
     paddingHorizontal: 10,
   },
-  serviceInput: { flex: 1, fontSize: 15, fontWeight: '500', color: colors.foreground },
+  serviceInput: { flex: 1, fontFamily: fonts.sans.medium, fontSize: 15, color: colors.foreground },
 
   suggestions: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.base,
     backgroundColor: colors.card,
     marginTop: 4,
     overflow: 'hidden',
@@ -471,12 +465,12 @@ const styles = StyleSheet.create({
   suggestionIcon: {
     width: 26,
     height: 26,
-    borderRadius: 8,
+    borderRadius: radius.base,
     backgroundColor: colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  suggestionName: { flex: 1, fontSize: 14, fontWeight: '500', color: colors.foreground },
+  suggestionName: { flex: 1, fontFamily: fonts.sans.medium, fontSize: 14, color: colors.foreground },
   suggestionCost: { fontFamily: fontMono, fontSize: 12, color: colors.mutedForeground },
 
   costBox: {
@@ -485,7 +479,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.base,
     backgroundColor: colors.card,
     paddingHorizontal: 12,
   },
@@ -496,15 +490,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.base,
     overflow: 'hidden',
     backgroundColor: colors.card,
   },
   cycleSegment: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' },
   currencySegment: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' },
   segmentActive: { backgroundColor: colors.foreground },
-  segmentText: { fontSize: 12, fontWeight: '500', color: colors.foreground },
-  segmentTextActive: { color: colors.background, fontWeight: '600' },
+  segmentText: { fontFamily: fonts.sans.medium, fontSize: 12, color: colors.foreground },
+  segmentTextActive: { color: colors.background, fontFamily: fonts.sans.semibold },
 
   dateBox: {
     flexDirection: 'row',
@@ -513,7 +507,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.base,
     backgroundColor: colors.card,
     paddingHorizontal: 12,
   },
@@ -527,22 +521,23 @@ const styles = StyleSheet.create({
     gap: 4,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.base,
     backgroundColor: colors.card,
     paddingVertical: 10,
     paddingHorizontal: 2,
   },
   categoryTileActive: { borderColor: colors.brandOrange, backgroundColor: 'rgba(229,61,0,0.08)' },
-  categoryTileText: { fontSize: 10, fontWeight: '500', color: colors.mutedForeground },
-  categoryTileTextActive: { color: colors.brandOrange, fontWeight: '600' },
+  categoryTileText: { fontFamily: fonts.sans.medium, fontSize: 10, color: colors.mutedForeground },
+  categoryTileTextActive: { color: colors.brandOrange, fontFamily: fonts.sans.semibold },
 
   notesInput: {
     minHeight: 64,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.base,
     backgroundColor: colors.card,
     padding: 12,
+    fontFamily: fonts.sans.regular,
     fontSize: 14,
     color: colors.foreground,
     textAlignVertical: 'top',
@@ -551,17 +546,9 @@ const styles = StyleSheet.create({
   previewRow: { marginTop: 16, alignItems: 'center' },
   previewText: { fontFamily: fontMono, fontSize: 12, color: colors.mutedForeground },
 
-  error: { color: colors.destructive, fontSize: 13, marginTop: 12 },
+  error: { fontFamily: fonts.sans.regular, color: colors.destructive, fontSize: 13, marginTop: 12 },
 
-  submitButton: {
-    backgroundColor: colors.foreground,
-    borderRadius: 8,
-    alignItems: 'center',
-    paddingVertical: 14,
-    marginTop: 16,
-  },
-  submitButtonText: { color: colors.background, fontWeight: '700', fontSize: 15 },
-  disabled: { opacity: 0.6 },
+  submitButton: { marginTop: 16 },
 
   editActions: {
     flexDirection: 'row',
@@ -570,7 +557,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   editAction: { paddingVertical: 6 },
-  cancelActionText: { color: colors.brandOrange, fontSize: 13, fontWeight: '600' },
-  resumeActionText: { color: colors.foreground, fontSize: 13, fontWeight: '600' },
-  deleteActionText: { color: colors.destructive, fontSize: 13, fontWeight: '600' },
+  cancelActionText: { fontFamily: fonts.sans.semibold, color: colors.brandOrange, fontSize: 13 },
+  resumeActionText: { fontFamily: fonts.sans.semibold, color: colors.foreground, fontSize: 13 },
+  deleteActionText: { fontFamily: fonts.sans.semibold, color: colors.destructive, fontSize: 13 },
 });
