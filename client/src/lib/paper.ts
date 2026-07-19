@@ -9,6 +9,11 @@
 export const PAPER_TINTS = ['#fbf8f1', '#fdfbf6', '#f9f6ee', '#fcf9f2', '#faf7ef', '#fdfaf4'];
 export const PAPER_TINT = PAPER_TINTS[0];
 export const PAPER_MARGIN_RULE = 'hsl(2 65% 58% / 0.30)';
-// Faint blue horizontal ruling, used by the Subscriptions cards only.
+// Faint blue horizontal ruling line colour. Shared so both surfaces rule in the
+// same ink: the Subscriptions cards paint it as a fixed-pitch repeating gradient
+// (PAPER_RULING) behind their small, uniform layout; the Timeline puts one line
+// under each row (its rows are too tall, and its section headers break the
+// rhythm, for a fixed-pitch gradient to stay aligned).
+export const PAPER_RULING_INK = 'hsl(212 55% 55% / 0.10)';
 export const PAPER_RULING =
-  'repeating-linear-gradient(to bottom, transparent 0, transparent 31px, hsl(212 55% 55% / 0.10) 31px, hsl(212 55% 55% / 0.10) 32px)';
+  `repeating-linear-gradient(to bottom, transparent 0, transparent 31px, ${PAPER_RULING_INK} 31px, ${PAPER_RULING_INK} 32px)`;
