@@ -2,8 +2,9 @@ import { ComponentProps } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getInitials, radius } from '@life-admin/shared';
+import { radius } from '@life-admin/shared';
 import { useAuth } from '../../../contexts/AuthContext';
+import { AvatarTile } from '../../../components/settings/AvatarTile';
 import { Card, ScreenTitle } from '../../../components/ui';
 import { colors, fontMono, fonts } from '../../../lib/theme';
 
@@ -47,11 +48,9 @@ export default function SettingsIndexScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <ScreenTitle>Settings</ScreenTitle>
 
-      {/* Identity block — initials tile placeholder until the avatar ticket (LIF-202) */}
+      {/* Identity block — avatar tile with upload/remove (LIF-202) */}
       <View style={styles.identity}>
-        <View style={styles.initialsTile}>
-          <Text style={styles.initialsText}>{getInitials(user)}</Text>
-        </View>
+        <AvatarTile size="md" />
         <View style={styles.identityText}>
           <Text numberOfLines={1} style={styles.name}>
             {displayName}
@@ -101,15 +100,6 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 48 },
 
   identity: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20 },
-  initialsTile: {
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.base,
-    backgroundColor: colors.foreground,
-  },
-  initialsText: { fontFamily: fonts.sans.extrabold, fontSize: 24, color: colors.background },
   identityText: { flex: 1, minWidth: 0 },
   name: { fontFamily: fonts.sans.extrabold, fontSize: 17, color: colors.foreground },
   email: { fontFamily: fontMono, fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
