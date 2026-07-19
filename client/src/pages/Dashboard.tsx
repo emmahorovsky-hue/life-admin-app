@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi } from '@/lib/dashboard';
@@ -16,6 +16,7 @@ import {
 } from '@life-admin/shared';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { PaperSheet } from '@/components/PaperSheet';
+import { EmptyState } from '@/components/EmptyState';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -264,9 +265,7 @@ export default function Dashboard() {
         {/* Upcoming renewals — filed-paper receipt (matches Timeline / Subscriptions) */}
         <PaperSheet className="pt-6 pr-6 pb-6 pl-12">
           {summary.upcomingRenewals.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">
-                No renewals in the next 30 days
-              </p>
+              <EmptyState tone="inline" icon={null} title="No renewals in the next 30 days" />
             ) : (
               <>
                 {/* Column headers */}
@@ -364,12 +363,16 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="border-perf mb-4" />
-                <div className="flex flex-col items-center justify-center py-12">
-                  <p className="text-muted-foreground mb-4">No subscriptions yet</p>
-                  <Button onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
-                    Add Subscription
-                  </Button>
-                </div>
+                <EmptyState
+                  tone="inline"
+                  title="No subscriptions yet"
+                  description="Add one to see where your money goes."
+                  action={
+                    <Button onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
+                      Add subscription
+                    </Button>
+                  }
+                />
               </>
             ) : (
               <div className="space-y-6">
@@ -398,22 +401,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Quick action */}
-      {summary.activeSubscriptions === 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Get Started</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              Start tracking your subscriptions to see insights and never miss a renewal!
-            </p>
-            <Button onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
-              Add Your First Subscription
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
