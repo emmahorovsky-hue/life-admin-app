@@ -1,1 +1,1 @@
-web: npm run prisma:migrate:deploy && npm start
+web: npm run prisma:migrate:deploy --workspace=server && npm run start --workspace=server
