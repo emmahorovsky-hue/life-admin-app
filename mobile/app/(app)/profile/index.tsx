@@ -1,0 +1,141 @@
+import { ComponentProps } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { getInitials, radius } from '@life-admin/shared';
+import { useAuth } from '../../../contexts/AuthContext';
+import { Card, ScreenTitle } from '../../../components/ui';
+import { colors, fontMono, fonts } from '../../../lib/theme';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
+interface MenuItem {
+  href: '/profile/account' | '/profile/notifications' | '/profile/privacy';
+  label: string;
+  icon: IconName;
+  orange?: boolean;
+}
+
+// Web SettingsIndex's menu minus Appearance — theme is deferred with mobile
+// dark mode; default currency lives in the Account panel (LIF-200 decision).
+const menuItems: MenuItem[] = [
+  { href: '/profile/account', label: 'Account', icon: 'person-outline', orange: true },
+  { href: '/profile/notifications', label: 'Notifications', icon: 'notifications-outline' },
+  { href: '/profile/privacy', label: 'Data & privacy', icon: 'warning-outline', orange: true },
+];
+
+/**
+ * Dotted row separator. Same iOS quirk as Perforation: borderStyle only renders
+ * non-solid when drawn on all four edges, so clip a 4-side dotted box to its
+ * top edge.
+ */
+function DottedRule() {
+  return (
+    <View style={styles.ruleClip}>
+      <View style={styles.ruleDots} />
+    </View>
+  );
+}
+
+/** Settings index (design 1D drill-down) — port of web's SettingsIndex. */
+export default function SettingsIndexScreen() {
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  const displayName = [user?.name, user?.surname].filter(Boolean).join(' ') || user?.email;
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <ScreenTitle>Settings</ScreenTitle>
+
+      {/* Identity block — initials tile placeholder until the avatar ticket (LIF-202) */}
+      <View style={styles.identity}>
+        <View style={styles.initialsTile}>
+          <Text style={styles.initialsText}>{getInitials(user)}</Text>
+        </View>
+        <View style={styles.identityText}>
+          <Text numberOfLines={1} style={styles.name}>
+            {displayName}
+          </Text>
+          <Text numberOfLines={1} style={styles.email}>
+            {user?.email}
+          </Text>
+        </View>
+      </View>
+
+      {/* Menu list */}
+      <Card padding="none" style={styles.menu} accessibilityLabel="Settings menu">
+        {menuItems.map(({ href, label, icon, orange }, index) => (
+          <View key={href}>
+            {index > 0 && <DottedRule />}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push(href)}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <Ionicons
+                name={icon}
+                size={20}
+                color={orange ? colors.brandOrange : colors.mutedForeground}
+              />
+              <Text style={styles.rowLabel}>{label}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
+        ))}
+      </Card>
+
+      {/* Sign out — moved from the old flat profile form */}
+      <Pressable
+        accessibilityRole="button"
+        onPress={logout}
+        style={({ pressed }) => [styles.signOut, pressed && styles.rowPressed]}
+      >
+        <Text style={styles.signOutText}>Sign out</Text>
+      </Pressable>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { padding: 16, paddingBottom: 48 },
+
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20 },
+  initialsTile: {
+    width: 60,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.base,
+    backgroundColor: colors.foreground,
+  },
+  initialsText: { fontFamily: fonts.sans.extrabold, fontSize: 24, color: colors.background },
+  identityText: { flex: 1, minWidth: 0 },
+  name: { fontFamily: fonts.sans.extrabold, fontSize: 17, color: colors.foreground },
+  email: { fontFamily: fontMono, fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
+
+  menu: { marginTop: 20 },
+  row: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 16,
+  },
+  rowPressed: { backgroundColor: colors.secondary },
+  rowLabel: { flex: 1, fontFamily: fonts.sans.bold, fontSize: 17, color: colors.foreground },
+
+  ruleClip: { height: 1.5, overflow: 'hidden', marginHorizontal: 0 },
+  ruleDots: { height: 8, borderWidth: 1.5, borderColor: colors.border, borderStyle: 'dotted' },
+
+  signOut: {
+    marginTop: 12,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.destructive,
+    borderRadius: radius.base,
+  },
+  signOutText: { fontFamily: fonts.sans.semibold, fontSize: 14, color: colors.destructive },
+});
