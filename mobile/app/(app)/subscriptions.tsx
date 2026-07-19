@@ -28,6 +28,10 @@ import {
   SubscriptionFormSheet,
   SubscriptionFormSheetHandle,
 } from '../../components/SubscriptionFormSheet';
+import {
+  ReceiptScanChooser,
+  ReceiptScanChooserHandle,
+} from '../../components/ReceiptScanChooser';
 import { EmptyState } from '../../components/EmptyState';
 import { Button, ScreenTitle } from '../../components/ui';
 import { colors, fontMonoBold, fonts } from '../../lib/theme';
@@ -44,6 +48,7 @@ export default function SubscriptionsScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const sheetRef = useRef<SubscriptionFormSheetHandle>(null);
+  const chooserRef = useRef<ReceiptScanChooserHandle>(null);
 
   const load = useCallback(async () => {
     try {
@@ -63,13 +68,13 @@ export default function SubscriptionsScreen() {
     }, [load]),
   );
 
-  // Open the add sheet when navigated here from an "add" button elsewhere
+  // Open the add chooser when navigated here from an "add" button elsewhere
   // (e.g. the Dashboard empty state). Clear the param so it doesn't re-fire —
   // with '' rather than undefined, which expo-router can serialize to the
   // literal string "undefined" (truthy, and it would wedge the effect).
   useEffect(() => {
     if (openAdd) {
-      sheetRef.current?.open(null);
+      chooserRef.current?.open();
       router.setParams({ openAdd: '' });
     }
   }, [openAdd, router]);
@@ -170,7 +175,7 @@ export default function SubscriptionsScreen() {
     <View style={styles.screen}>
       <View style={styles.header}>
         <ScreenTitle>Subscriptions</ScreenTitle>
-        <Pressable style={styles.addButton} onPress={() => sheetRef.current?.open(null)}>
+        <Pressable style={styles.addButton} onPress={() => chooserRef.current?.open()}>
           <Ionicons name="add" size={18} color={colors.background} />
           <Text style={styles.addButtonText}>Add</Text>
         </Pressable>
@@ -256,7 +261,7 @@ export default function SubscriptionsScreen() {
                 action={
                   <Button
                     title="Add your first subscription"
-                    onPress={() => sheetRef.current?.open(null)}
+                    onPress={() => chooserRef.current?.open()}
                   />
                 }
               />
@@ -273,6 +278,11 @@ export default function SubscriptionsScreen() {
       )}
 
       <SubscriptionFormSheet ref={sheetRef} onSaved={load} />
+      <ReceiptScanChooser
+        ref={chooserRef}
+        onManual={() => sheetRef.current?.open(null)}
+        onExtracted={(candidate) => sheetRef.current?.openWithCandidate(candidate)}
+      />
     </View>
   );
 }
