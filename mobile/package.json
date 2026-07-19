@@ -34,9 +34,11 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "patch-package": "^8.0.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "postinstall": "patch-package",
     "typecheck": "tsc --noEmit",
     "start": "expo start",
     "android": "expo start --android",
