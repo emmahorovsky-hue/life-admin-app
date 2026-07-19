@@ -1,7 +1,12 @@
 import { api } from './api';
 import type { User } from '@life-admin/shared';
 
-export const updateProfile = async (data: { name?: string; surname?: string }) => {
+export const updateProfile = async (data: {
+  name?: string;
+  surname?: string;
+  defaultCurrency?: string;
+  reminderEmailsEnabled?: boolean;
+}) => {
   return api.patch<{ user: User }>('/auth/profile', data);
 };
 

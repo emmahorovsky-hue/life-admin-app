@@ -17,6 +17,10 @@ if (!apiUrl) {
   );
 }
 
+// For the rare consumer that needs a raw URL instead of the axios instance —
+// e.g. an <Image source> pointing at an authenticated endpoint (lib/account.ts).
+export const apiBaseUrl: string = apiUrl;
+
 export const api = axios.create({
   baseURL: apiUrl,
   headers: {
