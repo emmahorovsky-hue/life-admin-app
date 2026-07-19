@@ -128,6 +128,23 @@ describe('aiService', () => {
       });
     });
 
+    it('sends amount guidance in the tool schema and system prompt (LIF-76)', async () => {
+      mockMessagesCreate.mockResolvedValue(toolUseResponse(VALID_INPUT));
+      const { extractSubscription } = await loadAiService();
+
+      await extractSubscription(Buffer.from('pdf'), 'application/pdf');
+
+      const args = mockMessagesCreate.mock.calls[0][0];
+      const costDescription = args.tools[0].input_schema.properties.cost.description;
+      // The cost field must steer the model to the charged total, away from
+      // subtotals/tax/per-item prices, and cover European decimal formats.
+      expect(costDescription).toMatch(/total including tax/i);
+      expect(costDescription).toMatch(/subtotal/i);
+      expect(costDescription).toContain('1.234,56');
+      expect(args.system).toMatch(/total including tax/i);
+      expect(args.system).toContain('1.234,56');
+    });
+
     it('returns source "none" with reason "error" when the model omits a tool_use block', async () => {
       mockMessagesCreate.mockResolvedValue({ content: [{ type: 'text', text: 'sorry' }] });
       const { extractSubscription } = await loadAiService();
@@ -208,6 +225,67 @@ describe('aiService', () => {
       expect(candidate.category).toBe('music');
       expect(candidate.billingCycle).toBe('annual');
       expect(candidate.isSubscription).toBe(false);
+    });
+
+    describe('cost guards (LIF-76)', () => {
+      it('passes through a valid positive cost untouched', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        const candidate = normalizeCandidate({ ...VALID_INPUT, cost: 1234.56 });
+        expect(candidate.cost).toBe(1234.56);
+        expect(candidate.uncertainFields).toEqual([]);
+      });
+
+      it('keeps a zero cost (free trial) without flagging it', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        const candidate = normalizeCandidate({ ...VALID_INPUT, cost: 0 });
+        expect(candidate.cost).toBe(0);
+        expect(candidate.uncertainFields).toEqual([]);
+      });
+
+      it('nulls a negative cost and flags it as uncertain', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        const candidate = normalizeCandidate({ ...VALID_INPUT, cost: -15.99 });
+        expect(candidate.cost).toBeNull();
+        expect(candidate.uncertainFields).toContain('cost');
+      });
+
+      it('nulls a non-finite cost (NaN / Infinity) and flags it', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        expect(normalizeCandidate({ ...VALID_INPUT, cost: NaN }).cost).toBeNull();
+        const candidate = normalizeCandidate({ ...VALID_INPUT, cost: Infinity });
+        expect(candidate.cost).toBeNull();
+        expect(candidate.uncertainFields).toContain('cost');
+      });
+
+      it('adds "cost" to uncertainFields when the model returns null without flagging it', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        const candidate = normalizeCandidate({ ...VALID_INPUT, cost: null, uncertainFields: [] });
+        expect(candidate.cost).toBeNull();
+        expect(candidate.uncertainFields).toEqual(['cost']);
+      });
+
+      it('does not duplicate "cost" when the model already flagged it', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        const candidate = normalizeCandidate({
+          ...VALID_INPUT,
+          cost: null,
+          uncertainFields: ['cost', 'renewalDate'],
+        });
+        expect(candidate.uncertainFields).toEqual(['cost', 'renewalDate']);
+      });
+    });
+
+    describe('currency guards (LIF-76)', () => {
+      it('uppercases and trims a valid ISO 4217 code', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        expect(normalizeCandidate({ ...VALID_INPUT, currency: ' eur ' }).currency).toBe('EUR');
+      });
+
+      it('nulls a currency symbol or non-ISO string', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        expect(normalizeCandidate({ ...VALID_INPUT, currency: '€' }).currency).toBeNull();
+        expect(normalizeCandidate({ ...VALID_INPUT, currency: 'DOLLARS' }).currency).toBeNull();
+      });
     });
   });
 });
