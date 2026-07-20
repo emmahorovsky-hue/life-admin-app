@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
@@ -9,10 +9,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { currencies, radius, spacing } from '@life-admin/shared';
 import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../ui';
+import { AppText, useToast } from '../ui';
 import { updateProfile } from '../../lib/profile';
 import { getApiErrorMessage } from '../../lib/utils';
-import { colors, fontMono, fonts } from '../../lib/theme';
+import { colors, fonts } from '../../lib/theme';
 
 export interface DefaultCurrencySheetHandle {
   open: () => void;
@@ -74,8 +74,8 @@ export const DefaultCurrencySheet = forwardRef<DefaultCurrencySheetHandle>(
         handleIndicatorStyle={{ backgroundColor: colors.border }}
       >
         <BottomSheetView style={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}>
-          <Text style={styles.title}>Default currency</Text>
-          <Text style={styles.fieldLabel}>CURRENCY</Text>
+          <AppText variant="title" style={styles.title}>Default currency</AppText>
+          <AppText variant="monoLabel" style={styles.fieldLabel}>CURRENCY</AppText>
           <View style={styles.segmentRow}>
             {currencies.map((code) => {
               const active = (user?.defaultCurrency ?? 'SGD') === code;
@@ -88,15 +88,15 @@ export const DefaultCurrencySheet = forwardRef<DefaultCurrencySheetHandle>(
                   onPress={() => handleSelect(code)}
                   style={[styles.segment, active && styles.segmentActive]}
                 >
-                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                  <AppText variant="footnote" weight={500} style={[styles.segmentText, active && styles.segmentTextActive]}>
                     {code}
-                  </Text>
+                  </AppText>
                 </Pressable>
               );
             })}
           </View>
-          <Text style={styles.hint}>Dashboard totals are shown in this currency.</Text>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <AppText variant="caption" style={styles.hint}>Dashboard totals are shown in this currency.</AppText>
+          {error ? <AppText variant="footnote" style={styles.error}>{error}</AppText> : null}
         </BottomSheetView>
       </BottomSheetModal>
     );
@@ -106,12 +106,9 @@ export const DefaultCurrencySheet = forwardRef<DefaultCurrencySheetHandle>(
 const styles = StyleSheet.create({
   sheetBackground: { backgroundColor: colors.background },
   content: { padding: 22 },
-  title: { fontFamily: fonts.sans.extrabold, fontSize: 22, color: colors.foreground },
+  title: { color: colors.foreground },
 
   fieldLabel: {
-    fontFamily: fontMono,
-    fontSize: 11,
-    letterSpacing: 1.4,
     color: colors.mutedForeground,
     marginBottom: 6,
     marginTop: 14,
@@ -126,9 +123,9 @@ const styles = StyleSheet.create({
   },
   segment: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' },
   segmentActive: { backgroundColor: colors.foreground },
-  segmentText: { fontFamily: fonts.sans.medium, fontSize: 13, color: colors.foreground },
+  segmentText: { color: colors.foreground },
   segmentTextActive: { fontFamily: fonts.sans.semibold, color: colors.background },
 
-  hint: { marginTop: spacing.md, fontSize: 12, color: colors.mutedForeground },
-  error: { marginTop: spacing.md, fontSize: 13, color: colors.destructive },
+  hint: { marginTop: spacing.md, color: colors.mutedForeground },
+  error: { marginTop: spacing.md, color: colors.destructive },
 });

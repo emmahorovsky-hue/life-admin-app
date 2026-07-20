@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
 import { spacing } from '@life-admin/shared';
-import { colors, fonts } from '../../lib/theme';
-import { Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
+import { colors, fonts, textStyles } from '../../lib/theme';
+import { AppText, Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginScreen() {
@@ -38,7 +38,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <ScreenTitle style={styles.title}>Sign in</ScreenTitle>
 
-      {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+      {notice ? <AppText variant="body" style={styles.notice}>{notice}</AppText> : null}
 
       <View style={styles.field}>
         <FieldLabel>Email</FieldLabel>
@@ -61,14 +61,14 @@ export default function LoginScreen() {
         />
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <AppText variant="body" style={styles.error}>{error}</AppText> : null}
 
       <Button title="Sign in" onPress={handleLogin} loading={loading} style={styles.button} />
 
-      <Link href="/(auth)/forgot-password" style={styles.linkSecondary}>
+      <Link href="/(auth)/forgot-password" style={[textStyles.body, styles.linkSecondary]}>
         Forgot password?
       </Link>
-      <Link href="/(auth)/register" style={styles.linkPrimary}>
+      <Link href="/(auth)/register" style={[textStyles.body, styles.linkPrimary]}>
         Don't have an account? Sign up
       </Link>
     </View>
@@ -84,29 +84,17 @@ const styles = StyleSheet.create({
   },
   title: { marginBottom: spacing.xl },
   field: { marginBottom: spacing.md },
-  notice: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 14,
-    color: colors.success,
-    marginBottom: spacing.lg,
-  },
-  error: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 14,
-    color: colors.destructive,
-    marginBottom: spacing.md,
-  },
+  notice: { color: colors.success, marginBottom: spacing.lg },
+  error: { color: colors.destructive, marginBottom: spacing.md },
   button: { marginTop: spacing.sm },
   linkSecondary: {
     fontFamily: fonts.sans.medium,
-    fontSize: 14,
     color: colors.mutedForeground,
     textAlign: 'center',
     marginTop: spacing.xl,
   },
   linkPrimary: {
     fontFamily: fonts.sans.semibold,
-    fontSize: 14,
     color: colors.brandOrange,
     textAlign: 'center',
     marginTop: spacing.md,

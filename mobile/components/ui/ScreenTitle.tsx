@@ -1,9 +1,9 @@
 import { ReactNode } from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle } from 'react-native';
-import { typeScale } from '@life-admin/shared';
-import { colors, fonts } from '../../lib/theme';
+import { colors } from '../../lib/theme';
+import { AppText } from './AppText';
 
-/** Page-title convention: Archivo bold 30 + brand-orange period. */
+/** Page-title convention: pageTitle role (Archivo bold 30) + brand-orange period. */
 export function ScreenTitle({
   children,
   style,
@@ -12,18 +12,13 @@ export function ScreenTitle({
   style?: StyleProp<TextStyle>;
 }) {
   return (
-    <Text accessibilityRole="header" style={[styles.title, style]}>
+    <AppText variant="pageTitle" style={style}>
       {children}
       <Text style={styles.accent}>.</Text>
-    </Text>
+    </AppText>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontFamily: fonts.sans.bold, // typeScale.pageTitle.weight (700)
-    fontSize: typeScale.pageTitle.size,
-    color: colors.foreground,
-  },
   accent: { color: colors.brandOrange },
 });

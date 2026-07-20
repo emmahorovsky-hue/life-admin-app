@@ -11,8 +11,9 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { radius, spacing, typeScale } from '@life-admin/shared';
-import { colors, fonts } from '../../lib/theme';
+import { radius, spacing } from '@life-admin/shared';
+import { colors } from '../../lib/theme';
+import { AppText } from './AppText';
 import { Perforation } from '../Perforation';
 
 export interface AppDialogProps {
@@ -54,10 +55,10 @@ export function AppDialog({
         <Pressable style={styles.backdrop} accessibilityLabel="Close dialog" onPress={onClose} />
         <View style={[styles.card, style]}>
           <View style={styles.header}>
-            <Text accessibilityRole="header" style={styles.title}>
+            <AppText variant="title" style={styles.title}>
               {title}
               <Text style={styles.accent}>.</Text>
-            </Text>
+            </AppText>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close"
@@ -118,12 +119,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: spacing.lg,
   },
-  title: {
-    flexShrink: 1,
-    fontFamily: fonts.sans.extrabold, // typeScale.dialogTitle.weight (800)
-    fontSize: typeScale.dialogTitle.size,
-    color: colors.foreground,
-  },
+  title: { flexShrink: 1 },
   accent: { color: colors.brandOrange },
   // Web: 32×32 outline icon button pulled up/right by 4px to optically align.
   close: {

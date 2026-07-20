@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
@@ -19,8 +19,8 @@ import {
 import { subscriptionApi } from '../lib/subscriptions';
 import { getApiErrorMessage } from '../lib/utils';
 import { ExtractionLoadingOverlay } from './ExtractionLoadingOverlay';
-import { useToast } from './ui';
-import { colors, fonts } from '../lib/theme';
+import { AppText, useToast } from './ui';
+import { colors } from '../lib/theme';
 
 export interface ReceiptScanChooserHandle {
   /** Open the "add a subscription" chooser. */
@@ -133,10 +133,10 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
             accessibilityLabel="Add a subscription"
             style={[styles.sheetContent, { paddingBottom: insets.bottom + spacing.lg }]}
           >
-            <Text style={styles.sheetTitle}>Add a subscription</Text>
-            <Text style={styles.sheetSubtitle}>
+            <AppText variant="title" style={styles.sheetTitle}>Add a subscription</AppText>
+            <AppText variant="footnote" style={styles.sheetSubtitle}>
               Scan a receipt and we&apos;ll fill in the details for you to review.
-            </Text>
+            </AppText>
 
             {SCAN_OPTIONS.map((opt) => (
               <Pressable
@@ -146,7 +146,7 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
                 style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
               >
                 <Ionicons name={opt.icon} size={20} color={colors.foreground} />
-                <Text style={styles.menuLabel}>{opt.label}</Text>
+                <AppText variant="headline" weight={600} style={styles.menuLabel}>{opt.label}</AppText>
               </Pressable>
             ))}
 
@@ -158,7 +158,7 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
               style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
             >
               <Ionicons name="create-outline" size={20} color={colors.mutedForeground} />
-              <Text style={[styles.menuLabel, styles.menuLabelMuted]}>Enter manually</Text>
+              <AppText variant="headline" weight={600} style={[styles.menuLabel, styles.menuLabelMuted]}>Enter manually</AppText>
             </Pressable>
           </BottomSheetView>
         </BottomSheetModal>
@@ -176,15 +176,11 @@ const styles = StyleSheet.create({
   sheetBackground: { backgroundColor: colors.card, borderRadius: radius.base },
   sheetContent: { paddingTop: spacing.sm, paddingHorizontal: spacing.sm },
   sheetTitle: {
-    fontFamily: fonts.sans.extrabold,
-    fontSize: 18,
     color: colors.foreground,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.sm,
   },
   sheetSubtitle: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 13,
     color: colors.mutedForeground,
     paddingHorizontal: spacing.lg,
     marginTop: 4,
@@ -200,7 +196,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.base,
   },
   menuRowPressed: { backgroundColor: colors.secondary },
-  menuLabel: { fontFamily: fonts.sans.semibold, fontSize: 16, color: colors.foreground },
+  menuLabel: { color: colors.foreground },
   menuLabelMuted: { color: colors.mutedForeground },
 
   divider: {

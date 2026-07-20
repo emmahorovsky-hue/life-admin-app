@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { spacing } from '@life-admin/shared';
 import { useAuth } from '../../contexts/AuthContext';
-import { AppDialog, Button, FieldLabel, Input, useToast } from '../ui';
+import { AppDialog, AppText, Button, FieldLabel, Input, useToast } from '../ui';
 import { initiateEmailChange } from '../../lib/profile';
 import { getApiErrorMessage } from '../../lib/utils';
 import { colors, fontMono } from '../../lib/theme';
@@ -51,9 +51,9 @@ export function ChangeEmailDialog({ visible, onClose }: ChangeEmailDialogProps) 
         </>
       }
     >
-      <Text style={styles.current}>
+      <AppText variant="footnote" style={styles.current}>
         Current: <Text style={styles.currentEmail}>{user?.email}</Text>
-      </Text>
+      </AppText>
       <View style={styles.field}>
         <FieldLabel>New email address</FieldLabel>
         <Input
@@ -65,20 +65,20 @@ export function ChangeEmailDialog({ visible, onClose }: ChangeEmailDialogProps) 
           autoComplete="email"
           editable={!loading}
         />
-        <Text style={styles.hint}>
+        <AppText variant="caption" style={styles.hint}>
           A confirmation link will be sent to the new address. Your email won't change until you
           open it.
-        </Text>
+        </AppText>
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <AppText variant="footnote" style={styles.error}>{error}</AppText> : null}
     </AppDialog>
   );
 }
 
 const styles = StyleSheet.create({
-  current: { fontSize: 13, color: colors.mutedForeground },
+  current: { color: colors.mutedForeground },
   currentEmail: { fontFamily: fontMono, color: colors.foreground },
   field: { marginTop: spacing.lg },
-  hint: { marginTop: spacing.sm, fontSize: 12, color: colors.mutedForeground },
-  error: { marginTop: spacing.md, fontSize: 13, color: colors.destructive },
+  hint: { marginTop: spacing.sm, color: colors.mutedForeground },
+  error: { marginTop: spacing.md, color: colors.destructive },
 });
