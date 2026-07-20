@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import axios from 'axios';
 import { spacing } from '@life-admin/shared';
-import { colors, fonts } from '../../lib/theme';
-import { Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
+import { colors, fonts, textStyles } from '../../lib/theme';
+import { AppText, Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
 import { api } from '../../lib/api';
 
 export default function ForgotPasswordScreen() {
@@ -37,10 +37,10 @@ export default function ForgotPasswordScreen() {
     return (
       <View style={styles.container}>
         <ScreenTitle style={styles.title}>Check your email</ScreenTitle>
-        <Text style={styles.body}>
+        <AppText variant="body" style={styles.body}>
           If that address is registered, you'll receive a password reset link shortly.
-        </Text>
-        <Link href="/(auth)/login" style={styles.link}>
+        </AppText>
+        <Link href="/(auth)/login" style={[textStyles.body, styles.link]}>
           Back to sign in
         </Link>
       </View>
@@ -50,7 +50,7 @@ export default function ForgotPasswordScreen() {
   return (
     <View style={styles.container}>
       <ScreenTitle style={styles.title}>Forgot password</ScreenTitle>
-      <Text style={styles.body}>Enter your email and we'll send you a reset link.</Text>
+      <AppText variant="body" style={styles.body}>Enter your email and we'll send you a reset link.</AppText>
 
       <View style={styles.field}>
         <FieldLabel>Email</FieldLabel>
@@ -64,7 +64,7 @@ export default function ForgotPasswordScreen() {
       </View>
 
       {networkError ? (
-        <Text style={styles.error}>No connection. Check your network and try again.</Text>
+        <AppText variant="body" style={styles.error}>No connection. Check your network and try again.</AppText>
       ) : null}
 
       <Button
@@ -89,23 +89,12 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   title: { marginBottom: spacing.md },
-  body: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 14,
-    color: colors.mutedForeground,
-    marginBottom: spacing.xl,
-  },
+  body: { color: colors.mutedForeground, marginBottom: spacing.xl },
   field: { marginBottom: spacing.md },
-  error: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 14,
-    color: colors.destructive,
-    marginBottom: spacing.md,
-  },
+  error: { color: colors.destructive, marginBottom: spacing.md },
   button: { marginTop: spacing.sm },
   link: {
     fontFamily: fonts.sans.semibold,
-    fontSize: 14,
     color: colors.brandOrange,
     textAlign: 'center',
     marginTop: spacing.xl,

@@ -13,7 +13,7 @@ import { getInitials, radius, spacing } from '@life-admin/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { avatarAssetError, deleteAvatar, uploadAvatar, useAvatarSource } from '../../lib/account';
 import { getApiErrorMessage } from '../../lib/utils';
-import { useToast } from '../ui';
+import { AppText, useToast } from '../ui';
 import { colors, fonts } from '../../lib/theme';
 
 // Pixel twins of the web tile's md/lg variants (client AvatarTile.tsx).
@@ -165,7 +165,7 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
             style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
           >
             <Ionicons name="cloud-upload-outline" size={20} color={colors.mutedForeground} />
-            <Text style={styles.menuLabel}>Upload new photo</Text>
+            <AppText variant="headline" weight={600} style={styles.menuLabel}>Upload new photo</AppText>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -174,7 +174,7 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
             style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
           >
             <Ionicons name="trash-outline" size={20} color={colors.destructive} />
-            <Text style={[styles.menuLabel, styles.menuLabelDestructive]}>Remove photo</Text>
+            <AppText variant="headline" weight={600} style={[styles.menuLabel, styles.menuLabelDestructive]}>Remove photo</AppText>
           </Pressable>
         </BottomSheetView>
       </BottomSheetModal>
@@ -218,6 +218,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.base,
   },
   menuRowPressed: { backgroundColor: colors.secondary },
-  menuLabel: { fontFamily: fonts.sans.semibold, fontSize: 16, color: colors.foreground },
+  menuLabel: { color: colors.foreground },
   menuLabelDestructive: { color: colors.destructive },
 });

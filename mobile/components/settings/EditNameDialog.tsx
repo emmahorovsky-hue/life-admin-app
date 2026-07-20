@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { spacing } from '@life-admin/shared';
 import { useAuth } from '../../contexts/AuthContext';
-import { AppDialog, Button, FieldLabel, Input, useToast } from '../ui';
+import { AppDialog, AppText, Button, FieldLabel, Input, useToast } from '../ui';
 import { updateProfile } from '../../lib/profile';
 import { getApiErrorMessage } from '../../lib/utils';
 import { colors } from '../../lib/theme';
@@ -75,7 +75,7 @@ export function EditNameDialog({ visible, onClose }: EditNameDialogProps) {
           />
         </View>
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <AppText variant="footnote" style={styles.error}>{error}</AppText> : null}
     </AppDialog>
   );
 }
@@ -83,5 +83,5 @@ export function EditNameDialog({ visible, onClose }: EditNameDialogProps) {
 const styles = StyleSheet.create({
   fieldRow: { flexDirection: 'row', gap: spacing.md },
   field: { flex: 1 },
-  error: { marginTop: spacing.md, fontSize: 13, color: colors.destructive },
+  error: { marginTop: spacing.md, color: colors.destructive },
 });

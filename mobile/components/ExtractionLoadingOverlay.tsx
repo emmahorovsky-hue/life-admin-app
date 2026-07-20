@@ -13,7 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -31,6 +31,7 @@ import {
   spacing,
 } from '@life-admin/shared';
 import { colors, fonts } from '../lib/theme';
+import { AppText } from './ui';
 
 // ms each field row stays "pending" before its check lights up (mirrors web).
 const STEP_MS = 650;
@@ -62,9 +63,9 @@ function FieldRow({ label, checked, reduced }: { label: string; checked: boolean
       ) : (
         <View style={styles.checkPending} />
       )}
-      <Text style={[styles.fieldLabel, checked ? styles.fieldLabelOn : styles.fieldLabelOff]}>
+      <AppText variant="monoLabel" style={[styles.fieldLabel, checked ? styles.fieldLabelOn : styles.fieldLabelOff]}>
         {label}
-      </Text>
+      </AppText>
       <View style={[styles.leader, checked && styles.leaderHidden]} />
     </View>
   );
@@ -115,7 +116,7 @@ export function ExtractionLoadingOverlay({ visible }: Props) {
         style={styles.card}
       >
         {/* Brand kicker + cycling status */}
-        <Text style={styles.kicker}>{APP_NAME} · AI</Text>
+        <AppText variant="monoLabel" style={styles.kicker}>{APP_NAME} · AI</AppText>
         <View style={styles.statusWrap}>
           <Animated.Text
             key={status}
@@ -142,7 +143,7 @@ export function ExtractionLoadingOverlay({ visible }: Props) {
             <View key={i} style={[styles.bar, { width: w }]} />
           ))}
         </View>
-        <Text style={styles.footnote}>{EXTRACTION_FOOTNOTE}</Text>
+        <AppText variant="monoMeta" style={styles.footnote}>{EXTRACTION_FOOTNOTE}</AppText>
       </Animated.View>
     </View>
   );
@@ -179,14 +180,10 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
 
-  kicker: {
-    fontFamily: fonts.mono.regular,
-    fontSize: 10,
-    letterSpacing: 1.8,
-    textTransform: 'uppercase',
-    color: colors.brandOrange,
-  },
+  kicker: { letterSpacing: 1.8, color: colors.brandOrange },
   statusWrap: { height: 24, marginTop: 4, justifyContent: 'center', overflow: 'hidden' },
+  // Intentional local size: the animated status line is the overlay's focal
+  // heading and sits between monoData (13) and monoStatSm (22) — no scale peer.
   status: { fontFamily: fonts.mono.bold, fontSize: 16, color: colors.foreground },
 
   rule: {
@@ -214,12 +211,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: colors.border,
   },
-  fieldLabel: {
-    fontFamily: fonts.mono.regular,
-    fontSize: 11,
-    letterSpacing: 1.3,
-    textTransform: 'uppercase',
-  },
+  fieldLabel: { letterSpacing: 1.3 },
   fieldLabelOn: { color: colors.foreground },
   fieldLabelOff: { color: colors.mutedForeground },
   leader: {
@@ -242,8 +234,6 @@ const styles = StyleSheet.create({
   bar: { height: '100%', backgroundColor: colors.foreground, opacity: 0.55 },
 
   footnote: {
-    fontFamily: fonts.mono.regular,
-    fontSize: 10,
     color: colors.mutedForeground,
     textAlign: 'center',
     marginTop: spacing.md,

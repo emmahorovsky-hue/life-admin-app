@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { hairline, spacing } from '@life-admin/shared';
 import { DeleteAccountDialog } from '../../../components/settings/DeleteAccountDialog';
 import { SettingsDetailHeader } from '../../../components/settings/SettingsDetailHeader';
-import { Button, Card } from '../../../components/ui';
-import { colors, fonts } from '../../../lib/theme';
+import { AppText, Button, Card } from '../../../components/ui';
+import { colors } from '../../../lib/theme';
 
 /**
  * Data & privacy screen — port of web's PrivacyPanel (LIF-188 → LIF-203):
@@ -20,8 +20,8 @@ export default function PrivacyScreen() {
       <Card style={styles.dangerCard}>
         <View style={styles.row}>
           <View style={styles.rowText}>
-            <Text style={styles.title}>Delete account</Text>
-            <Text style={styles.subtitle}>Permanently remove your account and all data.</Text>
+            <AppText variant="headline" style={styles.title}>Delete account</AppText>
+            <AppText variant="footnote" style={styles.subtitle}>Permanently remove your account and all data.</AppText>
           </View>
           <Button
             title="Delete"
@@ -52,11 +52,9 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   rowText: { flex: 1, minWidth: 0 },
-  title: { fontFamily: fonts.sans.bold, fontSize: 15, color: colors.brandOrange },
+  title: { color: colors.brandOrange },
   subtitle: {
     marginTop: 4,
-    fontFamily: fonts.sans.regular,
-    fontSize: 13,
     lineHeight: 18,
     color: colors.mutedForeground,
   },

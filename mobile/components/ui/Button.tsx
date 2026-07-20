@@ -4,12 +4,12 @@ import {
   PressableProps,
   StyleProp,
   StyleSheet,
-  Text,
   TextStyle,
   ViewStyle,
 } from 'react-native';
 import { radius, spacing } from '@life-admin/shared';
-import { colors, fonts } from '../../lib/theme';
+import { colors } from '../../lib/theme';
+import { AppText } from './AppText';
 
 type ButtonVariant = 'primary' | 'outline' | 'destructive';
 type ButtonSize = 'sm' | 'md';
@@ -54,9 +54,13 @@ export function Button({
       {loading ? (
         <ActivityIndicator size="small" color={textColors[variant]} />
       ) : (
-        <Text style={[styles.label, sizeLabelStyles[size], { color: textColors[variant] }, textStyle]}>
+        <AppText
+          variant={size === 'sm' ? 'footnote' : 'body'}
+          weight={600}
+          style={[{ color: textColors[variant] }, textStyle]}
+        >
           {title}
-        </Text>
+        </AppText>
       )}
     </Pressable>
   );
@@ -75,7 +79,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.base,
   },
-  label: { fontFamily: fonts.sans.semibold },
   pressed: { opacity: 0.9 },
   disabled: { opacity: 0.5 },
 });
@@ -83,11 +86,6 @@ const styles = StyleSheet.create({
 const sizeStyles: Record<ButtonSize, ViewStyle> = {
   sm: { height: 32, paddingHorizontal: spacing.md },
   md: { height: 44, paddingHorizontal: spacing.lg },
-};
-
-const sizeLabelStyles: Record<ButtonSize, TextStyle> = {
-  sm: { fontSize: 13 },
-  md: { fontSize: 14 },
 };
 
 const variantStyles: Record<ButtonVariant, ViewStyle> = {

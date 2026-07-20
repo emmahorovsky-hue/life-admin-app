@@ -1,12 +1,12 @@
 import { ComponentProps } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { radius } from '@life-admin/shared';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AvatarTile } from '../../../components/settings/AvatarTile';
-import { Card, ScreenTitle } from '../../../components/ui';
-import { colors, fontMono, fonts } from '../../../lib/theme';
+import { AppText, Card, ScreenTitle } from '../../../components/ui';
+import { colors } from '../../../lib/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -52,12 +52,12 @@ export default function SettingsIndexScreen() {
       <View style={styles.identity}>
         <AvatarTile size="md" />
         <View style={styles.identityText}>
-          <Text numberOfLines={1} style={styles.name}>
+          <AppText variant="headline" weight={800} numberOfLines={1} style={styles.name}>
             {displayName}
-          </Text>
-          <Text numberOfLines={1} style={styles.email}>
+          </AppText>
+          <AppText variant="monoMeta" numberOfLines={1} style={styles.email}>
             {user?.email}
-          </Text>
+          </AppText>
         </View>
       </View>
 
@@ -76,7 +76,7 @@ export default function SettingsIndexScreen() {
                 size={20}
                 color={orange ? colors.brandOrange : colors.mutedForeground}
               />
-              <Text style={styles.rowLabel}>{label}</Text>
+              <AppText variant="headline" style={styles.rowLabel}>{label}</AppText>
               <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
             </Pressable>
           </View>
@@ -89,7 +89,7 @@ export default function SettingsIndexScreen() {
         onPress={logout}
         style={({ pressed }) => [styles.signOut, pressed && styles.rowPressed]}
       >
-        <Text style={styles.signOutText}>Sign out</Text>
+        <AppText variant="body" weight={600} style={styles.signOutText}>Sign out</AppText>
       </Pressable>
     </ScrollView>
   );
@@ -101,8 +101,8 @@ const styles = StyleSheet.create({
 
   identity: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20 },
   identityText: { flex: 1, minWidth: 0 },
-  name: { fontFamily: fonts.sans.extrabold, fontSize: 17, color: colors.foreground },
-  email: { fontFamily: fontMono, fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
+  name: { color: colors.foreground },
+  email: { color: colors.mutedForeground, marginTop: 2 },
 
   menu: { marginTop: 20 },
   row: {
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   rowPressed: { backgroundColor: colors.secondary },
-  rowLabel: { flex: 1, fontFamily: fonts.sans.bold, fontSize: 17, color: colors.foreground },
+  rowLabel: { flex: 1, color: colors.foreground },
 
   ruleClip: { height: 1.5, overflow: 'hidden', marginHorizontal: 0 },
   ruleDots: { height: 8, borderWidth: 1.5, borderColor: colors.border, borderStyle: 'dotted' },
@@ -127,5 +127,5 @@ const styles = StyleSheet.create({
     borderColor: colors.destructive,
     borderRadius: radius.base,
   },
-  signOutText: { fontFamily: fonts.sans.semibold, fontSize: 14, color: colors.destructive },
+  signOutText: { color: colors.destructive },
 });

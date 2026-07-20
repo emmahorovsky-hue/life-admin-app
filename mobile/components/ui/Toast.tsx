@@ -7,11 +7,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { radius, spacing, typeScale } from '@life-admin/shared';
-import { colors, fontMono, fonts } from '../../lib/theme';
+import { radius, spacing } from '@life-admin/shared';
+import { colors } from '../../lib/theme';
+import { AppText } from './AppText';
 
 type ToastVariant = 'success' | 'error';
 
@@ -88,12 +89,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               onPress={dismiss}
               style={styles.card}
             >
-              <Text style={[styles.accent, { color: accents[toast.variant].color }]}>
+              <AppText variant="monoLabel" style={{ color: accents[toast.variant].color }}>
                 {accents[toast.variant].label}
-              </Text>
-              <Text style={styles.message} numberOfLines={2}>
+              </AppText>
+              <AppText variant="body" weight={600} style={styles.message} numberOfLines={2}>
                 {toast.message}
-              </Text>
+              </AppText>
             </Pressable>
           </Animated.View>
         </View>
@@ -132,15 +133,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  accent: {
-    fontFamily: fontMono,
-    fontSize: typeScale.monoLabel.size,
-    letterSpacing: typeScale.monoLabel.letterSpacing,
-  },
-  message: {
-    flexShrink: 1,
-    fontFamily: fonts.sans.semibold,
-    fontSize: 14,
-    color: colors.foreground,
-  },
+  message: { flexShrink: 1 },
 });

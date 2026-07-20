@@ -1,4 +1,5 @@
 export { AppDialog, type AppDialogProps } from './AppDialog';
+export { AppText, type AppTextProps } from './AppText';
 export { Button, type ButtonProps } from './Button';
 export { Card, type CardProps } from './Card';
 export { FieldLabel } from './FieldLabel';

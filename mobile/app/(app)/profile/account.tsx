@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { hairline, radius, spacing } from '@life-admin/shared';
@@ -13,8 +13,8 @@ import {
   DefaultCurrencySheet,
   DefaultCurrencySheetHandle,
 } from '../../../components/settings/DefaultCurrencySheet';
-import { Button, Card } from '../../../components/ui';
-import { colors, fontMono, fonts } from '../../../lib/theme';
+import { AppText, Button, Card } from '../../../components/ui';
+import { colors } from '../../../lib/theme';
 
 type AccountModal = null | 'name' | 'email' | 'password';
 
@@ -55,12 +55,12 @@ export default function AccountScreen() {
         <Card style={styles.profileCard}>
           <AvatarTile size="lg" />
           <View style={styles.profileText}>
-            <Text numberOfLines={1} style={styles.profileName}>
+            <AppText variant="title" numberOfLines={1} style={styles.profileName}>
               {displayName}
-            </Text>
-            <Text numberOfLines={1} style={styles.profileEmail}>
+            </AppText>
+            <AppText variant="monoMeta" numberOfLines={1} style={styles.profileEmail}>
               {user?.email}
-            </Text>
+            </AppText>
           </View>
         </Card>
 
@@ -68,10 +68,10 @@ export default function AccountScreen() {
         <Card padding="none" style={styles.details}>
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>Name</Text>
-              <Text numberOfLines={1} style={styles.rowSubtitle}>
+              <AppText variant="body" weight={600} style={styles.rowTitle}>Name</AppText>
+              <AppText variant="footnote" numberOfLines={1} style={styles.rowSubtitle}>
                 {displayName}
-              </Text>
+              </AppText>
             </View>
             <Button title="Edit" variant="outline" size="sm" onPress={() => setModal('name')} />
           </View>
@@ -79,14 +79,14 @@ export default function AccountScreen() {
           <DottedRule />
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>Email address</Text>
-              <Text numberOfLines={1} style={[styles.rowSubtitle, styles.mono]}>
+              <AppText variant="body" weight={600} style={styles.rowTitle}>Email address</AppText>
+              <AppText variant="monoMeta" numberOfLines={1} style={styles.rowSubtitle}>
                 {user?.email}
-              </Text>
+              </AppText>
               {user?.emailVerified && (
                 <View style={styles.badge}>
                   <Ionicons name="checkmark" size={11} color={colors.success} />
-                  <Text style={styles.badgeText}>VERIFIED</Text>
+                  <AppText variant="monoLabel" style={styles.badgeText}>VERIFIED</AppText>
                 </View>
               )}
             </View>
@@ -96,8 +96,8 @@ export default function AccountScreen() {
           <DottedRule />
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>Password</Text>
-              <Text style={styles.rowSubtitle}>{passwordSubtitle}</Text>
+              <AppText variant="body" weight={600} style={styles.rowTitle}>Password</AppText>
+              <AppText variant="footnote" style={styles.rowSubtitle}>{passwordSubtitle}</AppText>
             </View>
             <Button
               title="Change password"
@@ -110,10 +110,10 @@ export default function AccountScreen() {
           <DottedRule />
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>Default currency</Text>
-              <Text style={[styles.rowSubtitle, styles.mono]}>
+              <AppText variant="body" weight={600} style={styles.rowTitle}>Default currency</AppText>
+              <AppText variant="monoMeta" style={styles.rowSubtitle}>
                 {user?.defaultCurrency ?? 'SGD'}
-              </Text>
+              </AppText>
             </View>
             <Button
               title="Change"
@@ -141,13 +141,8 @@ const styles = StyleSheet.create({
 
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   profileText: { flex: 1, minWidth: 0 },
-  profileName: { fontFamily: fonts.sans.extrabold, fontSize: 20, color: colors.foreground },
-  profileEmail: {
-    fontFamily: fontMono,
-    fontSize: 12,
-    color: colors.mutedForeground,
-    marginTop: 2,
-  },
+  profileName: { color: colors.foreground },
+  profileEmail: { color: colors.mutedForeground, marginTop: 2 },
 
   details: { paddingHorizontal: spacing.lg },
   row: {
@@ -158,9 +153,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   rowText: { flex: 1, minWidth: 0 },
-  rowTitle: { fontFamily: fonts.sans.semibold, fontSize: 15, color: colors.foreground },
-  rowSubtitle: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
-  mono: { fontFamily: fontMono, fontSize: 12 },
+  rowTitle: { color: colors.foreground },
+  rowSubtitle: { color: colors.mutedForeground, marginTop: 2 },
 
   badge: {
     flexDirection: 'row',
@@ -175,8 +169,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.base,
   },
   badgeText: {
-    fontFamily: fontMono,
-    fontSize: 11,
     letterSpacing: 0.66, // web: tracking 0.06em on 11px
     color: colors.success,
   },

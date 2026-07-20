@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleProp,
   StyleSheet,
-  Text,
   TextStyle,
   View,
 } from 'react-native';
@@ -31,9 +30,9 @@ import { subscriptionApi } from '../../lib/subscriptions';
 import { SubscriptionLogo } from '../../components/SubscriptionLogo';
 import { Perforation } from '../../components/Perforation';
 import { EmptyState } from '../../components/EmptyState';
-import { Button, Card, ScreenTitle } from '../../components/ui';
+import { AppText, Button, Card, ScreenTitle } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
-import { colors, fontMono, fontMonoBold, fonts } from '../../lib/theme';
+import { colors, TextVariant } from '../../lib/theme';
 
 const chartFont = matchFont({
   fontFamily: Platform.select({ ios: 'Helvetica', default: 'sans-serif' }),
@@ -47,19 +46,21 @@ const chartFont = matchFont({
 function TotalLines({
   totals,
   fallbackCurrency,
+  variant,
   style,
 }: {
   totals: CurrencyAmount[];
   fallbackCurrency: string;
-  style: StyleProp<TextStyle>;
+  variant: TextVariant;
+  style?: StyleProp<TextStyle>;
 }) {
   const lines = formatCurrencyTotals(totals, fallbackCurrency);
   return (
     <>
       {lines.map((line) => (
-        <Text key={line} style={lines.length > 1 ? [style, styles.totalLineMulti] : style}>
+        <AppText key={line} variant={variant} style={lines.length > 1 ? [style, styles.totalLineMulti] : style}>
           {line}
-        </Text>
+        </AppText>
       ))}
     </>
   );
@@ -125,7 +126,7 @@ export default function DashboardScreen() {
   if (!summary) {
     return (
       <View style={styles.center}>
-        <Text style={styles.mutedText}>Failed to load dashboard</Text>
+        <AppText variant="body" style={styles.mutedText}>Failed to load dashboard</AppText>
         <Button title="Retry" onPress={() => { setLoading(true); load(); }} />
       </View>
     );
@@ -158,38 +159,39 @@ export default function DashboardScreen() {
 
       {/* Summary tiles */}
       <Card style={styles.featuredCard}>
-        <Text style={[styles.tileLabel, styles.featuredLabel]}>CHARGED THIS MONTH</Text>
+        <AppText variant="monoLabel" style={[styles.tileLabel, styles.featuredLabel]}>CHARGED THIS MONTH</AppText>
         <TotalLines
           totals={spend.monthly}
           fallbackCurrency={displayCurrency}
-          style={[styles.tileValue, styles.featuredValue]}
+          variant="monoStat"
+          style={styles.featuredValue}
         />
-        <Text style={[styles.tileFootnote, styles.featuredLabel]}>
+        <AppText variant="caption" style={[styles.tileFootnote, styles.featuredLabel]}>
           {summary.activeSubscriptions} active{' '}
           {summary.activeSubscriptions === 1 ? 'subscription' : 'subscriptions'}
-        </Text>
+        </AppText>
       </Card>
 
       <View style={styles.tileRow}>
         <Card style={styles.tileHalf}>
-          <Text style={styles.tileLabel}>PER YEAR</Text>
+          <AppText variant="monoLabel" style={styles.tileLabel}>PER YEAR</AppText>
           <TotalLines
             totals={spend.annual}
             fallbackCurrency={displayCurrency}
-            style={styles.tileValueSmall}
+            variant="monoStatSm"
           />
         </Card>
         <Card style={styles.tileHalf}>
-          <Text style={styles.tileLabel}>DUE IN 7 DAYS</Text>
+          <AppText variant="monoLabel" style={styles.tileLabel}>DUE IN 7 DAYS</AppText>
           <TotalLines
             totals={dueSoonTotals}
             fallbackCurrency={displayCurrency}
-            style={styles.tileValueSmall}
+            variant="monoStatSm"
           />
           {dueSoonRenewals.length > 0 && (
-            <Text style={styles.tileFootnote}>
+            <AppText variant="caption" style={styles.tileFootnote}>
               {dueSoonRenewals.length} {dueSoonRenewals.length === 1 ? 'renewal' : 'renewals'} upcoming
-            </Text>
+            </AppText>
           )}
         </Card>
       </View>
@@ -201,42 +203,42 @@ export default function DashboardScreen() {
         ) : (
           <>
             <View style={styles.receiptHeader}>
-              <Text style={styles.receiptHeading}>ITEM · RENEWS</Text>
+              <AppText variant="monoLabel" style={styles.receiptHeading}>ITEM · RENEWS</AppText>
               {dueSoonRenewals.length > 0 && (
                 <View style={styles.dueSoonStamp}>
-                  <Text style={styles.dueSoonStampText}>DUE SOON</Text>
+                  <AppText variant="monoLabel" style={styles.dueSoonStampText}>DUE SOON</AppText>
                 </View>
               )}
-              <Text style={styles.receiptHeading}>AMOUNT</Text>
+              <AppText variant="monoLabel" style={styles.receiptHeading}>AMOUNT</AppText>
             </View>
             <Perforation style={{ marginBottom: 12 }} />
 
             {shownRenewals.map((renewal) => (
               <View key={renewal.id} style={styles.renewalRow}>
                 <SubscriptionLogo name={renewal.name} category={renewal.category} size={20} />
-                <Text style={styles.rowName} numberOfLines={1}>
+                <AppText variant="monoData" style={styles.rowName} numberOfLines={1}>
                   {renewal.name}
-                </Text>
-                <Text style={styles.rowDate}>{format(new Date(renewal.nextRenewalDate), 'MMM d')}</Text>
+                </AppText>
+                <AppText variant="monoMeta" style={styles.rowDate}>{format(new Date(renewal.nextRenewalDate), 'MMM d')}</AppText>
                 <View style={styles.leader} />
-                <Text style={styles.rowAmount}>
+                <AppText variant="monoData" style={styles.rowAmount}>
                   {formatCurrency(
                     parseFloat(renewal.cost),
                     currencyById.get(renewal.id) ?? displayCurrency,
                   )}
-                </Text>
+                </AppText>
               </View>
             ))}
 
             <View style={styles.doubleRule} />
             <View style={styles.totalRow}>
-              <Text style={styles.receiptHeading}>TOTAL</Text>
+              <AppText variant="monoLabel" style={styles.receiptHeading}>TOTAL</AppText>
               {/* One line per currency — see TotalLines */}
               <View style={styles.totalValues}>
                 <TotalLines
                   totals={upcomingTotals}
                   fallbackCurrency={displayCurrency}
-                  style={styles.totalValue}
+                  variant="monoStatSm"
                 />
               </View>
             </View>
@@ -258,7 +260,7 @@ export default function DashboardScreen() {
       <Card>
         {categoryGroups.length === 0 ? (
           <>
-            <Text style={styles.cardTitle}>Spending by Category</Text>
+            <AppText variant="headline" style={styles.cardTitle}>Spending by Category</AppText>
             <EmptyState
               tone="inline"
               title="No subscriptions yet"
@@ -274,12 +276,12 @@ export default function DashboardScreen() {
         ) : (
           categoryGroups.map((group) => (
             <View key={group.currency}>
-              <Text style={styles.cardTitle}>
+              <AppText variant="headline" style={styles.cardTitle}>
                 {/* Name the currency only when there's more than one chart to tell
                     apart — otherwise the title is as it always was. */}
                 Spending by Category
                 {categoryGroups.length > 1 ? ` · ${group.currency}` : ''}
-              </Text>
+              </AppText>
               <View style={styles.chartBox}>
                 <CartesianChart
                   data={group.data}
@@ -328,38 +330,20 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: { marginBottom: 4, marginTop: 8 },
-  mutedText: { fontFamily: fonts.sans.regular, color: colors.mutedForeground, fontSize: 14 },
+  mutedText: { color: colors.mutedForeground },
 
-  cardTitle: { fontFamily: fonts.sans.bold, fontSize: 17, color: colors.foreground, marginBottom: 12 },
+  cardTitle: { marginBottom: 12 },
 
   featuredCard: { backgroundColor: colors.brandOrange, borderColor: colors.brandOrange },
   tileRow: { flexDirection: 'row', gap: 12 },
   tileHalf: { flex: 1 },
-  tileLabel: {
-    fontFamily: fontMono,
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: colors.mutedForeground,
-    marginBottom: 10,
-  },
+  tileLabel: { color: colors.mutedForeground, marginBottom: 10 },
   featuredLabel: { color: 'rgba(255,255,255,0.8)' },
-  tileValue: { fontFamily: fontMonoBold, fontSize: 34, color: colors.foreground },
   featuredValue: { color: colors.white },
-  tileValueSmall: { fontFamily: fontMonoBold, fontSize: 22, color: colors.foreground },
-  tileFootnote: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 12,
-    color: colors.mutedForeground,
-    marginTop: 8,
-  },
+  tileFootnote: { color: colors.mutedForeground, marginTop: 8 },
 
   receiptHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  receiptHeading: {
-    fontFamily: fontMono,
-    fontSize: 10,
-    letterSpacing: 1.4,
-    color: colors.mutedForeground,
-  },
+  receiptHeading: { color: colors.mutedForeground },
   dueSoonStamp: {
     borderWidth: 1,
     borderColor: colors.brandOrange,
@@ -367,12 +351,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     transform: [{ rotate: '-4deg' }],
   },
-  dueSoonStampText: { fontFamily: fontMono, fontSize: 9, letterSpacing: 1.4, color: colors.brandOrange },
+  dueSoonStampText: { color: colors.brandOrange },
   renewalRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  rowName: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground, flexShrink: 1 },
-  rowDate: { fontFamily: fontMono, fontSize: 11, color: colors.mutedForeground },
+  rowName: { color: colors.foreground, flexShrink: 1 },
+  rowDate: { color: colors.mutedForeground },
   leader: { flex: 1, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border, marginHorizontal: 6 },
-  rowAmount: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground },
+  rowAmount: { color: colors.foreground },
   doubleRule: {
     borderTopWidth: 1,
     borderBottomWidth: 1,
@@ -383,10 +367,9 @@ const styles = StyleSheet.create({
   },
   totalRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   totalValues: { alignItems: 'flex-end' },
-  totalValue: { fontFamily: fontMonoBold, fontSize: 22, color: colors.foreground },
-  // Several currencies stack vertically, so each line gets a size the tiles can
-  // fit; a single-currency total keeps its original size.
-  totalLineMulti: { fontSize: 18 },
+  // Several currencies stack vertically, so each line drops to the compact
+  // figure size to fit; a single-currency total keeps the monoStatSm size.
+  totalLineMulti: { fontSize: 20 },
 
   chartBox: { height: 250 },
 

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { spacing } from '@life-admin/shared';
 import { SettingsDetailHeader } from '../../../components/settings/SettingsDetailHeader';
-import { Card, Switch, useToast } from '../../../components/ui';
+import { AppText, Card, Switch, useToast } from '../../../components/ui';
 import { useAuth } from '../../../contexts/AuthContext';
 import { updateProfile } from '../../../lib/profile';
-import { colors, fonts } from '../../../lib/theme';
+import { colors } from '../../../lib/theme';
 import { getApiErrorMessage } from '../../../lib/utils';
 
 /**
@@ -44,15 +44,15 @@ export default function NotificationsScreen() {
       <Card style={styles.card}>
         <View style={styles.row}>
           <View style={styles.rowText}>
-            <Text style={styles.rowTitle}>Renewal reminders</Text>
-            <Text style={styles.rowSubtitle}>A heads-up before a subscription renews.</Text>
+            <AppText variant="headline" style={styles.rowTitle}>Renewal reminders</AppText>
+            <AppText variant="footnote" style={styles.rowSubtitle}>A heads-up before a subscription renews.</AppText>
           </View>
           <Switch checked={enabled} onCheckedChange={handleToggle} disabled={saving} />
         </View>
-        <Text style={styles.explainer}>
+        <AppText variant="footnote" style={styles.explainer}>
           Timing adjusts to each billing cycle — from a day before weekly renewals to two weeks
           before annual ones. You can also mute individual subscriptions when editing them.
-        </Text>
+        </AppText>
       </Card>
     </View>
   );
@@ -67,17 +67,13 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   rowText: { flex: 1, minWidth: 0 },
-  rowTitle: { fontFamily: fonts.sans.bold, fontSize: 16, color: colors.foreground },
+  rowTitle: { color: colors.foreground },
   rowSubtitle: {
     marginTop: 2,
-    fontFamily: fonts.sans.regular,
-    fontSize: 13,
     color: colors.mutedForeground,
   },
   explainer: {
     marginTop: spacing.lg,
-    fontFamily: fonts.sans.regular,
-    fontSize: 13,
     lineHeight: 18,
     color: colors.mutedForeground,
   },

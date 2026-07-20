@@ -4,8 +4,8 @@ import { Link, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import axios from 'axios';
 import { isValidPassword, spacing } from '@life-admin/shared';
-import { colors, fonts } from '../../lib/theme';
-import { Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
+import { colors, fonts, textStyles } from '../../lib/theme';
+import { AppText, Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Legal pages are hosted on the marketing/web app (client `/terms`, `/privacy`);
@@ -71,9 +71,9 @@ export default function RegisterScreen() {
           secureTextEntry
           autoComplete="new-password"
         />
-        <Text style={styles.hint}>
+        <AppText variant="caption" style={styles.hint}>
           Must be at least 8 characters with 1 uppercase letter, 1 number, and 1 symbol.
-        </Text>
+        </AppText>
       </View>
 
       <View style={styles.field}>
@@ -86,7 +86,7 @@ export default function RegisterScreen() {
         />
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <AppText variant="body" style={styles.error}>{error}</AppText> : null}
 
       <Button
         title="Create account"
@@ -95,7 +95,7 @@ export default function RegisterScreen() {
         style={styles.button}
       />
 
-      <Text style={styles.terms}>
+      <AppText variant="caption" style={styles.terms}>
         By signing up, you agree to our{' '}
         <Text
           style={styles.termLink}
@@ -113,9 +113,9 @@ export default function RegisterScreen() {
           Privacy Policy
         </Text>
         .
-      </Text>
+      </AppText>
 
-      <Link href="/(auth)/login" style={styles.link}>
+      <Link href="/(auth)/login" style={[textStyles.body, styles.link]}>
         Already have an account? Sign in
       </Link>
     </ScrollView>
@@ -131,30 +131,13 @@ const styles = StyleSheet.create({
   },
   title: { marginBottom: spacing.xl },
   field: { marginBottom: spacing.md },
-  hint: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 12,
-    color: colors.mutedForeground,
-    marginTop: 6,
-  },
-  error: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 14,
-    color: colors.destructive,
-    marginBottom: spacing.md,
-  },
+  hint: { color: colors.mutedForeground, marginTop: 6 },
+  error: { color: colors.destructive, marginBottom: spacing.md },
   button: { marginTop: spacing.sm },
-  terms: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 12,
-    color: colors.mutedForeground,
-    textAlign: 'center',
-    marginTop: spacing.lg,
-  },
+  terms: { color: colors.mutedForeground, textAlign: 'center', marginTop: spacing.lg },
   termLink: { fontFamily: fonts.sans.medium, color: colors.mutedForeground },
   link: {
     fontFamily: fonts.sans.semibold,
-    fontSize: 14,
     color: colors.brandOrange,
     textAlign: 'center',
     marginTop: spacing.lg,

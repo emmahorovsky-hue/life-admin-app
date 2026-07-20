@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import { StyleSheet, TextInput, TextInputProps } from 'react-native';
 import { radius, spacing } from '@life-admin/shared';
-import { colors, fonts } from '../../lib/theme';
+import { colors, textStyles } from '../../lib/theme';
 
 export const Input = forwardRef<TextInput, TextInputProps>(function Input(
   { style, ...props },
@@ -11,7 +11,7 @@ export const Input = forwardRef<TextInput, TextInputProps>(function Input(
     <TextInput
       ref={ref}
       placeholderTextColor={colors.mutedForeground}
-      style={[styles.input, style]}
+      style={[textStyles.body, styles.input, style]}
       {...props}
     />
   );
@@ -25,8 +25,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.base,
     backgroundColor: colors.background,
     paddingHorizontal: spacing.md,
-    fontFamily: fonts.sans.regular,
-    fontSize: 14,
     color: colors.foreground,
   },
 });

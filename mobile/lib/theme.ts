@@ -1,4 +1,5 @@
-import { lightColors } from '@life-admin/shared';
+import { StyleSheet, TextStyle } from 'react-native';
+import { lightColors, typeScale } from '@life-admin/shared';
 
 // Light palette sourced from the shared design tokens (LIF-196) — the same
 // values `client/src/index.css` `:root` renders, so web and mobile can no
@@ -39,3 +40,47 @@ export const fonts = {
 
 export const fontMono = fonts.mono.regular;
 export const fontMonoBold = fonts.mono.bold;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Type scale → concrete text styles (LIF-210).
+//
+// The shared `typeScale` names semantic roles + CSS weights; RN loads one family
+// per weight, so we map (weight, mono?) → a concrete family here. `textStyles`
+// resolves every role once; the <AppText> primitive is the intended consumer.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const sansByWeight: Record<number, string> = {
+  400: fonts.sans.regular,
+  500: fonts.sans.medium,
+  600: fonts.sans.semibold,
+  700: fonts.sans.bold,
+  800: fonts.sans.extrabold,
+};
+
+const monoByWeight: Record<number, string> = {
+  400: fonts.mono.regular,
+  700: fonts.mono.bold,
+};
+
+/** Resolve a loaded RN font family for a CSS weight, sans or mono. */
+export function fontFamilyFor(weight: number, mono: boolean): string | undefined {
+  return (mono ? monoByWeight : sansByWeight)[weight];
+}
+
+export type TextVariant = keyof typeof typeScale;
+
+const resolved = Object.fromEntries(
+  Object.entries(typeScale).map(([name, t]) => {
+    const mono = 'mono' in t && t.mono === true;
+    const style: TextStyle = {
+      fontFamily: fontFamilyFor(t.weight, mono),
+      fontSize: t.size,
+      color: colors.foreground,
+    };
+    if ('letterSpacing' in t) style.letterSpacing = t.letterSpacing;
+    if ('uppercase' in t && t.uppercase) style.textTransform = 'uppercase';
+    return [name, style];
+  }),
+) as Record<TextVariant, TextStyle>;
+
+export const textStyles = StyleSheet.create(resolved);

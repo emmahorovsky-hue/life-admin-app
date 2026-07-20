@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
 import { isValidPassword, spacing } from '@life-admin/shared';
-import { colors, fonts } from '../../lib/theme';
-import { Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
+import { colors, fonts, textStyles } from '../../lib/theme';
+import { AppText, Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
 import { api } from '../../lib/api';
 
 export default function ResetPasswordScreen() {
@@ -46,10 +46,10 @@ export default function ResetPasswordScreen() {
     return (
       <View style={styles.container}>
         <ScreenTitle style={styles.title}>Invalid link</ScreenTitle>
-        <Text style={styles.body}>
+        <AppText variant="body" style={styles.body}>
           This password reset link is invalid or incomplete. Please request a new one.
-        </Text>
-        <Link href="/(auth)/forgot-password" style={styles.link}>
+        </AppText>
+        <Link href="/(auth)/forgot-password" style={[textStyles.body, styles.link]}>
           Request a new link
         </Link>
       </View>
@@ -60,7 +60,7 @@ export default function ResetPasswordScreen() {
     return (
       <View style={styles.container}>
         <ScreenTitle style={styles.title}>Password updated</ScreenTitle>
-        <Text style={styles.body}>Your password has been reset. You can now sign in.</Text>
+        <AppText variant="body" style={styles.body}>Your password has been reset. You can now sign in.</AppText>
         <Button
           title="Go to sign in"
           onPress={() => router.replace('/(auth)/login')}
@@ -73,7 +73,7 @@ export default function ResetPasswordScreen() {
   return (
     <View style={styles.container}>
       <ScreenTitle style={styles.title}>Reset password</ScreenTitle>
-      <Text style={styles.body}>Choose a new password for your account.</Text>
+      <AppText variant="body" style={styles.body}>Choose a new password for your account.</AppText>
 
       <View style={styles.field}>
         <FieldLabel>New password</FieldLabel>
@@ -83,9 +83,9 @@ export default function ResetPasswordScreen() {
           secureTextEntry
           autoComplete="new-password"
         />
-        <Text style={styles.hint}>
+        <AppText variant="caption" style={styles.hint}>
           Must be at least 8 characters with 1 uppercase letter, 1 number, and 1 symbol.
-        </Text>
+        </AppText>
       </View>
 
       <View style={styles.field}>
@@ -98,7 +98,7 @@ export default function ResetPasswordScreen() {
         />
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <AppText variant="body" style={styles.error}>{error}</AppText> : null}
 
       <Button
         title="Reset password"
@@ -107,7 +107,7 @@ export default function ResetPasswordScreen() {
         style={styles.button}
       />
 
-      <Link href="/(auth)/login" style={styles.link}>
+      <Link href="/(auth)/login" style={[textStyles.body, styles.link]}>
         Back to sign in
       </Link>
     </View>
@@ -122,29 +122,13 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   title: { marginBottom: spacing.md },
-  body: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 14,
-    color: colors.mutedForeground,
-    marginBottom: spacing.xl,
-  },
+  body: { color: colors.mutedForeground, marginBottom: spacing.xl },
   field: { marginBottom: spacing.md },
-  hint: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 12,
-    color: colors.mutedForeground,
-    marginTop: 6,
-  },
-  error: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 14,
-    color: colors.destructive,
-    marginBottom: spacing.md,
-  },
+  hint: { color: colors.mutedForeground, marginTop: 6 },
+  error: { color: colors.destructive, marginBottom: spacing.md },
   button: { marginTop: spacing.sm },
   link: {
     fontFamily: fonts.sans.semibold,
-    fontSize: 14,
     color: colors.brandOrange,
     textAlign: 'center',
     marginTop: spacing.xl,

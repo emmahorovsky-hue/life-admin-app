@@ -4,7 +4,6 @@ import {
   RefreshControl,
   SectionList,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -24,8 +23,8 @@ import { getApiErrorMessage } from '../../lib/utils';
 import { SubscriptionLogo } from '../../components/SubscriptionLogo';
 import { Perforation } from '../../components/Perforation';
 import { EmptyState } from '../../components/EmptyState';
-import { Button, ScreenTitle } from '../../components/ui';
-import { colors, fontMono, fontMonoBold, fonts } from '../../lib/theme';
+import { AppText, Button, ScreenTitle } from '../../components/ui';
+import { colors } from '../../lib/theme';
 
 const BUCKET_LABELS: Record<BucketId, string> = {
   thisWeek: 'This Week',
@@ -80,7 +79,7 @@ export default function TimelineScreen() {
   if (error && subscriptions.length === 0) {
     return (
       <View style={styles.center}>
-        <Text style={styles.mutedText}>{error}</Text>
+        <AppText variant="body" style={styles.mutedText}>{error}</AppText>
         <Button title="Retry" onPress={() => { setLoading(true); load(); }} />
       </View>
     );
@@ -132,12 +131,12 @@ export default function TimelineScreen() {
         const isThisWeek = section.id === 'thisWeek';
         return (
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, isThisWeek && styles.sectionTitleAccent]}>
-              {section.title.toUpperCase()}
-            </Text>
+            <AppText variant="monoLabel" style={[styles.sectionTitle, isThisWeek && styles.sectionTitleAccent]}>
+              {section.title}
+            </AppText>
             {isThisWeek && (
               <View style={styles.dueSoonStamp}>
-                <Text style={styles.dueSoonStampText}>DUE SOON</Text>
+                <AppText variant="monoLabel" style={styles.dueSoonStampText}>DUE SOON</AppText>
               </View>
             )}
           </View>
@@ -152,20 +151,20 @@ export default function TimelineScreen() {
           <View style={styles.row}>
             <SubscriptionLogo name={sub.name} category={sub.category} size={20} />
             <View style={styles.rowBody}>
-              <Text style={styles.rowName} numberOfLines={1}>
+              <AppText variant="monoData" style={styles.rowName} numberOfLines={1}>
                 {sub.name}
-              </Text>
-              <Text style={styles.rowMeta}>
+              </AppText>
+              <AppText variant="monoMeta" style={styles.rowMeta}>
                 {format(renewal, 'MMM d')} · {categoryLabel(sub.category)}
-              </Text>
+              </AppText>
             </View>
             <View style={styles.rowRight}>
-              <Text style={[styles.rowRelative, isThisWeek && styles.rowRelativeAccent]}>
+              <AppText variant="monoMeta" style={[styles.rowRelative, isThisWeek && styles.rowRelativeAccent]}>
                 {relativeDays(days)}
-              </Text>
-              <Text style={styles.rowAmount}>
+              </AppText>
+              <AppText variant="monoData" style={styles.rowAmount}>
                 {formatCurrency(parseFloat(sub.cost), sub.currency)}
-              </Text>
+              </AppText>
             </View>
           </View>
         );
@@ -186,7 +185,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: { marginBottom: 16, marginTop: 8 },
-  mutedText: { fontFamily: fonts.sans.regular, color: colors.mutedForeground, fontSize: 14 },
+  mutedText: { color: colors.mutedForeground },
 
   sectionHeader: {
     flexDirection: 'row',
@@ -195,12 +194,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
   },
-  sectionTitle: {
-    fontFamily: fontMono,
-    fontSize: 11,
-    letterSpacing: 1.4,
-    color: colors.mutedForeground,
-  },
+  sectionTitle: { color: colors.mutedForeground },
   sectionTitleAccent: { color: colors.brandOrange },
   dueSoonStamp: {
     borderWidth: 1,
@@ -209,14 +203,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     transform: [{ rotate: '-4deg' }],
   },
-  dueSoonStampText: { fontFamily: fontMono, fontSize: 9, letterSpacing: 1.4, color: colors.brandOrange },
+  dueSoonStampText: { color: colors.brandOrange },
 
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   rowBody: { flex: 1 },
-  rowName: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground },
-  rowMeta: { fontFamily: fontMono, fontSize: 11, color: colors.mutedForeground, marginTop: 1 },
+  rowName: { color: colors.foreground },
+  rowMeta: { color: colors.mutedForeground, marginTop: 1 },
   rowRight: { alignItems: 'flex-end' },
-  rowRelative: { fontFamily: fontMono, fontSize: 11, color: colors.mutedForeground },
+  rowRelative: { color: colors.mutedForeground },
   rowRelativeAccent: { color: colors.brandOrange },
-  rowAmount: { fontFamily: fontMonoBold, fontSize: 13, color: colors.foreground, marginTop: 1 },
+  rowAmount: { color: colors.foreground, marginTop: 1 },
 });

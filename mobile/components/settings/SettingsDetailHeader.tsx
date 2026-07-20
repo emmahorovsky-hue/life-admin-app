@@ -2,7 +2,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { radius } from '@life-admin/shared';
-import { colors, fonts } from '../../lib/theme';
+import { colors } from '../../lib/theme';
+import { AppText } from '../ui';
 
 /**
  * Detail-screen header for the settings drill-down — port of web
@@ -21,10 +22,10 @@ export function SettingsDetailHeader({ title }: { title: string }) {
       >
         <Ionicons name="chevron-back" size={24} color={colors.foreground} />
       </Pressable>
-      <Text accessibilityRole="header" style={styles.title}>
+      <AppText variant="title">
         {title}
         <Text style={styles.accent}>.</Text>
-      </Text>
+      </AppText>
     </View>
   );
 }
@@ -45,10 +46,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.base,
   },
   backPressed: { backgroundColor: colors.secondary },
-  title: {
-    fontFamily: fonts.sans.extrabold,
-    fontSize: 17,
-    color: colors.foreground,
-  },
   accent: { color: colors.brandOrange },
 });

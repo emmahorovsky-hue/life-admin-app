@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { spacing } from '@life-admin/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { deleteAccount } from '../../lib/privacy';
-import { colors, fonts } from '../../lib/theme';
+import { colors } from '../../lib/theme';
 import { getApiErrorMessage } from '../../lib/utils';
-import { AppDialog, Button, FieldLabel, Input } from '../ui';
+import { AppDialog, AppText, Button, FieldLabel, Input } from '../ui';
 
 interface DeleteAccountDialogProps {
   visible: boolean;
@@ -69,10 +69,10 @@ export function DeleteAccountDialog({ visible, onClose }: DeleteAccountDialogPro
         </>
       }
     >
-      <Text style={styles.copy}>
+      <AppText variant="body" style={styles.copy}>
         This permanently removes your account and all data — subscriptions, reminders, and
         settings. This can't be undone.
-      </Text>
+      </AppText>
       <View style={styles.field}>
         <FieldLabel>Current password</FieldLabel>
         <Input
@@ -98,9 +98,9 @@ export function DeleteAccountDialog({ visible, onClose }: DeleteAccountDialogPro
         />
       </View>
       {error ? (
-        <Text accessibilityLiveRegion="polite" style={styles.error}>
+        <AppText variant="footnote" weight={500} accessibilityLiveRegion="polite" style={styles.error}>
           {error}
-        </Text>
+        </AppText>
       ) : null}
     </AppDialog>
   );
@@ -108,16 +108,12 @@ export function DeleteAccountDialog({ visible, onClose }: DeleteAccountDialogPro
 
 const styles = StyleSheet.create({
   copy: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 14,
     lineHeight: 20,
     color: colors.mutedForeground,
   },
   field: { marginTop: spacing.lg },
   error: {
     marginTop: spacing.md,
-    fontFamily: fonts.sans.medium,
-    fontSize: 13,
     color: colors.destructive,
   },
 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { isValidPassword, spacing } from '@life-admin/shared';
-import { AppDialog, Button, FieldLabel, Input, useToast } from '../ui';
+import { AppDialog, AppText, Button, FieldLabel, Input, useToast } from '../ui';
 import { changePassword } from '../../lib/profile';
 import { getApiErrorMessage } from '../../lib/utils';
 import { colors } from '../../lib/theme';
@@ -80,9 +80,9 @@ export function ChangePasswordDialog({ visible, onClose }: ChangePasswordDialogP
           autoComplete="new-password"
           editable={!loading}
         />
-        <Text style={styles.hint}>
+        <AppText variant="caption" style={styles.hint}>
           At least 8 characters, including 1 uppercase letter, 1 number, and 1 symbol.
-        </Text>
+        </AppText>
       </View>
       <View style={styles.field}>
         <FieldLabel>Confirm new password</FieldLabel>
@@ -95,13 +95,13 @@ export function ChangePasswordDialog({ visible, onClose }: ChangePasswordDialogP
           editable={!loading}
         />
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <AppText variant="footnote" style={styles.error}>{error}</AppText> : null}
     </AppDialog>
   );
 }
 
 const styles = StyleSheet.create({
   field: { marginTop: spacing.lg },
-  hint: { marginTop: spacing.sm, fontSize: 12, color: colors.mutedForeground },
-  error: { marginTop: spacing.md, fontSize: 13, color: colors.destructive },
+  hint: { marginTop: spacing.sm, color: colors.mutedForeground },
+  error: { marginTop: spacing.md, color: colors.destructive },
 });

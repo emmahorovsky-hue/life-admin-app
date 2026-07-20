@@ -1,9 +1,9 @@
 import { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing } from '@life-admin/shared';
-import { colors, fonts } from '../lib/theme';
-import { Card } from './ui';
+import { colors } from '../lib/theme';
+import { AppText, Card } from './ui';
 
 type EmptyStateTone = 'sheet' | 'inline';
 type IconVariant = 'brand' | 'muted';
@@ -58,9 +58,9 @@ export function EmptyState({
         </View>
       ) : null}
       <View style={styles.textGroup}>
-        {kicker ? <Text style={styles.kicker}>{kicker}</Text> : null}
-        <Text style={[styles.title, tone === 'inline' && styles.titleInline]}>{title}</Text>
-        {description ? <Text style={styles.description}>{description}</Text> : null}
+        {kicker ? <AppText variant="monoLabel" style={styles.kicker}>{kicker}</AppText> : null}
+        <AppText variant={tone === 'inline' ? 'headline' : 'title'} style={styles.title}>{title}</AppText>
+        {description ? <AppText variant="footnote" style={styles.description}>{description}</AppText> : null}
       </View>
       {action ? <View>{action}</View> : null}
     </View>
@@ -87,23 +87,9 @@ const styles = StyleSheet.create({
   },
   discBrand: { backgroundColor: BRAND_DISC },
   discMuted: { backgroundColor: colors.secondary },
-  kicker: {
-    fontFamily: fonts.mono.regular,
-    fontSize: 11,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    color: colors.mutedForeground,
-  },
-  title: {
-    fontFamily: fonts.sans.bold,
-    fontSize: 18,
-    color: colors.foreground,
-    textAlign: 'center',
-  },
-  titleInline: { fontSize: 16 },
+  kicker: { color: colors.mutedForeground },
+  title: { color: colors.foreground, textAlign: 'center' },
   description: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 13,
     lineHeight: 19,
     color: colors.mutedForeground,
     textAlign: 'center',
