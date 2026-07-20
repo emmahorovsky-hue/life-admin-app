@@ -11,15 +11,13 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { APP_NAME } from '@/lib/constants';
-
-const FIELDS = ['Merchant', 'Category', 'Amount', 'Cycle', 'Renewal date'];
-
-const STATUS_LINES = [
-  'Reading your receipt…',
-  'Pulling out the details…',
-  'Almost there…',
-];
+import {
+  APP_NAME,
+  EXTRACTION_FIELDS as FIELDS,
+  EXTRACTION_STATUS_LINES as STATUS_LINES,
+  EXTRACTION_STATUS_REDUCED,
+  EXTRACTION_FOOTNOTE,
+} from '@life-admin/shared';
 
 // ms each field row stays "pending" before its check lights up
 const STEP_MS = 650;
@@ -62,7 +60,7 @@ export default function ExtractionLoadingOverlay({
     STATUS_LINES.length - 1,
     Math.floor((revealed / FIELDS.length) * STATUS_LINES.length)
   );
-  const status = reduced ? 'Extracting details…' : STATUS_LINES[statusIndex];
+  const status = reduced ? EXTRACTION_STATUS_REDUCED : STATUS_LINES[statusIndex];
 
   return (
     <div
@@ -154,7 +152,7 @@ export default function ExtractionLoadingOverlay({
           }}
         />
         <p className="mt-3 font-mono text-[10px] text-muted-foreground text-center">
-          This usually takes a few seconds.
+          {EXTRACTION_FOOTNOTE}
         </p>
       </motion.div>
     </div>

@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
@@ -18,6 +18,7 @@ import {
 } from '../lib/receiptScan';
 import { subscriptionApi } from '../lib/subscriptions';
 import { getApiErrorMessage } from '../lib/utils';
+import { ExtractionLoadingOverlay } from './ExtractionLoadingOverlay';
 import { useToast } from './ui';
 import { colors, fonts } from '../lib/theme';
 
@@ -162,17 +163,10 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
           </BottomSheetView>
         </BottomSheetModal>
 
-        {/* In-tree overlay (not a native Modal, which fights the bottom sheets).
-            Rendered last so it sits above the screen; pointerEvents blocks taps
-            while extracting. */}
-        {busy && (
-          <View style={styles.overlay} pointerEvents="auto">
-            <View style={styles.overlayCard}>
-              <ActivityIndicator size="large" color={colors.brandOrange} />
-              <Text style={styles.overlayText}>Reading your receipt…</Text>
-            </View>
-          </View>
-        )}
+        {/* Branded extraction overlay (LIF-209). In-tree, not a native Modal —
+            a Modal fights the bottom sheets and leaves gestures dead (LIF-208).
+            Rendered last so it sits above the screen; it blocks taps while busy. */}
+        <ExtractionLoadingOverlay visible={busy} />
       </>
     );
   },
@@ -215,27 +209,4 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs,
     marginHorizontal: spacing.lg,
   },
-
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 100,
-    elevation: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  overlayCard: {
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: radius.base,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.xl,
-    minWidth: 200,
-  },
-  overlayText: { fontFamily: fonts.sans.semibold, fontSize: 14, color: colors.foreground },
 });
