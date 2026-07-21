@@ -14,12 +14,16 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import {
+  DEFAULT_CURRENCY,
   Subscription,
   categories,
+  dominantCurrency,
   formatCurrency,
+  formatCurrencyTotals,
   getSubscriptionStatus,
   normalizeToMonthlyCost,
   radius,
+  sumByCurrency,
 } from '@life-admin/shared';
 import { subscriptionApi } from '../../lib/subscriptions';
 import { getApiErrorMessage } from '../../lib/utils';
@@ -33,10 +37,24 @@ import {
   ReceiptScanChooserHandle,
 } from '../../components/ReceiptScanChooser';
 import { EmptyState } from '../../components/EmptyState';
-import { AppText, Button, ScreenTitle } from '../../components/ui';
-import { colors, textStyles } from '../../lib/theme';
+import { AppText, Button } from '../../components/ui';
+import { colors, fonts, textStyles } from '../../lib/theme';
+import { ROW_LOGO, SCREEN_PAD, quiet } from '../../lib/quiet';
 
-const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
+// Monthly run-rate for the header sub-line, per currency — costs in different
+// currencies are never summed (LIF-107), so this can be several lines joined.
+// Ended subscriptions are excluded: they aren't charging any more.
+function monthlyRunRate(subs: Subscription[]): string {
+  const live = subs.filter((sub) => getSubscriptionStatus(sub) !== 'ended');
+  const totals = sumByCurrency(
+    live.map((sub) => ({
+      currency: sub.currency,
+      amount: normalizeToMonthlyCost(parseFloat(sub.cost), sub.billingCycle),
+    })),
+    dominantCurrency(live.map((sub) => sub.currency)),
+  );
+  return formatCurrencyTotals(totals, DEFAULT_CURRENCY).join(' / ');
+}
 
 export default function SubscriptionsScreen() {
   const router = useRouter();
@@ -125,38 +143,29 @@ export default function SubscriptionsScreen() {
         )}
       >
         <Pressable
-          style={[styles.row, status === 'ended' && styles.rowEnded]}
+          style={[quiet.row, styles.row, status === 'ended' && styles.rowEnded]}
           onPress={() => sheetRef.current?.open(sub)}
         >
-          <SubscriptionLogo name={sub.name} category={sub.category} size={40} style={styles.logo} />
-          <View style={styles.rowBody}>
-            <View style={styles.rowTitleLine}>
-              <AppText variant="headline" weight={500} style={styles.rowName} numberOfLines={1}>
-                {sub.name}
-              </AppText>
-              {/* Category tag hidden for now — status pills below still show. */}
-              {status === 'cancelling' && (
-                <View style={[styles.pill, styles.pillWarning]}>
-                  <AppText variant="monoLabel" numberOfLines={1} style={styles.pillTextWarning}>
-                    Ends {format(new Date(sub.nextRenewalDate), 'MMM d')}
-                  </AppText>
-                </View>
-              )}
-              {status === 'ended' && (
-                <View style={[styles.pill, styles.pillEnded]}>
-                  <AppText variant="monoLabel" style={styles.pillTextEnded}>Ended</AppText>
-                </View>
-              )}
-            </View>
-            <AppText variant="footnote" style={styles.rowSub} numberOfLines={1}>
+          <SubscriptionLogo
+            name={sub.name}
+            category={sub.category}
+            size={ROW_LOGO}
+            style={styles.logo}
+          />
+          <View style={quiet.rowBody}>
+            <AppText style={quiet.rowName} numberOfLines={1}>{sub.name}</AppText>
+            {/* Status reads as text rather than a coloured pill — the Quiet
+                language spends brand orange only on the due-soon dot, and an
+                ended row is already dimmed. */}
+            <AppText style={quiet.rowMeta} numberOfLines={1}>
               {status === 'cancelling'
-                ? 'Cancelling'
+                ? `Cancelling · ends ${format(new Date(sub.nextRenewalDate), 'MMM d')}`
                 : status === 'ended'
                   ? `Ended ${endLabel}`
-                  : `Next renewal ${format(new Date(sub.nextRenewalDate), 'MMM d')}`}
+                  : `Renews ${format(new Date(sub.nextRenewalDate), 'MMM d')}`}
             </AppText>
           </View>
-          <View style={styles.rowRight}>
+          <View style={quiet.rowRight}>
             <AppText variant="monoData" style={styles.rowPrice} numberOfLines={1}>
               {formatCurrency(parseFloat(sub.cost), sub.currency)}
             </AppText>
@@ -170,29 +179,43 @@ export default function SubscriptionsScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
-        <ScreenTitle>Subscriptions</ScreenTitle>
-        <Pressable style={styles.addButton} onPress={() => chooserRef.current?.open()}>
-          <Ionicons name="add" size={18} color={colors.background} />
-          <AppText variant="body" weight={600} style={styles.addButtonText}>Add</AppText>
-        </Pressable>
+    <View style={quiet.screen}>
+      <View style={styles.headerBlock}>
+        <View style={quiet.header}>
+          <AppText variant="headline" accessibilityRole="header" style={quiet.headerTitle}>
+            Subscriptions
+          </AppText>
+          <Pressable
+            style={styles.addButton}
+            accessibilityRole="button"
+            accessibilityLabel="Add subscription"
+            onPress={() => chooserRef.current?.open()}
+          >
+            <Ionicons name="add" size={16} color={colors.background} />
+            <AppText style={styles.addButtonText}>Add</AppText>
+          </Pressable>
+        </View>
+        {subscriptions.length > 0 && (
+          <AppText style={quiet.headerSub}>
+            {subscriptions.length} tracked · {monthlyRunRate(subscriptions)} per month
+          </AppText>
+        )}
       </View>
 
-      {/* Search */}
+      {/* Search — a hairline-ruled field, not a bordered card. */}
       <View style={styles.searchBox}>
-        <Ionicons name="search" size={16} color={colors.mutedForeground} />
+        <Ionicons name="search" size={16} color={colors.softMuted} />
         <TextInput
           style={[textStyles.body, styles.searchInput]}
           placeholder="Search subscriptions…"
-          placeholderTextColor={colors.mutedForeground}
+          placeholderTextColor={colors.softMuted}
           value={searchTerm}
           onChangeText={setSearchTerm}
           autoCapitalize="none"
         />
         {searchTerm.length > 0 && (
           <Pressable onPress={() => setSearchTerm('')} hitSlop={8}>
-            <Ionicons name="close-circle" size={16} color={colors.mutedForeground} />
+            <Ionicons name="close-circle" size={16} color={colors.faint} />
           </Pressable>
         )}
       </View>
@@ -210,9 +233,13 @@ export default function SubscriptionsScreen() {
           return (
             <Pressable
               style={[styles.chip, active && styles.chipActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
               onPress={() => setCategoryFilter(cat.id)}
             >
-              <AppText variant="caption" weight={500} style={[styles.chipText, active && styles.chipTextActive]}>{cat.name}</AppText>
+              <AppText style={[styles.chipText, active && styles.chipTextActive]}>
+                {cat.name}
+              </AppText>
             </Pressable>
           );
         }}
@@ -225,12 +252,13 @@ export default function SubscriptionsScreen() {
           <ActivityIndicator size="large" color={colors.brandOrange} />
         </View>
       ) : (
+        // No ItemSeparatorComponent: quiet.row carries its own hairline bottom
+        // rule, matching the Dashboard's renewal rows.
         <FlatList
           data={filtered}
           keyExtractor={(sub) => sub.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             searchTerm || categoryFilter !== 'all' ? (
@@ -285,16 +313,14 @@ export default function SubscriptionsScreen() {
   );
 }
 
+// Aligned to the Dashboard's Quiet language (LIF-213): the 28pt content column,
+// hairline rules in place of bordered cards, and the 15pt row rhythm all come
+// from lib/quiet. Space Mono stays for the tabular price stack — that is the
+// identity this list screen keeps.
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, paddingTop: 8 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
+
+  headerBlock: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, marginBottom: 22 },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -303,84 +329,47 @@ const styles = StyleSheet.create({
     borderRadius: radius.base,
     paddingLeft: 8,
     paddingRight: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
-  addButtonText: { color: colors.background },
+  addButtonText: { fontFamily: fonts.sans.semibold, fontSize: 13, color: colors.background },
 
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginHorizontal: 16,
-    marginBottom: 10,
-    height: 42,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.base,
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
+    marginHorizontal: SCREEN_PAD,
+    height: 38,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.hairline,
   },
   searchInput: { flex: 1, color: colors.foreground },
 
-  chips: { flexGrow: 0, marginBottom: 6 },
-  chipsContent: { paddingHorizontal: 16, gap: 6 },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.base,
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  chipActive: { backgroundColor: colors.foreground, borderColor: colors.foreground },
-  chipText: { color: colors.foreground },
-  chipTextActive: { color: colors.background },
+  chips: { flexGrow: 0, marginTop: 18, marginBottom: 4 },
+  chipsContent: { paddingHorizontal: SCREEN_PAD, gap: 8, alignItems: 'center' },
+  // Inactive chips are plain text; only the active one takes a surface, so the
+  // filter row reads as a line of words rather than a wall of bordered boxes.
+  chip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.base },
+  chipActive: { backgroundColor: colors.foreground },
+  chipText: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted },
+  chipTextActive: { fontFamily: fonts.sans.medium, color: colors.background },
 
   error: {
     color: colors.destructive,
-    marginHorizontal: 16,
+    marginHorizontal: SCREEN_PAD,
     marginBottom: 8,
   },
 
-  listContent: { paddingBottom: 32, flexGrow: 1 },
-  separator: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginHorizontal: 16 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: colors.background,
-  },
+  listContent: { paddingHorizontal: SCREEN_PAD, paddingBottom: 40, flexGrow: 1 },
+  // Rhythm and hairline come from quiet.row. This widens the gap for the 36px
+  // logo (quiet.row's default suits a 6px dot) and adds the opaque background
+  // the swipe-to-delete action slides underneath.
+  row: { gap: 12, backgroundColor: colors.background },
   rowEnded: { opacity: 0.55 },
-  logo: { borderRadius: 10 },
+  logo: { borderRadius: 8 },
 
-  rowBody: { flex: 1, gap: 4, minWidth: 0 },
-  rowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rowName: { color: colors.foreground, flexShrink: 1 },
-
-  // Soft category / status pill sitting beside the name.
-  pill: {
-    backgroundColor: colors.secondary,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    flexShrink: 1,
-  },
-  pillText: { color: colors.mutedForeground, letterSpacing: 1 },
-  pillWarning: { backgroundColor: 'rgba(229,61,0,0.10)' },
-  pillTextWarning: { color: colors.brandOrange, letterSpacing: 1 },
-  pillEnded: { backgroundColor: 'rgba(220,38,38,0.10)' },
-  pillTextEnded: { color: colors.destructive, letterSpacing: 1 },
-
-  rowSub: { color: colors.mutedForeground },
-
-  // Right-aligned price stack: bold figure + muted annual equivalent.
-  rowRight: { alignItems: 'flex-end', marginLeft: 8, flexShrink: 0 },
-  // Bold mono from monoData, sized to 15 (a ladder value) so the price lines
-  // up with the 15px name; the shared monoData token stays 13 for other rows.
+  // Right-aligned price stack: mono figure + muted annual equivalent.
   rowPrice: { color: colors.foreground, fontSize: 15 },
-  rowAnnual: { color: colors.mutedForeground, marginTop: 2 },
+  rowAnnual: { color: colors.softMuted, marginTop: 2 },
 
   deleteAction: {
     backgroundColor: colors.destructive,
@@ -393,7 +382,7 @@ const styles = StyleSheet.create({
 
   footerCount: {
     textAlign: 'center',
-    color: colors.mutedForeground,
-    paddingVertical: 16,
+    color: colors.softMuted,
+    paddingVertical: 20,
   },
 });

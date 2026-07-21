@@ -26,9 +26,10 @@ import { AppText, Button } from '../../components/ui';
 import { Sparkline } from '../../components/Sparkline';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors, fonts } from '../../lib/theme';
-
-// Horizontal screen padding — the sparkline spans the content width.
-const SCREEN_PAD = 28;
+// The Dashboard established this language; it now lives in lib/quiet so the
+// other tabs share one definition rather than copying the numbers (LIF-213).
+// The sparkline spans the content width, hence SCREEN_PAD here too.
+import { ROW_PAD_V, SCREEN_PAD, quiet } from '../../lib/quiet';
 
 // "2026-06" → "Jun". Built as a *local* date on purpose: date-fns `format`
 // renders in local time, so parsing the key as UTC midnight shifted every label
@@ -177,23 +178,23 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView
-      style={styles.screen}
+      style={quiet.screen}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {/* 1 — Header */}
-      <View style={styles.header}>
+      <View style={quiet.header}>
         {/* `headline` isn't one of AppText's header variants, so the role is
             explicit — this is still the screen title for VoiceOver. */}
-        <AppText variant="headline" accessibilityRole="header" style={styles.headerTitle}>
+        <AppText variant="headline" accessibilityRole="header" style={quiet.headerTitle}>
           Overview
         </AppText>
-        <AppText style={styles.monthLabel}>{currentMonth}</AppText>
+        <AppText style={quiet.headerMeta}>{currentMonth}</AppText>
       </View>
 
       {/* 2 — Hero spend figure */}
       <View>
-        <AppText style={styles.eyebrow}>Spent this month</AppText>
+        <AppText style={[quiet.eyebrow, styles.eyebrowSpacing]}>Spent this month</AppText>
         <HeroAmount totals={spend.monthly} fallbackCurrency={displayCurrency} />
         <AppText style={styles.heroSub}>
           {subCount} {subCount === 1 ? 'subscription' : 'subscriptions'} · {annualLine} per year
@@ -214,7 +215,7 @@ export default function DashboardScreen() {
       )}
 
       {/* 4 — Divider */}
-      <View style={styles.divider} />
+      <View style={quiet.divider} />
 
       {/* 5 — Upcoming renewals */}
       <View>
@@ -251,17 +252,17 @@ export default function DashboardScreen() {
             return (
               <Pressable
                 key={r.id}
-                style={styles.renewRow}
+                style={quiet.row}
                 accessibilityRole="button"
                 // The row reads as three separate scraps of text otherwise; the
                 // due-soon dot is decorative and has no text of its own.
                 accessibilityLabel={`${r.name}, ${amount}, ${timing}${dueSoon ? ', due soon' : ''}`}
                 onPress={() => router.push('/(app)/subscriptions')}
               >
-                <View style={dueSoon ? styles.dueDot : styles.dueSpacer} />
-                <View style={styles.renewBody}>
-                  <AppText style={styles.renewName} numberOfLines={1}>{r.name}</AppText>
-                  <AppText style={styles.renewTiming}>{timing}</AppText>
+                <View style={dueSoon ? quiet.dueDot : quiet.dueSpacer} />
+                <View style={quiet.rowBody}>
+                  <AppText style={quiet.rowName} numberOfLines={1}>{r.name}</AppText>
+                  <AppText style={quiet.rowMeta}>{timing}</AppText>
                 </View>
                 <AppText style={styles.renewAmount}>{amount}</AppText>
               </Pressable>
@@ -290,7 +291,6 @@ export default function DashboardScreen() {
 // off the LIF-210 type ladder by intent (54 hero, 16 row name, 11 eyebrow/axis);
 // the screen is deliberately Archivo-only, card-free, and near-monochrome.
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, paddingBottom: 40, gap: 34 },
   center: {
     flex: 1,
@@ -302,18 +302,7 @@ const styles = StyleSheet.create({
   },
   mutedText: { color: colors.mutedForeground },
 
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { color: colors.foreground },
-  monthLabel: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted },
-
-  eyebrow: {
-    fontFamily: fonts.sans.semibold,
-    fontSize: 11,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    color: colors.softMuted,
-    marginBottom: 12,
-  },
+  eyebrowSpacing: { marginBottom: 12 },
   hero: {
     fontFamily: fonts.sans.bold,
     fontSize: 54,
@@ -337,24 +326,9 @@ const styles = StyleSheet.create({
   axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   axisLabel: { fontFamily: fonts.sans.regular, fontSize: 11, color: colors.softMuted },
 
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.hairline },
-
   upcomingTitle: { color: colors.foreground, marginBottom: 4 },
-  emptyRenewals: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted, paddingVertical: 15 },
+  emptyRenewals: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted, paddingVertical: ROW_PAD_V },
   emptyBlock: { alignItems: 'flex-start', gap: 4 },
-  renewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 15,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.rowDivider,
-  },
-  dueDot: { width: 6, height: 6, borderRadius: 999, backgroundColor: colors.brandOrange },
-  dueSpacer: { width: 6, height: 6 },
-  renewBody: { flex: 1 },
-  renewName: { fontFamily: fonts.sans.medium, fontSize: 16, color: colors.foreground },
-  renewTiming: { fontFamily: fonts.sans.regular, fontSize: 12, color: colors.softMuted, marginTop: 1 },
   renewAmount: {
     fontFamily: fonts.sans.semibold,
     fontSize: 15,
