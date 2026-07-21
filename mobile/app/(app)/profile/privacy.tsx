@@ -5,6 +5,7 @@ import { DeleteAccountDialog } from '../../../components/settings/DeleteAccountD
 import { SettingsDetailHeader } from '../../../components/settings/SettingsDetailHeader';
 import { AppText, Button, Card } from '../../../components/ui';
 import { colors } from '../../../lib/theme';
+import { SCREEN_PAD } from '../../../lib/quiet';
 
 /**
  * Data & privacy screen — port of web's PrivacyPanel (LIF-188 → LIF-203):
@@ -39,7 +40,7 @@ export default function PrivacyScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, padding: 16 },
+  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: SCREEN_PAD, paddingVertical: 16 },
   // Web PrivacyPanel: 1.5px brand-orange border marks the danger zone.
   dangerCard: {
     marginTop: 24,
