@@ -7,6 +7,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { AvatarTile } from '../../../components/settings/AvatarTile';
 import { AppText, Card, ScreenTitle } from '../../../components/ui';
 import { colors } from '../../../lib/theme';
+import { SCREEN_PAD } from '../../../lib/quiet';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -97,7 +98,7 @@ export default function SettingsIndexScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, paddingBottom: 48 },
+  content: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, paddingBottom: 48 },
 
   identity: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20 },
   identityText: { flex: 1, minWidth: 0 },

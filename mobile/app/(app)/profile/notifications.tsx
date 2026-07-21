@@ -7,6 +7,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { updateProfile } from '../../../lib/profile';
 import { colors } from '../../../lib/theme';
 import { getApiErrorMessage } from '../../../lib/utils';
+import { SCREEN_PAD } from '../../../lib/quiet';
 
 /**
  * Notifications screen — port of web's NotificationsPanel (LIF-185 → LIF-203).
@@ -59,7 +60,7 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, padding: 16 },
+  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: SCREEN_PAD, paddingVertical: 16 },
   card: { marginTop: 24 },
   row: {
     flexDirection: 'row',

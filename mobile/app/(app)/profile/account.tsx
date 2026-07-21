@@ -15,6 +15,7 @@ import {
 } from '../../../components/settings/DefaultCurrencySheet';
 import { AppText, Button, Card } from '../../../components/ui';
 import { colors } from '../../../lib/theme';
+import { SCREEN_PAD } from '../../../lib/quiet';
 
 type AccountModal = null | 'name' | 'email' | 'password';
 
@@ -136,7 +137,7 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
+  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: SCREEN_PAD, paddingVertical: spacing.lg },
   content: { paddingTop: spacing.lg, paddingBottom: 48, gap: spacing.lg },
 
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },

@@ -6,6 +6,7 @@ import { spacing } from '@life-admin/shared';
 import { colors, fonts, textStyles } from '../../lib/theme';
 import { AppText, Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
 import { api } from '../../lib/api';
+import { SCREEN_PAD } from '../../lib/quiet';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -86,7 +87,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     justifyContent: 'center',
-    padding: spacing.xl,
+    paddingHorizontal: SCREEN_PAD,
+    paddingVertical: spacing.xl,
   },
   title: { marginBottom: spacing.md },
   body: { color: colors.mutedForeground, marginBottom: spacing.xl },

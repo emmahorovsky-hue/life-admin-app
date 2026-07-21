@@ -7,6 +7,7 @@ import { isValidPassword, spacing } from '@life-admin/shared';
 import { colors, fonts, textStyles } from '../../lib/theme';
 import { AppText, Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
+import { SCREEN_PAD } from '../../lib/quiet';
 
 // Legal pages are hosted on the marketing/web app (client `/terms`, `/privacy`);
 // mobile opens the canonical URLs rather than duplicating the copy.
@@ -127,7 +128,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: colors.background,
     justifyContent: 'center',
-    padding: spacing.xl,
+    paddingHorizontal: SCREEN_PAD,
+    paddingVertical: spacing.xl,
   },
   title: { marginBottom: spacing.xl },
   field: { marginBottom: spacing.md },
