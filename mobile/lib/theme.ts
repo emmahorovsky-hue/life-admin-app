@@ -25,7 +25,6 @@ export const colors = {
   // matches client/src/index.css :root, and these tints have no web counterpart.
   softMuted: '#A8A29B', // secondary labels — timing, eyebrow, axis, current month
   faint: '#C4BFB7', // de-emphasized figures (decimal part) + inactive tab tint
-  insightBody: '#57534E', // savings-insight paragraph (darker warm gray)
   hairline: '#EAE7E1', // primary hairline divider
   rowDivider: '#F0EDE7', // lighter renewal-row separators
 };
