@@ -30,10 +30,24 @@ const spendContribution = (
 //
 // There is no charge ledger, so each month is *modelled*: a subscription
 // contributes its monthly-normalized cost to month M if it existed by the end of
-// M (`createdAt`) and had not been cancelled before M began (`cancelledAt`).
+// M (`createdAt`) and had not been cancelled by then (`cancelledAt`).
 // Soft-deleted subs (isActive=false) carry no timestamp, so they can't be
 // reconstructed — an accepted approximation (LIF-212). Per-currency, never
 // summed across currencies (LIF-107).
+//
+// Cancellation is gated on the month's *end*, not its start, so that the last
+// point of the series equals the `spendByCurrency` figure the dashboard shows
+// as "spent this month" — that total drops a subscription the moment it is
+// cancelled. Gating on the start instead left a sub cancelled mid-month in the
+// sparkline but out of the hero figure: two numbers on one screen disagreeing.
+// It does mean the final cancelled-in month is dropped even though the period
+// was paid for; consistency with every other spend figure wins.
+//
+// Leading months with no data at all are trimmed rather than reported as zero.
+// `createdAt` is when a subscription was *added to the app*, not when it began,
+// so a new account would otherwise report five $0 months and a cliff at signup
+// — a spending spike that never happened. Gaps *between* real months stay zero,
+// so the line remains continuous.
 type HistorySub = {
   cost: Prisma.Decimal;
   currency: string;
@@ -55,7 +69,7 @@ const computeSpendHistory = (
 
     for (const sub of subs) {
       if (sub.createdAt >= end) continue; // didn't exist yet this month
-      if (sub.cancelledAt && sub.cancelledAt < start) continue; // cancelled before it began
+      if (sub.cancelledAt && sub.cancelledAt < end) continue; // cancelled by the month's end
       const { monthly } = spendContribution(new Prisma.Decimal(sub.cost), sub.billingCycle);
       byCurrency.set(
         sub.currency,
@@ -72,7 +86,10 @@ const computeSpendHistory = (
         ),
     });
   }
-  return history;
+
+  // Drop the leading run of months the account has no data for (see above).
+  const firstWithData = history.findIndex((m) => m.byCurrency.length > 0);
+  return firstWithData === -1 ? [] : history.slice(firstWithData);
 };
 
 export const getDashboardSummary = async (
@@ -90,22 +107,19 @@ export const getDashboardSummary = async (
       return;
     }
 
-    // Get all active subscriptions. Cancelled subs (cancelledAt set) won't renew,
-    // so they're excluded from spend totals and upcoming renewals.
-    const subscriptions = await prisma.subscription.findMany({
+    // Every subscription still on the books. History needs the cancelled ones
+    // too — they counted toward the months they were active in — so this is one
+    // query, narrowed below rather than fetched twice.
+    const liveSubscriptions = await prisma.subscription.findMany({
       where: {
         userId: req.user.userId,
         isActive: true,
-        cancelledAt: null,
       },
     });
 
-    // History includes cancelled-but-not-deleted subs: they still count toward
-    // the months they were active in (see computeSpendHistory).
-    const historySubscriptions = await prisma.subscription.findMany({
-      where: { userId: req.user.userId, isActive: true },
-      select: { cost: true, currency: true, billingCycle: true, createdAt: true, cancelledAt: true },
-    });
+    // Cancelled subs (cancelledAt set) won't renew, so they're excluded from
+    // spend totals and upcoming renewals.
+    const subscriptions = liveSubscriptions.filter((sub) => sub.cancelledAt === null);
 
     // Totals, per currency. There is no exchange-rate source in this project, so
     // costs in different currencies cannot be added into one figure — a $10 +
@@ -160,7 +174,7 @@ export const getDashboardSummary = async (
     // Get upcoming renewals (next 30 days). renewalDate is an anchor; roll it
     // forward to the next future occurrence before filtering/sorting.
     const now = new Date();
-    const spendHistory = computeSpendHistory(historySubscriptions, now, 6);
+    const spendHistory = computeSpendHistory(liveSubscriptions, now, 6);
 
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
