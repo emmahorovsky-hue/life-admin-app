@@ -35,9 +35,11 @@ export interface DashboardSummary {
   // subscription count (descending). Optional only because a client can be
   // newer than the server it talks to — the server always sends it.
   spendByCurrency?: CurrencySpend[];
-  // Last 6 calendar months of reconstructed monthly spend (oldest → newest),
-  // for the dashboard trend sparkline. Optional: a client may be newer than the
-  // server. Fewer than 6 entries when the account has less history.
+  // Up to the last 6 calendar months of reconstructed monthly spend (oldest →
+  // newest), for the dashboard trend sparkline. Optional: a client may be newer
+  // than the server. Months before the account has any data are omitted rather
+  // than reported as zero, so a young account gets a short series (or an empty
+  // one) instead of a run of $0 months it never actually had.
   spendHistory?: MonthlySpend[];
   upcomingRenewals: Array<{
     id: string;

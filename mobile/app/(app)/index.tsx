@@ -30,8 +30,15 @@ import { colors, fonts } from '../../lib/theme';
 // Horizontal screen padding — the sparkline spans the content width.
 const SCREEN_PAD = 28;
 
-/** "2026-06" → "Jun" (UTC, matching the server's month keys). */
-const monthAbbr = (key: string) => format(new Date(`${key}-01T00:00:00Z`), 'MMM');
+// "2026-06" → "Jun". Built as a *local* date on purpose: date-fns `format`
+// renders in local time, so parsing the key as UTC midnight shifted every label
+// back a month for anyone west of Greenwich ("2026-06" → "May" in New York, and
+// "2026-01" → "Dec" of the wrong year). The key is a calendar label, not an
+// instant, so it should never round-trip through a timezone.
+const monthAbbr = (key: string) => {
+  const [year, month] = key.split('-').map(Number);
+  return format(new Date(year, month - 1, 1), 'MMM');
+};
 
 // Split a formatted amount into the three parts the hero styles differently:
 // head ("$84"), decimals (".20"), and a trailing currency code (" SGD", which
@@ -148,9 +155,16 @@ export default function DashboardScreen() {
   const chartWidth = Math.max(0, width - SCREEN_PAD * 2);
 
   // Trend = the dominant currency's series from the reconstructed spend history
-  // (LIF-212). Months with no spend read 0, so the line stays continuous.
+  // (LIF-212). The server already trims months with no data at all; this trims
+  // the leading months with none *in this currency* — otherwise a user whose
+  // dominant currency is recent reads the earlier months as $0 spent rather
+  // than "not tracked yet". Later gaps stay 0 so the line stays continuous.
   const history = summary.spendHistory ?? [];
-  const trend = history.map((m) => {
+  const firstTracked = history.findIndex((m) =>
+    m.byCurrency.some((c) => c.currency === displayCurrency),
+  );
+  const trendMonths = firstTracked === -1 ? [] : history.slice(firstTracked);
+  const trend = trendMonths.map((m) => {
     const entry = m.byCurrency.find((c) => c.currency === displayCurrency);
     return entry ? parseFloat(entry.total) : 0;
   });
@@ -191,8 +205,10 @@ export default function DashboardScreen() {
         <View>
           <Sparkline data={trend} width={chartWidth} />
           <View style={styles.axisRow}>
-            <AppText style={styles.axisLabel}>{monthAbbr(history[0].month)}</AppText>
-            <AppText style={styles.axisLabel}>{monthAbbr(history[history.length - 1].month)}</AppText>
+            <AppText style={styles.axisLabel}>{monthAbbr(trendMonths[0].month)}</AppText>
+            <AppText style={styles.axisLabel}>
+              {monthAbbr(trendMonths[trendMonths.length - 1].month)}
+            </AppText>
           </View>
         </View>
       )}
