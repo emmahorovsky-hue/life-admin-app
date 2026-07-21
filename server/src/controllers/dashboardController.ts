@@ -25,6 +25,56 @@ const spendContribution = (
   }
 };
 
+// Reconstructed monthly-spend history for the last `months` calendar months
+// (oldest → newest, current month last), for the dashboard trend sparkline.
+//
+// There is no charge ledger, so each month is *modelled*: a subscription
+// contributes its monthly-normalized cost to month M if it existed by the end of
+// M (`createdAt`) and had not been cancelled before M began (`cancelledAt`).
+// Soft-deleted subs (isActive=false) carry no timestamp, so they can't be
+// reconstructed — an accepted approximation (LIF-212). Per-currency, never
+// summed across currencies (LIF-107).
+type HistorySub = {
+  cost: Prisma.Decimal;
+  currency: string;
+  billingCycle: string;
+  createdAt: Date;
+  cancelledAt: Date | null;
+};
+
+const computeSpendHistory = (
+  subs: HistorySub[],
+  now: Date,
+  months = 6
+): { month: string; byCurrency: { currency: string; total: string }[] }[] => {
+  const history = [];
+  for (let k = months - 1; k >= 0; k--) {
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - k, 1));
+    const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1)); // exclusive
+    const byCurrency = new Map<string, Prisma.Decimal>();
+
+    for (const sub of subs) {
+      if (sub.createdAt >= end) continue; // didn't exist yet this month
+      if (sub.cancelledAt && sub.cancelledAt < start) continue; // cancelled before it began
+      const { monthly } = spendContribution(new Prisma.Decimal(sub.cost), sub.billingCycle);
+      byCurrency.set(
+        sub.currency,
+        (byCurrency.get(sub.currency) ?? new Prisma.Decimal(0)).add(monthly)
+      );
+    }
+
+    history.push({
+      month: `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, '0')}`,
+      byCurrency: [...byCurrency.entries()]
+        .map(([currency, total]) => ({ currency, total: total.toFixed(2) }))
+        .sort(
+          (a, b) => parseFloat(b.total) - parseFloat(a.total) || a.currency.localeCompare(b.currency)
+        ),
+    });
+  }
+  return history;
+};
+
 export const getDashboardSummary = async (
   req: AuthRequest,
   res: Response
@@ -48,6 +98,13 @@ export const getDashboardSummary = async (
         isActive: true,
         cancelledAt: null,
       },
+    });
+
+    // History includes cancelled-but-not-deleted subs: they still count toward
+    // the months they were active in (see computeSpendHistory).
+    const historySubscriptions = await prisma.subscription.findMany({
+      where: { userId: req.user.userId, isActive: true },
+      select: { cost: true, currency: true, billingCycle: true, createdAt: true, cancelledAt: true },
     });
 
     // Totals, per currency. There is no exchange-rate source in this project, so
@@ -103,6 +160,8 @@ export const getDashboardSummary = async (
     // Get upcoming renewals (next 30 days). renewalDate is an anchor; roll it
     // forward to the next future occurrence before filtering/sorting.
     const now = new Date();
+    const spendHistory = computeSpendHistory(historySubscriptions, now, 6);
+
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
@@ -129,6 +188,7 @@ export const getDashboardSummary = async (
       totalAnnualSpend: totalAnnualSpend.toFixed(2),
       activeSubscriptions: subscriptions.length,
       spendByCurrency: spend,
+      spendHistory,
       upcomingRenewals,
     });
   } catch (error) {

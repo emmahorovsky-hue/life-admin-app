@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { format, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import {
   CurrencyAmount,
   DashboardSummary,
@@ -30,10 +30,8 @@ import { colors, fonts } from '../../lib/theme';
 // Horizontal screen padding — the sparkline spans the content width.
 const SCREEN_PAD = 28;
 
-// TODO(LIF-211 follow-up): the dashboard summary exposes no monthly history, so
-// the spend trend is placeholder sample data. Wire to a real 6-month series
-// (needs a backend endpoint) before this ships.
-const SAMPLE_TREND = [72, 80, 66, 91, 77, 84];
+/** "2026-06" → "Jun" (UTC, matching the server's month keys). */
+const monthAbbr = (key: string) => format(new Date(`${key}-01T00:00:00Z`), 'MMM');
 
 // Split a formatted amount into the three parts the hero styles differently:
 // head ("$84"), decimals (".20"), and a trailing currency code (" SGD", which
@@ -146,11 +144,16 @@ export default function DashboardScreen() {
   const shownRenewals = summary.upcomingRenewals.slice(0, 5);
   const hasMore = summary.upcomingRenewals.length > shownRenewals.length;
 
-  const now = new Date();
-  const currentMonth = format(now, 'MMMM');
-  const trendStart = format(subMonths(now, SAMPLE_TREND.length - 1), 'MMM');
-  const trendEnd = format(now, 'MMM');
+  const currentMonth = format(new Date(), 'MMMM');
   const chartWidth = Math.max(0, width - SCREEN_PAD * 2);
+
+  // Trend = the dominant currency's series from the reconstructed spend history
+  // (LIF-212). Months with no spend read 0, so the line stays continuous.
+  const history = summary.spendHistory ?? [];
+  const trend = history.map((m) => {
+    const entry = m.byCurrency.find((c) => c.currency === displayCurrency);
+    return entry ? parseFloat(entry.total) : 0;
+  });
 
   const renewalTiming = (days: number, date: string) => {
     if (days <= 0) return 'Renews today';
@@ -183,14 +186,16 @@ export default function DashboardScreen() {
         </AppText>
       </View>
 
-      {/* 3 — Spending trend */}
-      <View>
-        <Sparkline data={SAMPLE_TREND} width={chartWidth} />
-        <View style={styles.axisRow}>
-          <AppText style={styles.axisLabel}>{trendStart}</AppText>
-          <AppText style={styles.axisLabel}>{trendEnd}</AppText>
+      {/* 3 — Spending trend (needs ≥2 months to draw a line) */}
+      {trend.length >= 2 && (
+        <View>
+          <Sparkline data={trend} width={chartWidth} />
+          <View style={styles.axisRow}>
+            <AppText style={styles.axisLabel}>{monthAbbr(history[0].month)}</AppText>
+            <AppText style={styles.axisLabel}>{monthAbbr(history[history.length - 1].month)}</AppText>
+          </View>
         </View>
-      </View>
+      )}
 
       {/* 4 — Divider */}
       <View style={styles.divider} />
