@@ -1,81 +1,79 @@
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
-  StyleProp,
   StyleSheet,
-  TextStyle,
+  Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { format } from 'date-fns';
-import { CartesianChart, Bar } from 'victory-native';
-import { matchFont } from '@shopify/react-native-skia';
+import { format, subMonths } from 'date-fns';
 import {
-  CategorySpendGroup,
   CurrencyAmount,
   DashboardSummary,
-  categorySpendByCurrency,
-  dominantCurrency,
   DEFAULT_CURRENCY,
+  dominantCurrency,
   formatCurrency,
   formatCurrencyTotals,
-  renewalTotals,
   spendTotals,
 } from '@life-admin/shared';
 import { dashboardApi } from '../../lib/dashboard';
 import { subscriptionApi } from '../../lib/subscriptions';
-import { SubscriptionLogo } from '../../components/SubscriptionLogo';
-import { Perforation } from '../../components/Perforation';
-import { EmptyState } from '../../components/EmptyState';
-import { AppText, Button, Card, ScreenTitle } from '../../components/ui';
+import { AppText, Button } from '../../components/ui';
+import { Sparkline } from '../../components/Sparkline';
 import { useAuth } from '../../contexts/AuthContext';
-import { colors, TextVariant } from '../../lib/theme';
+import { colors, fonts } from '../../lib/theme';
 
-const chartFont = matchFont({
-  fontFamily: Platform.select({ ios: 'Helvetica', default: 'sans-serif' }),
-  fontSize: 10,
-});
+// Horizontal screen padding — the sparkline spans the content width.
+const SCREEN_PAD = 28;
 
-// Aggregate figures are lists, not scalars: with no exchange-rate source, costs
-// in different currencies can't be added together, so we render one line per
-// currency (LIF-107). A single-currency user — the common case — sees exactly
-// one line, unchanged from before.
-function TotalLines({
+// TODO(LIF-211 follow-up): the dashboard summary exposes no monthly history, so
+// the spend trend is placeholder sample data. Wire to a real 6-month series
+// (needs a backend endpoint) before this ships.
+const SAMPLE_TREND = [72, 80, 66, 91, 77, 84];
+
+/** Split a formatted amount into its head ("$84") and decimal tail (".20"). */
+function splitAmount(formatted: string): [head: string, tail: string] {
+  const i = formatted.lastIndexOf('.');
+  return i === -1 ? [formatted, ''] : [formatted.slice(0, i), formatted.slice(i)];
+}
+
+/** Hero spend figure(s) — 54px, integer ink + decimals de-emphasized. One line
+ *  per currency (multi-currency has no exchange rate to collapse into one). */
+function HeroAmount({
   totals,
   fallbackCurrency,
-  variant,
-  style,
 }: {
   totals: CurrencyAmount[];
   fallbackCurrency: string;
-  variant: TextVariant;
-  style?: StyleProp<TextStyle>;
 }) {
   const lines = formatCurrencyTotals(totals, fallbackCurrency);
   return (
-    <>
-      {lines.map((line) => (
-        <AppText key={line} variant={variant} style={lines.length > 1 ? [style, styles.totalLineMulti] : style}>
-          {line}
-        </AppText>
-      ))}
-    </>
+    <View>
+      {lines.map((line) => {
+        const [head, tail] = splitAmount(line);
+        return (
+          <AppText key={line} style={styles.hero} numberOfLines={1}>
+            {head}
+            <Text style={styles.heroDecimal}>{tail}</Text>
+          </AppText>
+        );
+      })}
+    </View>
   );
 }
 
 export default function DashboardScreen() {
-  const { user } = useAuth();
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [categoryGroups, setCategoryGroups] = useState<CategorySpendGroup[]>([]);
-  // Currency the user predominantly uses — it leads every per-currency list —
-  // plus a per-id lookup so each renewal can be attributed to its own
-  // subscription's currency (the summary payload carries only id + cost).
+  // Dominant currency leads every per-currency list; the per-id map attributes
+  // each renewal to its own subscription's currency.
   const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
   const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
 
@@ -86,20 +84,16 @@ export default function DashboardScreen() {
         subscriptionApi.getAll(),
       ]);
       setSummary(summaryData);
-
       const primary = dominantCurrency(allSubs.map((sub) => sub.currency));
       setDisplayCurrency(primary);
       setCurrencyById(new Map(allSubs.map((sub) => [sub.id, sub.currency])));
-      setCategoryGroups(categorySpendByCurrency(allSubs, primary));
     } catch {
-      // Keep whatever is already rendered; the !summary gate below handles
-      // the nothing-loaded-yet case.
+      // Keep whatever is already rendered; the !summary gate handles first load.
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Refetch whenever the tab regains focus so edits on other tabs show up.
   useFocusEffect(
     useCallback(() => {
       load();
@@ -120,9 +114,6 @@ export default function DashboardScreen() {
     );
   }
 
-  // Full-screen error only when there's nothing to show — a failed background
-  // refetch (tab focus / pull-to-refresh) must not wipe an already-rendered
-  // dashboard.
   if (!summary) {
     return (
       <View style={styles.center}>
@@ -132,20 +123,23 @@ export default function DashboardScreen() {
     );
   }
 
-  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-  const dueSoonRenewals = summary.upcomingRenewals.filter(
-    (r) => new Date(r.nextRenewalDate).getTime() - Date.now() <= sevenDaysMs,
-  );
-
-  // Every aggregate below is per-currency: renewals can be in different
-  // currencies, and with no exchange-rate source a single summed figure would
-  // silently add e.g. USD + EUR.
-  const currencyOf = (id: string) => currencyById.get(id) ?? displayCurrency;
   const spend = spendTotals(summary, displayCurrency);
-  const dueSoonTotals = renewalTotals(dueSoonRenewals, currencyOf, displayCurrency);
-
+  const annualLine = formatCurrencyTotals(spend.annual, displayCurrency).join(' / ');
+  const subCount = summary.activeSubscriptions;
   const shownRenewals = summary.upcomingRenewals.slice(0, 5);
-  const upcomingTotals = renewalTotals(shownRenewals, currencyOf, displayCurrency);
+  const hasMore = summary.upcomingRenewals.length > shownRenewals.length;
+
+  const now = new Date();
+  const currentMonth = format(now, 'MMMM');
+  const trendStart = format(subMonths(now, SAMPLE_TREND.length - 1), 'MMM');
+  const trendEnd = format(now, 'MMM');
+  const chartWidth = Math.max(0, width - SCREEN_PAD * 2);
+
+  const renewalTiming = (days: number, date: string) => {
+    if (days <= 0) return 'Renews today';
+    if (days <= 7) return `Renews in ${days} ${days === 1 ? 'day' : 'days'}`;
+    return `Renews ${format(new Date(date), 'MMM d')}`;
+  };
 
   return (
     <ScrollView
@@ -153,174 +147,80 @@ export default function DashboardScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <ScreenTitle style={styles.title}>
-        Welcome back, {user?.name || user?.email?.split('@')[0]}
-      </ScreenTitle>
-
-      {/* Summary tiles */}
-      <Card style={styles.featuredCard}>
-        <AppText variant="monoLabel" style={[styles.tileLabel, styles.featuredLabel]}>CHARGED THIS MONTH</AppText>
-        <TotalLines
-          totals={spend.monthly}
-          fallbackCurrency={displayCurrency}
-          variant="monoStat"
-          style={styles.featuredValue}
-        />
-        <AppText variant="caption" style={[styles.tileFootnote, styles.featuredLabel]}>
-          {summary.activeSubscriptions} active{' '}
-          {summary.activeSubscriptions === 1 ? 'subscription' : 'subscriptions'}
-        </AppText>
-      </Card>
-
-      <View style={styles.tileRow}>
-        <Card style={styles.tileHalf}>
-          <AppText variant="monoLabel" style={styles.tileLabel}>PER YEAR</AppText>
-          <TotalLines
-            totals={spend.annual}
-            fallbackCurrency={displayCurrency}
-            variant="monoStatSm"
-          />
-        </Card>
-        <Card style={styles.tileHalf}>
-          <AppText variant="monoLabel" style={styles.tileLabel}>DUE IN 7 DAYS</AppText>
-          <TotalLines
-            totals={dueSoonTotals}
-            fallbackCurrency={displayCurrency}
-            variant="monoStatSm"
-          />
-          {dueSoonRenewals.length > 0 && (
-            <AppText variant="caption" style={styles.tileFootnote}>
-              {dueSoonRenewals.length} {dueSoonRenewals.length === 1 ? 'renewal' : 'renewals'} upcoming
-            </AppText>
-          )}
-        </Card>
+      {/* 1 — Header */}
+      <View style={styles.header}>
+        <AppText variant="headline" style={styles.headerTitle}>Overview</AppText>
+        <AppText style={styles.monthLabel}>{currentMonth}</AppText>
       </View>
 
-      {/* Upcoming renewals — receipt style */}
-      <Card>
-        {summary.upcomingRenewals.length === 0 ? (
-          <EmptyState tone="inline" iconName={null} title="No renewals in the next 30 days" />
+      {/* 2 — Hero spend figure */}
+      <View>
+        <AppText style={styles.eyebrow}>Spent this month</AppText>
+        <HeroAmount totals={spend.monthly} fallbackCurrency={displayCurrency} />
+        <AppText style={styles.heroSub}>
+          {subCount} {subCount === 1 ? 'subscription' : 'subscriptions'} · {annualLine} per year
+        </AppText>
+      </View>
+
+      {/* 3 — Spending trend */}
+      <View>
+        <Sparkline data={SAMPLE_TREND} width={chartWidth} />
+        <View style={styles.axisRow}>
+          <AppText style={styles.axisLabel}>{trendStart}</AppText>
+          <AppText style={styles.axisLabel}>{trendEnd}</AppText>
+        </View>
+      </View>
+
+      {/* 4 — Divider */}
+      <View style={styles.divider} />
+
+      {/* 5 — Upcoming renewals */}
+      <View>
+        <AppText variant="headline" style={styles.upcomingTitle}>Upcoming</AppText>
+        {shownRenewals.length === 0 ? (
+          <AppText style={styles.emptyRenewals}>No renewals in the next 30 days.</AppText>
         ) : (
-          <>
-            <View style={styles.receiptHeader}>
-              <AppText variant="monoLabel" style={styles.receiptHeading}>ITEM · RENEWS</AppText>
-              {dueSoonRenewals.length > 0 && (
-                <View style={styles.dueSoonStamp}>
-                  <AppText variant="monoLabel" style={styles.dueSoonStampText}>DUE SOON</AppText>
-                </View>
-              )}
-              <AppText variant="monoLabel" style={styles.receiptHeading}>AMOUNT</AppText>
-            </View>
-            <Perforation style={{ marginBottom: 12 }} />
-
-            {shownRenewals.map((renewal) => (
-              <View key={renewal.id} style={styles.renewalRow}>
-                <SubscriptionLogo name={renewal.name} category={renewal.category} size={20} />
-                <AppText variant="monoData" style={styles.rowName} numberOfLines={1}>
-                  {renewal.name}
-                </AppText>
-                <AppText variant="monoMeta" style={styles.rowDate}>{format(new Date(renewal.nextRenewalDate), 'MMM d')}</AppText>
-                <View style={styles.leader} />
-                <AppText variant="monoData" style={styles.rowAmount}>
-                  {formatCurrency(
-                    parseFloat(renewal.cost),
-                    currencyById.get(renewal.id) ?? displayCurrency,
-                  )}
-                </AppText>
-              </View>
-            ))}
-
-            <View style={styles.doubleRule} />
-            <View style={styles.totalRow}>
-              <AppText variant="monoLabel" style={styles.receiptHeading}>TOTAL</AppText>
-              {/* One line per currency — see TotalLines */}
-              <View style={styles.totalValues}>
-                <TotalLines
-                  totals={upcomingTotals}
-                  fallbackCurrency={displayCurrency}
-                  variant="monoStatSm"
-                />
-              </View>
-            </View>
-
-            {summary.upcomingRenewals.length > 5 && (
-              <Button
-                title={`View all ${summary.upcomingRenewals.length} renewals`}
-                variant="outline"
-                style={styles.viewAllButton}
+          shownRenewals.map((r) => {
+            const dueSoon = r.daysUntilRenewal <= 7;
+            return (
+              <Pressable
+                key={r.id}
+                style={styles.renewRow}
                 onPress={() => router.push('/(app)/subscriptions')}
-              />
-            )}
-          </>
+              >
+                <View style={dueSoon ? styles.dueDot : styles.dueSpacer} />
+                <View style={styles.renewBody}>
+                  <AppText style={styles.renewName} numberOfLines={1}>{r.name}</AppText>
+                  <AppText style={styles.renewTiming}>
+                    {renewalTiming(r.daysUntilRenewal, r.nextRenewalDate)}
+                  </AppText>
+                </View>
+                <AppText style={styles.renewAmount}>
+                  {formatCurrency(parseFloat(r.cost), currencyById.get(r.id) ?? displayCurrency)}
+                </AppText>
+              </Pressable>
+            );
+          })
         )}
-      </Card>
+        {hasMore && (
+          <Pressable style={styles.seeAll} onPress={() => router.push('/(app)/subscriptions')}>
+            <AppText style={styles.seeAllText}>See all</AppText>
+          </Pressable>
+        )}
+      </View>
 
-      {/* Category breakdown — one chart per currency, since bars in different
-          currencies can't share an axis. */}
-      <Card>
-        {categoryGroups.length === 0 ? (
-          <>
-            <AppText variant="headline" style={styles.cardTitle}>Spending by Category</AppText>
-            <EmptyState
-              tone="inline"
-              title="No subscriptions yet"
-              description="Add one to see where your money goes."
-              action={
-                <Button
-                  title="Add subscription"
-                  onPress={() => router.push({ pathname: '/(app)/subscriptions', params: { openAdd: '1' } })}
-                />
-              }
-            />
-          </>
-        ) : (
-          categoryGroups.map((group) => (
-            <View key={group.currency}>
-              <AppText variant="headline" style={styles.cardTitle}>
-                {/* Name the currency only when there's more than one chart to tell
-                    apart — otherwise the title is as it always was. */}
-                Spending by Category
-                {categoryGroups.length > 1 ? ` · ${group.currency}` : ''}
-              </AppText>
-              <View style={styles.chartBox}>
-                <CartesianChart
-                  data={group.data}
-                  xKey="name"
-                  yKeys={['total']}
-                  domainPadding={{ left: 24, right: 24, top: 16 }}
-                  axisOptions={{
-                    font: chartFont,
-                    labelColor: colors.mutedForeground,
-                    lineColor: colors.border,
-                    // Long category names ("Cloud Storage") collide on a phone width.
-                    formatXLabel: (name) => {
-                      const label = String(name ?? '');
-                      return label.length > 7 ? `${label.slice(0, 6)}…` : label;
-                    },
-                  }}
-                >
-                  {({ points, chartBounds }) => (
-                    <Bar
-                      points={points.total}
-                      chartBounds={chartBounds}
-                      color={colors.foreground}
-                      innerPadding={0.4}
-                      roundedCorners={{ topLeft: 2, topRight: 2 }}
-                    />
-                  )}
-                </CartesianChart>
-              </View>
-            </View>
-          ))
-        )}
-      </Card>
+      {/* Savings insight (section 6) intentionally omitted until a real
+          unused-subscription signal exists server-side — see LIF-211. */}
     </ScrollView>
   );
 }
 
+// Dashboard "Quiet" 1b (LIF-211). Several sizes here are design-exact and sit
+// off the LIF-210 type ladder by intent (54 hero, 16 row name, 11 eyebrow/axis);
+// the screen is deliberately Archivo-only, card-free, and near-monochrome.
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16, gap: 12, paddingBottom: 32 },
+  content: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, paddingBottom: 40, gap: 34 },
   center: {
     flex: 1,
     backgroundColor: colors.background,
@@ -329,49 +229,63 @@ const styles = StyleSheet.create({
     gap: 16,
     padding: 24,
   },
-  title: { marginBottom: 4, marginTop: 8 },
   mutedText: { color: colors.mutedForeground },
 
-  cardTitle: { marginBottom: 12 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTitle: { color: colors.foreground },
+  monthLabel: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted },
 
-  featuredCard: { backgroundColor: colors.brandOrange, borderColor: colors.brandOrange },
-  tileRow: { flexDirection: 'row', gap: 12 },
-  tileHalf: { flex: 1 },
-  tileLabel: { color: colors.mutedForeground, marginBottom: 10 },
-  featuredLabel: { color: 'rgba(255,255,255,0.8)' },
-  featuredValue: { color: colors.white },
-  tileFootnote: { color: colors.mutedForeground, marginTop: 8 },
-
-  receiptHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  receiptHeading: { color: colors.mutedForeground },
-  dueSoonStamp: {
-    borderWidth: 1,
-    borderColor: colors.brandOrange,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    transform: [{ rotate: '-4deg' }],
+  eyebrow: {
+    fontFamily: fonts.sans.semibold,
+    fontSize: 11,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: colors.softMuted,
+    marginBottom: 12,
   },
-  dueSoonStampText: { color: colors.brandOrange },
-  renewalRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  rowName: { color: colors.foreground, flexShrink: 1 },
-  rowDate: { color: colors.mutedForeground },
-  leader: { flex: 1, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border, marginHorizontal: 6 },
-  rowAmount: { color: colors.foreground },
-  doubleRule: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.foreground,
-    height: 4,
-    marginTop: 6,
-    marginBottom: 10,
+  hero: {
+    fontFamily: fonts.sans.bold,
+    fontSize: 54,
+    letterSpacing: -2,
+    lineHeight: 51,
+    color: colors.foreground,
+    fontVariant: ['tabular-nums'],
   },
-  totalRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  totalValues: { alignItems: 'flex-end' },
-  // Several currencies stack vertically, so each line drops to the compact
-  // figure size to fit; a single-currency total keeps the monoStatSm size.
-  totalLineMulti: { fontSize: 20 },
+  heroDecimal: { color: colors.faint },
+  heroSub: {
+    fontFamily: fonts.sans.regular,
+    fontSize: 13,
+    color: colors.mutedForeground,
+    marginTop: 14,
+    fontVariant: ['tabular-nums'],
+  },
 
-  chartBox: { height: 250 },
+  axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  axisLabel: { fontFamily: fonts.sans.regular, fontSize: 11, color: colors.softMuted },
 
-  viewAllButton: { marginTop: 14 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.hairline },
+
+  upcomingTitle: { color: colors.foreground, marginBottom: 4 },
+  emptyRenewals: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted, paddingVertical: 15 },
+  renewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 15,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.rowDivider,
+  },
+  dueDot: { width: 6, height: 6, borderRadius: 999, backgroundColor: colors.brandOrange },
+  dueSpacer: { width: 6, height: 6 },
+  renewBody: { flex: 1 },
+  renewName: { fontFamily: fonts.sans.medium, fontSize: 16, color: colors.foreground },
+  renewTiming: { fontFamily: fonts.sans.regular, fontSize: 12, color: colors.softMuted, marginTop: 1 },
+  renewAmount: {
+    fontFamily: fonts.sans.semibold,
+    fontSize: 15,
+    color: colors.foreground,
+    fontVariant: ['tabular-nums'],
+  },
+  seeAll: { paddingTop: 14 },
+  seeAllText: { fontFamily: fonts.sans.medium, fontSize: 13, color: colors.foreground },
 });

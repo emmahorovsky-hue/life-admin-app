@@ -13,9 +13,10 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.brandOrange,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
+        // Dashboard 1b: active tint is ink, inactive a faint warm gray (LIF-211).
+        tabBarActiveTintColor: colors.foreground,
+        tabBarInactiveTintColor: colors.faint,
+        tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.hairline },
       }}
     >
       <Tabs.Screen
