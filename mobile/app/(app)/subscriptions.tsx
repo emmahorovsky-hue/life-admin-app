@@ -14,16 +14,12 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import {
-  DEFAULT_CURRENCY,
   Subscription,
   categories,
-  dominantCurrency,
   formatCurrency,
-  formatCurrencyTotals,
   getSubscriptionStatus,
   normalizeToMonthlyCost,
   radius,
-  sumByCurrency,
 } from '@life-admin/shared';
 import { subscriptionApi } from '../../lib/subscriptions';
 import { getApiErrorMessage } from '../../lib/utils';
@@ -37,24 +33,9 @@ import {
   ReceiptScanChooserHandle,
 } from '../../components/ReceiptScanChooser';
 import { EmptyState } from '../../components/EmptyState';
-import { AppText, Button } from '../../components/ui';
+import { AppText, Button, ScreenTitle } from '../../components/ui';
 import { colors, fonts, textStyles } from '../../lib/theme';
 import { ROW_LOGO, SCREEN_PAD, quiet } from '../../lib/quiet';
-
-// Monthly run-rate for the header sub-line, per currency — costs in different
-// currencies are never summed (LIF-107), so this can be several lines joined.
-// Ended subscriptions are excluded: they aren't charging any more.
-function monthlyRunRate(subs: Subscription[]): string {
-  const live = subs.filter((sub) => getSubscriptionStatus(sub) !== 'ended');
-  const totals = sumByCurrency(
-    live.map((sub) => ({
-      currency: sub.currency,
-      amount: normalizeToMonthlyCost(parseFloat(sub.cost), sub.billingCycle),
-    })),
-    dominantCurrency(live.map((sub) => sub.currency)),
-  );
-  return formatCurrencyTotals(totals, DEFAULT_CURRENCY).join(' / ');
-}
 
 export default function SubscriptionsScreen() {
   const router = useRouter();
@@ -180,26 +161,20 @@ export default function SubscriptionsScreen() {
 
   return (
     <View style={quiet.screen}>
-      <View style={styles.headerBlock}>
-        <View style={quiet.header}>
-          <AppText variant="headline" accessibilityRole="header" style={quiet.headerTitle}>
-            Subscriptions
-          </AppText>
-          <Pressable
-            style={styles.addButton}
-            accessibilityRole="button"
-            accessibilityLabel="Add subscription"
-            onPress={() => chooserRef.current?.open()}
-          >
-            <Ionicons name="add" size={16} color={colors.background} />
-            <AppText style={styles.addButtonText}>Add</AppText>
-          </Pressable>
-        </View>
-        {subscriptions.length > 0 && (
-          <AppText style={quiet.headerSub}>
-            {subscriptions.length} tracked · {monthlyRunRate(subscriptions)} per month
-          </AppText>
-        )}
+      {/* Screen title follows the Settings convention — ScreenTitle's pageTitle
+          role + brand-orange period — rather than the Dashboard's quiet header.
+          The Dashboard is the one hero screen; the rest of the tabs share this. */}
+      <View style={[quiet.header, styles.headerBlock]}>
+        <ScreenTitle>Subscriptions</ScreenTitle>
+        <Pressable
+          style={styles.addButton}
+          accessibilityRole="button"
+          accessibilityLabel="Add subscription"
+          onPress={() => chooserRef.current?.open()}
+        >
+          <Ionicons name="add" size={16} color={colors.background} />
+          <AppText style={styles.addButtonText}>Add</AppText>
+        </Pressable>
       </View>
 
       {/* Search — a hairline-ruled field, not a bordered card. */}
@@ -320,7 +295,7 @@ export default function SubscriptionsScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  headerBlock: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, marginBottom: 22 },
+  headerBlock: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, marginBottom: 18 },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',

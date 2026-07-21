@@ -30,19 +30,12 @@ export const ROW_LOGO = 36;
 export const quiet = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
 
-  /** Screen header: quiet title left, contextual meta right. */
+  /** Screen header row: title left, optional action or meta right. The
+   *  Dashboard sets its title quietly; the list tabs use ScreenTitle, matching
+   *  the Settings convention. */
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { color: colors.foreground },
   headerMeta: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted },
-
-  /** Sub-line under a screen title — counts, totals, context. */
-  headerSub: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 13,
-    color: colors.mutedForeground,
-    marginTop: 6,
-    fontVariant: ['tabular-nums'],
-  },
 
   /** Uppercase tracked section label. Replaces mono section headings. */
   eyebrow: {
