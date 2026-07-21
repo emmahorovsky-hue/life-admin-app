@@ -10,6 +10,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { format, differenceInCalendarDays } from 'date-fns';
 import {
   BucketId,
+  DUE_SOON_DAYS,
   Subscription,
   bucketFor,
   categories,
@@ -31,10 +32,9 @@ const BUCKET_LABELS: Record<BucketId, string> = {
   nextMonth: 'Next month',
 };
 
-// Same threshold the Dashboard uses for its due-soon dot, so "needs attention"
-// means one thing across the app.
-const DUE_SOON_DAYS = 7;
-
+// A row's due-soon dot fires on the same DUE_SOON_DAYS threshold that defines the
+// `thisWeek` bucket (from @life-admin/shared), so the dot and the section it sits
+// in can never disagree — every "This week" row is dotted, nothing below it is.
 const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
 
 export default function TimelineScreen() {
