@@ -21,7 +21,7 @@ import {
 import { subscriptionApi } from '../../lib/subscriptions';
 import { getApiErrorMessage } from '../../lib/utils';
 import { EmptyState } from '../../components/EmptyState';
-import { AppText, Button } from '../../components/ui';
+import { AppText, Button, ScreenTitle } from '../../components/ui';
 import { colors, fonts } from '../../lib/theme';
 import { SCREEN_PAD, quiet } from '../../lib/quiet';
 
@@ -107,7 +107,6 @@ export default function TimelineScreen() {
     .filter((id) => buckets[id].length > 0)
     .map((id) => ({ id, title: BUCKET_LABELS[id], data: buckets[id] }));
 
-  const dueCount = sections.reduce((total, section) => total + section.data.length, 0);
 
   return (
     <SectionList
@@ -117,20 +116,9 @@ export default function TimelineScreen() {
       keyExtractor={(sub) => sub.id}
       stickySectionHeadersEnabled={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      ListHeaderComponent={
-        <View style={styles.headerBlock}>
-          <View style={quiet.header}>
-            <AppText variant="headline" accessibilityRole="header" style={quiet.headerTitle}>
-              What's due next
-            </AppText>
-            {dueCount > 0 && (
-              <AppText style={quiet.headerMeta}>
-                {dueCount} {dueCount === 1 ? 'renewal' : 'renewals'}
-              </AppText>
-            )}
-          </View>
-        </View>
-      }
+      // Screen title follows the Settings convention — ScreenTitle's pageTitle
+      // role + brand-orange period — rather than the Dashboard's quiet header.
+      ListHeaderComponent={<ScreenTitle style={styles.title}>What's due next</ScreenTitle>}
       ListEmptyComponent={
         <EmptyState
           iconName="calendar-outline"
@@ -201,7 +189,7 @@ const styles = StyleSheet.create({
   },
   mutedText: { color: colors.mutedForeground },
 
-  headerBlock: { paddingTop: SCREEN_PAD, marginBottom: 8 },
+  title: { marginTop: SCREEN_PAD, marginBottom: 4 },
 
   // Generous top space sets each bucket apart now that the perforated rule
   // between sections is gone.
