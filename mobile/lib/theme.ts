@@ -19,6 +19,15 @@ export const colors = {
   success: lightColors.success.hex,
   warning: lightColors.warning.hex,
   white: lightColors.white.hex,
+
+  // Dashboard "Quiet" 1b warm-neutral tints (LIF-211). Mobile-only and kept out
+  // of the shared palette on purpose: the web drift test asserts lightColors
+  // matches client/src/index.css :root, and these tints have no web counterpart.
+  softMuted: '#A8A29B', // secondary labels — timing, eyebrow, axis, current month
+  faint: '#C4BFB7', // de-emphasized figures (decimal part) + inactive tab tint
+  insightBody: '#57534E', // savings-insight paragraph (darker warm gray)
+  hairline: '#EAE7E1', // primary hairline divider
+  rowDivider: '#F0EDE7', // lighter renewal-row separators
 };
 
 // Typefaces matching the web app (LIF-197), loaded in app/_layout.tsx via
