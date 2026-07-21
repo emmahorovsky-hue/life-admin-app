@@ -27,10 +27,16 @@ export function relativeDaysSigned(days: number): string {
   return `${-days} days ago`;
 }
 
+// "Due soon" everywhere in the app: a renewal within a week. The Dashboard's
+// due-soon dot, the Timeline's dot, and this module's `thisWeek` bucket all read
+// from this one value so "needs attention" means the same thing app-wide and the
+// bucket edge can never drift from the dot.
+export const DUE_SOON_DAYS = 7;
+
 export function bucketFor(renewal: Date, today: Date): BucketId | null {
   const days = differenceInCalendarDays(renewal, today);
   if (days < 0) return null;
-  if (days <= 7) return 'thisWeek';
+  if (days <= DUE_SOON_DAYS) return 'thisWeek';
 
   const sameMonth =
     renewal.getFullYear() === today.getFullYear() && renewal.getMonth() === today.getMonth();

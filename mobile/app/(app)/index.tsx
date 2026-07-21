@@ -15,6 +15,7 @@ import {
   CurrencyAmount,
   DashboardSummary,
   DEFAULT_CURRENCY,
+  DUE_SOON_DAYS,
   dominantCurrency,
   formatCurrency,
   formatCurrencyTotals,
@@ -243,7 +244,7 @@ export default function DashboardScreen() {
           )
         ) : (
           shownRenewals.map((r) => {
-            const dueSoon = r.daysUntilRenewal <= 7;
+            const dueSoon = r.daysUntilRenewal <= DUE_SOON_DAYS;
             const amount = formatCurrency(
               parseFloat(r.cost),
               currencyById.get(r.id) ?? displayCurrency,

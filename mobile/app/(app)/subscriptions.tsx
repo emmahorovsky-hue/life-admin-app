@@ -111,6 +111,13 @@ export default function SubscriptionsScreen() {
   const renderItem = ({ item: sub }: { item: Subscription }) => {
     const status = getSubscriptionStatus(sub);
     const endLabel = format(new Date(sub.nextRenewalDate), 'MMM d, yyyy');
+    const price = formatCurrency(parseFloat(sub.cost), sub.currency);
+    const meta =
+      status === 'cancelling'
+        ? `Cancelling · ends ${format(new Date(sub.nextRenewalDate), 'MMM d')}`
+        : status === 'ended'
+          ? `Ended ${endLabel}`
+          : `Renews ${format(new Date(sub.nextRenewalDate), 'MMM d')}`;
     return (
       <ReanimatedSwipeable
         friction={2}
@@ -125,6 +132,10 @@ export default function SubscriptionsScreen() {
       >
         <Pressable
           style={[quiet.row, styles.row, status === 'ended' && styles.rowEnded]}
+          accessibilityRole="button"
+          // Collapse the logo/name/meta/price fragments into one spoken label,
+          // matching the Timeline row so both list screens read the same way.
+          accessibilityLabel={`${sub.name}, ${price}, ${meta}`}
           onPress={() => sheetRef.current?.open(sub)}
         >
           <SubscriptionLogo
@@ -138,17 +149,11 @@ export default function SubscriptionsScreen() {
             {/* Status reads as text rather than a coloured pill — the Quiet
                 language spends brand orange only on the due-soon dot, and an
                 ended row is already dimmed. */}
-            <AppText style={quiet.rowMeta} numberOfLines={1}>
-              {status === 'cancelling'
-                ? `Cancelling · ends ${format(new Date(sub.nextRenewalDate), 'MMM d')}`
-                : status === 'ended'
-                  ? `Ended ${endLabel}`
-                  : `Renews ${format(new Date(sub.nextRenewalDate), 'MMM d')}`}
-            </AppText>
+            <AppText style={quiet.rowMeta} numberOfLines={1}>{meta}</AppText>
           </View>
           <View style={quiet.rowRight}>
             <AppText variant="monoData" style={styles.rowPrice} numberOfLines={1}>
-              {formatCurrency(parseFloat(sub.cost), sub.currency)}
+              {price}
             </AppText>
             <AppText variant="monoMeta" style={styles.rowAnnual} numberOfLines={1}>
               {formatCurrency(normalizeToMonthlyCost(parseFloat(sub.cost), sub.billingCycle) * 12, sub.currency)}/yr
