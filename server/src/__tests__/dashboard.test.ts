@@ -173,6 +173,44 @@ describe('dashboard renewals (compute-on-read)', () => {
     expect(res.body.totalMonthlySpend).toBe('30.00');
   });
 
+  it('reconstructs 6 months of spend history, gated on createdAt (LIF-212)', async () => {
+    const nowD = new Date();
+    // Created at the start of the month two months ago: it should count toward
+    // that month and every later one, but not the three months before it.
+    const twoMonthsAgoStart = new Date(
+      Date.UTC(nowD.getUTCFullYear(), nowD.getUTCMonth() - 2, 1)
+    );
+    const future = new Date();
+    future.setUTCDate(future.getUTCDate() + 3);
+
+    await prisma.subscription.create({
+      data: {
+        userId,
+        name: 'Netflix',
+        cost: '10.00',
+        currency: 'SGD',
+        billingCycle: 'monthly',
+        renewalDate: future,
+        category: 'streaming',
+        createdAt: twoMonthsAgoStart,
+      },
+    });
+
+    const res = await request(app).get('/api/dashboard/summary').set('Cookie', cookie);
+    expect(res.status).toBe(200);
+    expect(res.body.spendHistory).toHaveLength(6);
+
+    // Newest entry is the current calendar month.
+    const currentKey = `${nowD.getUTCFullYear()}-${String(nowD.getUTCMonth() + 1).padStart(2, '0')}`;
+    expect(res.body.spendHistory[5].month).toBe(currentKey);
+
+    const sgd = (m: { byCurrency: { currency: string; total: string }[] }) =>
+      m.byCurrency.find((c) => c.currency === 'SGD')?.total ?? null;
+    const totals = res.body.spendHistory.map(sgd);
+    // Months 5,4,3-ago predate createdAt → empty; 2-ago,1-ago,current → 10.00.
+    expect(totals).toEqual([null, null, null, '10.00', '10.00', '10.00']);
+  });
+
   it('excludes subscriptions whose next renewal is beyond 30 days', async () => {
     const anchor = new Date();
     anchor.setUTCDate(anchor.getUTCDate() + 60); // ~2 months out

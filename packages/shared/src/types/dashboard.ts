@@ -9,6 +9,16 @@ export interface CurrencySpend {
   activeSubscriptions: number;
 }
 
+// One month of reconstructed spend for the dashboard trend sparkline (LIF-212).
+// Per-currency, same no-exchange-rate constraint as `spendByCurrency` — costs in
+// different currencies are never summed. Oldest → newest across the series.
+export interface MonthlySpend {
+  // Calendar month as `YYYY-MM` (UTC).
+  month: string;
+  // Total monthly-normalized spend that month, one entry per currency present.
+  byCurrency: Array<{ currency: string; total: string }>;
+}
+
 export interface DashboardSummary {
   // Money values are decimal strings (e.g. "15.99"), never JSON numbers — the
   // server does Decimal arithmetic and serializes with 2dp (LIF-125). Parse
@@ -25,6 +35,10 @@ export interface DashboardSummary {
   // subscription count (descending). Optional only because a client can be
   // newer than the server it talks to — the server always sends it.
   spendByCurrency?: CurrencySpend[];
+  // Last 6 calendar months of reconstructed monthly spend (oldest → newest),
+  // for the dashboard trend sparkline. Optional: a client may be newer than the
+  // server. Fewer than 6 entries when the account has less history.
+  spendHistory?: MonthlySpend[];
   upcomingRenewals: Array<{
     id: string;
     name: string;
