@@ -35,10 +35,17 @@ const SCREEN_PAD = 28;
 // (needs a backend endpoint) before this ships.
 const SAMPLE_TREND = [72, 80, 66, 91, 77, 84];
 
-/** Split a formatted amount into its head ("$84") and decimal tail (".20"). */
-function splitAmount(formatted: string): [head: string, tail: string] {
-  const i = formatted.lastIndexOf('.');
-  return i === -1 ? [formatted, ''] : [formatted.slice(0, i), formatted.slice(i)];
+// Split a formatted amount into the three parts the hero styles differently:
+// head ("$84"), decimals (".20"), and a trailing currency code (" SGD", which
+// formatCurrencyTotals appends only when several currencies are on screen).
+// Matching `.dd` specifically — not the last "." — keeps the code out of the
+// de-emphasized tail: it is the only thing telling a USD line from an SGD one,
+// so greying it out would defeat the reason it is there.
+const AMOUNT_PARTS = /^(.*)(\.\d{2})(.*)$/;
+
+function splitAmount(formatted: string): [head: string, decimals: string, code: string] {
+  const m = AMOUNT_PARTS.exec(formatted);
+  return m ? [m[1], m[2], m[3]] : [formatted, '', ''];
 }
 
 /** Hero spend figure(s) — 54px, integer ink + decimals de-emphasized. One line
@@ -54,11 +61,21 @@ function HeroAmount({
   return (
     <View>
       {lines.map((line) => {
-        const [head, tail] = splitAmount(line);
+        const [head, decimals, code] = splitAmount(line);
         return (
-          <AppText key={line} style={styles.hero} numberOfLines={1}>
+          // adjustsFontSizeToFit: amounts carry no thousands separators, so a
+          // four-figure multi-currency line ("$1234.56 SGD") overruns the
+          // content width at 54px — shrink it rather than ellipsizing money.
+          <AppText
+            key={line}
+            style={styles.hero}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
             {head}
-            <Text style={styles.heroDecimal}>{tail}</Text>
+            <Text style={styles.heroDecimal}>{decimals}</Text>
+            {code ? <Text style={styles.heroCode}>{code}</Text> : null}
           </AppText>
         );
       })}
@@ -149,7 +166,11 @@ export default function DashboardScreen() {
     >
       {/* 1 — Header */}
       <View style={styles.header}>
-        <AppText variant="headline" style={styles.headerTitle}>Overview</AppText>
+        {/* `headline` isn't one of AppText's header variants, so the role is
+            explicit — this is still the screen title for VoiceOver. */}
+        <AppText variant="headline" accessibilityRole="header" style={styles.headerTitle}>
+          Overview
+        </AppText>
         <AppText style={styles.monthLabel}>{currentMonth}</AppText>
       </View>
 
@@ -176,34 +197,63 @@ export default function DashboardScreen() {
 
       {/* 5 — Upcoming renewals */}
       <View>
-        <AppText variant="headline" style={styles.upcomingTitle}>Upcoming</AppText>
+        <AppText variant="headline" accessibilityRole="header" style={styles.upcomingTitle}>
+          Upcoming
+        </AppText>
         {shownRenewals.length === 0 ? (
-          <AppText style={styles.emptyRenewals}>No renewals in the next 30 days.</AppText>
+          // With nothing tracked at all this is the whole screen's empty state,
+          // so it carries the add CTA the card-free redesign otherwise drops —
+          // the dashboard is the landing tab and had no other way in.
+          subCount === 0 ? (
+            <View style={styles.emptyBlock}>
+              <AppText style={styles.emptyRenewals}>
+                Nothing tracked yet. Add a subscription to see it here.
+              </AppText>
+              <Button
+                title="Add subscription"
+                onPress={() =>
+                  router.push({ pathname: '/(app)/subscriptions', params: { openAdd: '1' } })
+                }
+              />
+            </View>
+          ) : (
+            <AppText style={styles.emptyRenewals}>No renewals in the next 30 days.</AppText>
+          )
         ) : (
           shownRenewals.map((r) => {
             const dueSoon = r.daysUntilRenewal <= 7;
+            const amount = formatCurrency(
+              parseFloat(r.cost),
+              currencyById.get(r.id) ?? displayCurrency,
+            );
+            const timing = renewalTiming(r.daysUntilRenewal, r.nextRenewalDate);
             return (
               <Pressable
                 key={r.id}
                 style={styles.renewRow}
+                accessibilityRole="button"
+                // The row reads as three separate scraps of text otherwise; the
+                // due-soon dot is decorative and has no text of its own.
+                accessibilityLabel={`${r.name}, ${amount}, ${timing}${dueSoon ? ', due soon' : ''}`}
                 onPress={() => router.push('/(app)/subscriptions')}
               >
                 <View style={dueSoon ? styles.dueDot : styles.dueSpacer} />
                 <View style={styles.renewBody}>
                   <AppText style={styles.renewName} numberOfLines={1}>{r.name}</AppText>
-                  <AppText style={styles.renewTiming}>
-                    {renewalTiming(r.daysUntilRenewal, r.nextRenewalDate)}
-                  </AppText>
+                  <AppText style={styles.renewTiming}>{timing}</AppText>
                 </View>
-                <AppText style={styles.renewAmount}>
-                  {formatCurrency(parseFloat(r.cost), currencyById.get(r.id) ?? displayCurrency)}
-                </AppText>
+                <AppText style={styles.renewAmount}>{amount}</AppText>
               </Pressable>
             );
           })
         )}
         {hasMore && (
-          <Pressable style={styles.seeAll} onPress={() => router.push('/(app)/subscriptions')}>
+          <Pressable
+            style={styles.seeAll}
+            accessibilityRole="button"
+            accessibilityLabel="See all subscriptions"
+            onPress={() => router.push('/(app)/subscriptions')}
+          >
             <AppText style={styles.seeAllText}>See all</AppText>
           </Pressable>
         )}
@@ -252,6 +302,9 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   heroDecimal: { color: colors.faint },
+  // Ink, not faint: the code disambiguates $ USD from $ SGD. Sized down so it
+  // reads as a qualifier rather than competing with the figure.
+  heroCode: { fontSize: 22, color: colors.foreground },
   heroSub: {
     fontFamily: fonts.sans.regular,
     fontSize: 13,
@@ -267,6 +320,7 @@ const styles = StyleSheet.create({
 
   upcomingTitle: { color: colors.foreground, marginBottom: 4 },
   emptyRenewals: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted, paddingVertical: 15 },
+  emptyBlock: { alignItems: 'flex-start', gap: 4 },
   renewRow: {
     flexDirection: 'row',
     alignItems: 'center',
