@@ -173,13 +173,22 @@ describe('dashboard renewals (compute-on-read)', () => {
     expect(res.body.totalMonthlySpend).toBe('30.00');
   });
 
-  it('reconstructs 6 months of spend history, gated on createdAt (LIF-212)', async () => {
-    const nowD = new Date();
+  // Helpers for the spend-history cases below.
+  const monthKey = (d: Date) =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  const monthsAgoStart = (n: number) => {
+    const d = new Date();
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - n, 1));
+  };
+  type MonthEntry = { month: string; byCurrency: { currency: string; total: string }[] };
+  const currencyTotal = (m: MonthEntry, code = 'SGD') =>
+    m.byCurrency.find((c) => c.currency === code)?.total ?? null;
+
+  it('reconstructs spend history from createdAt, omitting months with no data (LIF-212)', async () => {
     // Created at the start of the month two months ago: it should count toward
-    // that month and every later one, but not the three months before it.
-    const twoMonthsAgoStart = new Date(
-      Date.UTC(nowD.getUTCFullYear(), nowD.getUTCMonth() - 2, 1)
-    );
+    // that month and every later one. The three months before it have no data
+    // at all — the account did not exist — so they are omitted rather than
+    // reported as $0, which would render as a spending cliff at signup.
     const future = new Date();
     future.setUTCDate(future.getUTCDate() + 3);
 
@@ -192,23 +201,58 @@ describe('dashboard renewals (compute-on-read)', () => {
         billingCycle: 'monthly',
         renewalDate: future,
         category: 'streaming',
-        createdAt: twoMonthsAgoStart,
+        createdAt: monthsAgoStart(2),
       },
     });
 
     const res = await request(app).get('/api/dashboard/summary').set('Cookie', cookie);
     expect(res.status).toBe(200);
-    expect(res.body.spendHistory).toHaveLength(6);
 
-    // Newest entry is the current calendar month.
-    const currentKey = `${nowD.getUTCFullYear()}-${String(nowD.getUTCMonth() + 1).padStart(2, '0')}`;
-    expect(res.body.spendHistory[5].month).toBe(currentKey);
+    // 2-ago, 1-ago, current — the three empty leading months are trimmed.
+    expect(res.body.spendHistory).toHaveLength(3);
+    expect(res.body.spendHistory[0].month).toBe(monthKey(monthsAgoStart(2)));
+    expect(res.body.spendHistory[2].month).toBe(monthKey(new Date()));
+    // Arrow, not a bare reference: map would pass the index as `code`.
+    expect(res.body.spendHistory.map((m: MonthEntry) => currencyTotal(m))).toEqual([
+      '10.00',
+      '10.00',
+      '10.00',
+    ]);
+  });
 
-    const sgd = (m: { byCurrency: { currency: string; total: string }[] }) =>
-      m.byCurrency.find((c) => c.currency === 'SGD')?.total ?? null;
-    const totals = res.body.spendHistory.map(sgd);
-    // Months 5,4,3-ago predate createdAt → empty; 2-ago,1-ago,current → 10.00.
-    expect(totals).toEqual([null, null, null, '10.00', '10.00', '10.00']);
+  it('ends the history series on the same figure as spend totals when a sub is cancelled (LIF-212)', async () => {
+    // Cancelled today: "spent this month" drops it immediately, so the last
+    // point of the sparkline has to drop it too — otherwise the two figures on
+    // the dashboard disagree. Earlier months keep counting it.
+    const future = new Date();
+    future.setUTCDate(future.getUTCDate() + 3);
+
+    await prisma.subscription.create({
+      data: {
+        userId,
+        name: 'Spotify',
+        cost: '12.00',
+        currency: 'SGD',
+        billingCycle: 'monthly',
+        renewalDate: future,
+        category: 'streaming',
+        createdAt: monthsAgoStart(3),
+        cancelledAt: new Date(),
+      },
+    });
+
+    const res = await request(app).get('/api/dashboard/summary').set('Cookie', cookie);
+    expect(res.status).toBe(200);
+
+    const history = res.body.spendHistory;
+    const current = history[history.length - 1];
+    expect(current.month).toBe(monthKey(new Date()));
+
+    // Cancelled → out of both the current month's point and the spend total.
+    expect(currencyTotal(current)).toBeNull();
+    expect(res.body.totalMonthlySpend).toBe('0.00');
+    // ...but the months it was actually active still count it.
+    expect(currencyTotal(history[0])).toBe('12.00');
   });
 
   it('excludes subscriptions whose next renewal is beyond 30 days', async () => {
