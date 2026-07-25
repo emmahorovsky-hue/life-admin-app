@@ -3,12 +3,13 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { useMinimizeOnScroll } from 'expo-glass-tabs';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import {
@@ -92,6 +93,7 @@ function HeroAmount({
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const onScroll = useMinimizeOnScroll();
   const { width } = useWindowDimensions();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,10 +180,12 @@ export default function DashboardScreen() {
   };
 
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={quiet.screen}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
     >
       {/* 1 — Header */}
       <View style={quiet.header}>
@@ -284,7 +288,7 @@ export default function DashboardScreen() {
 
       {/* Savings insight (section 6) intentionally omitted until a real
           unused-subscription signal exists server-side — see LIF-211. */}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
