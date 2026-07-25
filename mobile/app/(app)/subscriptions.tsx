@@ -36,9 +36,11 @@ import { EmptyState } from '../../components/EmptyState';
 import { AppText, Button, ScreenTitle } from '../../components/ui';
 import { colors, fonts, textStyles } from '../../lib/theme';
 import { ROW_LOGO, SCREEN_PAD, quiet } from '../../lib/quiet';
+import { useTabBarInset } from '../../lib/useTabBarInset';
 
 export default function SubscriptionsScreen() {
   const router = useRouter();
+  const tabBarInset = useTabBarInset();
   const { openAdd } = useLocalSearchParams<{ openAdd?: string }>();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -238,7 +240,7 @@ export default function SubscriptionsScreen() {
           data={filtered}
           keyExtractor={(sub) => sub.id}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: tabBarInset }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             searchTerm || categoryFilter !== 'all' ? (
@@ -339,7 +341,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  listContent: { paddingHorizontal: SCREEN_PAD, paddingBottom: 40, flexGrow: 1 },
+  // paddingBottom is applied dynamically via useTabBarInset to clear the glass tab bar.
+  listContent: { paddingHorizontal: SCREEN_PAD, flexGrow: 1 },
   // Rhythm and hairline come from quiet.row. This widens the gap for the 36px
   // logo (quiet.row's default suits a 6px dot) and adds the opaque background
   // the swipe-to-delete action slides underneath.

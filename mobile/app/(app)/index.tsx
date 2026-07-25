@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useMinimizeOnScroll } from 'expo-glass-tabs';
+import { useTabBarInset } from '../../lib/useTabBarInset';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import {
@@ -94,6 +95,7 @@ function HeroAmount({
 export default function DashboardScreen() {
   const router = useRouter();
   const onScroll = useMinimizeOnScroll();
+  const tabBarInset = useTabBarInset();
   const { width } = useWindowDimensions();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -182,7 +184,7 @@ export default function DashboardScreen() {
   return (
     <Animated.ScrollView
       style={quiet.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarInset }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       onScroll={onScroll}
       scrollEventThrottle={16}
@@ -296,7 +298,8 @@ export default function DashboardScreen() {
 // off the LIF-210 type ladder by intent (54 hero, 16 row name, 11 eyebrow/axis);
 // the screen is deliberately Archivo-only, card-free, and near-monochrome.
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, paddingBottom: 40, gap: 34 },
+  // paddingBottom is applied dynamically via useTabBarInset to clear the glass tab bar.
+  content: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, gap: 34 },
   center: {
     flex: 1,
     backgroundColor: colors.background,

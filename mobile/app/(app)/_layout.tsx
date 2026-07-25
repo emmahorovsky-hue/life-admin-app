@@ -1,4 +1,4 @@
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { Tabs, TabList, TabSlot, TabTrigger } from 'expo-router/ui';
 import {
   GlassTabBar,
@@ -21,7 +21,6 @@ const ITEMS: (GlassTabItem & { href: string })[] = [
 
 export default function AppLayout() {
   const { user, loading } = useAuth();
-  const router = useRouter();
 
   if (loading) return null;
   if (!user) return <Redirect href="/(auth)/login" />;
@@ -32,7 +31,9 @@ export default function AppLayout() {
         <TabSlot style={{ height: '100%' }} renderFn={renderFadingTabScreen} />
         <TabList asChild>
           <GlassTabBar
-            onIndexSelected={(i) => router.navigate(ITEMS[i].href as never)}
+            // Each TabTrigger drives navigation itself (expo-router/ui), so the bar
+            // stays a pure view — no imperative router.navigate to double-fire or
+            // desync the active tab from the real route (deep links, back nav).
             theme={{
               activeTint: colors.foreground,
               inactiveTint: colors.faint,

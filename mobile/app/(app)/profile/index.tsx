@@ -2,6 +2,7 @@ import { ComponentProps } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useMinimizeOnScroll } from 'expo-glass-tabs';
+import { useTabBarInset } from '../../../lib/useTabBarInset';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { radius } from '@life-admin/shared';
@@ -45,13 +46,14 @@ function DottedRule() {
 export default function SettingsIndexScreen() {
   const router = useRouter();
   const onScroll = useMinimizeOnScroll();
+  const tabBarInset = useTabBarInset();
   const { user, logout } = useAuth();
   const displayName = [user?.name, user?.surname].filter(Boolean).join(' ') || user?.email;
 
   return (
     <Animated.ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarInset }]}
       onScroll={onScroll}
       scrollEventThrottle={16}
     >
@@ -106,7 +108,8 @@ export default function SettingsIndexScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, paddingBottom: 48 },
+  // paddingBottom is applied dynamically via useTabBarInset to clear the glass tab bar.
+  content: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD },
 
   identity: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20 },
   identityText: { flex: 1, minWidth: 0 },

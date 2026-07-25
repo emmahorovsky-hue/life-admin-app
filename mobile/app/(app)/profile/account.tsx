@@ -16,6 +16,7 @@ import {
 import { AppText, Button, Card } from '../../../components/ui';
 import { colors } from '../../../lib/theme';
 import { SCREEN_PAD } from '../../../lib/quiet';
+import { useTabBarInset } from '../../../lib/useTabBarInset';
 
 type AccountModal = null | 'name' | 'email' | 'password';
 
@@ -40,6 +41,7 @@ function DottedRule() {
  */
 export default function AccountScreen() {
   const { user } = useAuth();
+  const tabBarInset = useTabBarInset();
   const [modal, setModal] = useState<AccountModal>(null);
   const currencySheetRef = useRef<DefaultCurrencySheetHandle>(null);
 
@@ -51,7 +53,7 @@ export default function AccountScreen() {
   return (
     <View style={styles.screen}>
       <SettingsDetailHeader title="Account" />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarInset }]}>
         {/* Profile card */}
         <Card style={styles.profileCard}>
           <AvatarTile size="lg" />
@@ -138,7 +140,8 @@ export default function AccountScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: SCREEN_PAD, paddingVertical: spacing.lg },
-  content: { paddingTop: spacing.lg, paddingBottom: 48, gap: spacing.lg },
+  // paddingBottom is applied dynamically via useTabBarInset to clear the glass tab bar.
+  content: { paddingTop: spacing.lg, gap: spacing.lg },
 
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   profileText: { flex: 1, minWidth: 0 },
