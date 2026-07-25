@@ -25,6 +25,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { AppText, Button, ScreenTitle } from '../../components/ui';
 import { colors, fonts } from '../../lib/theme';
 import { SCREEN_PAD, quiet } from '../../lib/quiet';
+import { useTabBarInset } from '../../lib/useTabBarInset';
 
 const BUCKET_LABELS: Record<BucketId, string> = {
   thisWeek: 'This week',
@@ -39,6 +40,7 @@ const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name 
 
 export default function TimelineScreen() {
   const router = useRouter();
+  const tabBarInset = useTabBarInset();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -111,7 +113,7 @@ export default function TimelineScreen() {
   return (
     <SectionList
       style={quiet.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarInset }]}
       sections={sections}
       keyExtractor={(sub) => sub.id}
       stickySectionHeadersEnabled={false}
@@ -178,7 +180,8 @@ export default function TimelineScreen() {
 // section footers, the rotated "DUE SOON" stamp, mono row text) is gone; Space
 // Mono is kept only for the amount, the one tabular figure here.
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: SCREEN_PAD, paddingBottom: 40, flexGrow: 1 },
+  // paddingBottom is applied dynamically via useTabBarInset to clear the glass tab bar.
+  content: { paddingHorizontal: SCREEN_PAD, flexGrow: 1 },
   center: {
     flex: 1,
     backgroundColor: colors.background,

@@ -1,0 +1,25 @@
+diff --git a/node_modules/expo-glass-tabs/build/progressive-blur.js b/node_modules/expo-glass-tabs/build/progressive-blur.js
+--- a/node_modules/expo-glass-tabs/build/progressive-blur.js
++++ b/node_modules/expo-glass-tabs/build/progressive-blur.js
+@@ -8,15 +8,18 @@ import { View } from 'react-native';
+  * an imperceptible step, so the falloff reads as continuous. A soft black
+  * gradient smooths the tail and keeps overlaid content legible.
+  */
+-export function ProgressiveBlur({ style, intensity = 5, direction = 'top', ...rest }) {
++export function ProgressiveBlur({ style, intensity = 3, direction = 'top', ...rest }) {
+     const heights = ['100%', '88%', '76%', '64%', '54%', '44%', '36%', '28%', '22%', '16%'];
+     const anchor = direction === 'top' ? { top: 0 } : { bottom: 0 };
+-    return (_jsxs(View, { pointerEvents: "none", style: style, ...rest, children: [heights.map((height, index) => (_jsx(BlurView, { tint: "dark", intensity: intensity, style: { position: 'absolute', left: 0, right: 0, height, ...anchor } }, index))), _jsx(View, { style: {
++    // Light theme: the upstream default is a dark scrim (tint "dark" + a 0.70-black
++    // gradient) tuned for dark/photo UIs — on our off-white app it reads as a strong,
++    // raw shadow. Soften to a light frost with a whisper of a gradient tail.
++    return (_jsxs(View, { pointerEvents: "none", style: style, ...rest, children: [heights.map((height, index) => (_jsx(BlurView, { tint: "light", intensity: intensity, style: { position: 'absolute', left: 0, right: 0, height, ...anchor } }, index))), _jsx(View, { style: {
+                     position: 'absolute',
+                     top: 0,
+                     left: 0,
+                     right: 0,
+                     bottom: 0,
+-                    experimental_backgroundImage: `linear-gradient(to ${direction === 'top' ? 'bottom' : 'top'}, rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.32) 42%, rgba(0,0,0,0.08) 68%, rgba(0,0,0,0) 88%)`,
++                    experimental_backgroundImage: `linear-gradient(to ${direction === 'top' ? 'bottom' : 'top'}, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.05) 42%, rgba(0,0,0,0.015) 68%, rgba(0,0,0,0) 88%)`,
+                 } })] }));
+ }
