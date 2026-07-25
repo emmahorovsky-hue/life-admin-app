@@ -1,5 +1,7 @@
 import { ComponentProps } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { useMinimizeOnScroll } from 'expo-glass-tabs';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { radius } from '@life-admin/shared';
@@ -42,11 +44,17 @@ function DottedRule() {
 /** Settings index (design 1D drill-down) — port of web's SettingsIndex. */
 export default function SettingsIndexScreen() {
   const router = useRouter();
+  const onScroll = useMinimizeOnScroll();
   const { user, logout } = useAuth();
   const displayName = [user?.name, user?.surname].filter(Boolean).join(' ') || user?.email;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <Animated.ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+    >
       <ScreenTitle>Settings</ScreenTitle>
 
       {/* Identity block — avatar tile with upload/remove (LIF-202) */}
@@ -92,7 +100,7 @@ export default function SettingsIndexScreen() {
       >
         <AppText variant="body" weight={600} style={styles.signOutText}>Sign out</AppText>
       </Pressable>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
