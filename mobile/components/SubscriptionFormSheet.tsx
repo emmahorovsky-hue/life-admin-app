@@ -16,6 +16,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { format, differenceInCalendarDays } from 'date-fns';
 import {
   Subscription,
@@ -26,7 +27,6 @@ import {
   currencies,
   currencySymbol,
   formatCurrency,
-  normalizeToMonthlyCost,
   parseRenewalDate,
   radius,
   relativeDaysSigned,
@@ -82,12 +82,23 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+    const [currencyOpen, setCurrencyOpen] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     // Fields the receipt extraction flagged as low-confidence, for the review banner.
     // Empty for a plain add/edit.
     const [uncertainFields, setUncertainFields] = useState<string[]>([]);
 
     const mode = editing ? 'edit' : 'add';
+
+    // Light haptics for discrete selections (segments, tiles, dropdown); a
+    // success notification on a completed mutation. All best-effort — a
+    // rejected promise (e.g. simulator without a Taptic Engine) is swallowed.
+    const selectHaptic = useCallback(() => {
+      Haptics.selectionAsync().catch(() => {});
+    }, []);
+    const successHaptic = useCallback(() => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }, []);
 
     // decimal-pad shows a comma key in comma-decimal locales (e.g. de/fr);
     // parseFloat("12,99") would silently truncate to 12.
@@ -114,6 +125,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
         setUncertainFields([]);
         setError('');
         setSuggestionsOpen(false);
+        setCurrencyOpen(false);
         setShowDatePicker(false);
         sheetRef.current?.present();
       },
@@ -125,6 +137,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
         setUncertainFields(prefill.uncertainFields);
         setError('');
         setSuggestionsOpen(false);
+        setCurrencyOpen(false);
         setShowDatePicker(false);
         sheetRef.current?.present();
       },
@@ -174,6 +187,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
         } else {
           await subscriptionApi.create(data);
         }
+        successHaptic();
         finish();
       } catch (err) {
         setError(getApiErrorMessage(err, `Failed to ${mode === 'add' ? 'add' : 'update'} subscription.`));
@@ -186,6 +200,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
       setLoading(true);
       try {
         await action();
+        successHaptic();
         finish();
       } catch (err) {
         setError(getApiErrorMessage(err, failMessage));
@@ -228,10 +243,8 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
       );
     };
 
-    // ── Derived preview values ─────────────────────────────────────────────
-    const cost = Number.isFinite(parseCost(costText)) ? parseCost(costText) : 0;
+    // ── Derived values ─────────────────────────────────────────────────────
     const activeCycle = values.billingCycle === 'annual' ? 'yearly' : values.billingCycle;
-    const perMonth = normalizeToMonthlyCost(cost, values.billingCycle);
     const suggestions = suggestionsOpen ? filterSuggestions(values.name) : [];
     const editStatus = editing ? getSubscriptionStatus(editing) : 'active';
 
@@ -277,69 +290,103 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           )}
 
           {/* Service (autocomplete) */}
-          <FieldLabel style={styles.fieldLabel}>SERVICE</FieldLabel>
-          <View style={styles.serviceRow}>
-            <SubscriptionLogo name={values.name || '?'} category={values.category} size={36} />
-            <BottomSheetTextInput
-              style={[textStyles.body, styles.serviceInput]}
-              value={values.name}
-              editable={!loading}
-              placeholder="Search Netflix, Spotify, Figma…"
-              placeholderTextColor={colors.mutedForeground}
-              onChangeText={(name) => {
-                patch({ name });
-                setSuggestionsOpen(true);
-              }}
-              onFocus={() => setSuggestionsOpen(true)}
-            />
-          </View>
-          {suggestions.length > 0 && (
-            <View style={styles.suggestions}>
-              {suggestions.map((s) => (
-                <Pressable key={s.name} style={styles.suggestionRow} onPress={() => applySuggestion(s)}>
-                  <View style={styles.suggestionIcon}>
-                    <Ionicons name={categoryIconFor(s.category)} size={15} color={colors.foreground} />
-                  </View>
-                  <AppText variant="body" weight={500} style={styles.suggestionName}>{s.name}</AppText>
-                  <AppText variant="monoMeta" style={styles.suggestionCost}>{formatCurrency(s.cost, values.currency)}</AppText>
-                </Pressable>
-              ))}
+          <FieldLabel style={styles.firstFieldLabel}>SERVICE</FieldLabel>
+          <View style={styles.serviceAnchor}>
+            <View style={styles.serviceRow}>
+              <SubscriptionLogo name={values.name || '?'} category={values.category} size={36} />
+              <BottomSheetTextInput
+                style={[textStyles.body, styles.serviceInput]}
+                value={values.name}
+                editable={!loading}
+                placeholder="Search Netflix, Spotify, Figma…"
+                placeholderTextColor={colors.mutedForeground}
+                onChangeText={(name) => {
+                  patch({ name });
+                  setSuggestionsOpen(true);
+                }}
+                onFocus={() => setSuggestionsOpen(true)}
+              />
             </View>
-          )}
+            {/* Floats over the fields below (absolute) so it never reflows the form. */}
+            {suggestions.length > 0 && (
+              <View style={styles.suggestions}>
+                {suggestions.map((s) => (
+                  <Pressable key={s.name} style={styles.suggestionRow} onPress={() => applySuggestion(s)}>
+                    <View style={styles.suggestionIcon}>
+                      <Ionicons name={categoryIconFor(s.category)} size={15} color={colors.foreground} />
+                    </View>
+                    <AppText variant="body" weight={500} style={styles.suggestionName}>{s.name}</AppText>
+                    <AppText variant="monoMeta" style={styles.suggestionCost}>{formatCurrency(s.cost, values.currency)}</AppText>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
 
           {/* Cost + Currency */}
           <View style={styles.fieldRow}>
             <View style={{ flex: 1 }}>
               <FieldLabel style={styles.fieldLabel}>COST</FieldLabel>
               <View style={styles.costBox}>
-                <AppText variant="monoData" style={styles.costSymbol}>{currencySymbol(values.currency)}</AppText>
+                <AppText variant="monoStatSm" style={styles.costSymbol}>{currencySymbol(values.currency)}</AppText>
                 <BottomSheetTextInput
-                  style={[textStyles.monoData, styles.costInput]}
+                  style={[textStyles.monoStatSm, styles.costInput]}
                   value={costText}
                   editable={!loading}
                   keyboardType="decimal-pad"
                   placeholder="0.00"
-                  placeholderTextColor={colors.mutedForeground}
+                  placeholderTextColor={colors.faint}
                   onChangeText={setCostText}
                 />
               </View>
             </View>
-            <View style={{ width: 150 }}>
+            <View style={styles.currencyField}>
               <FieldLabel style={styles.fieldLabel}>CURRENCY</FieldLabel>
-              <View style={styles.segmentRow}>
-                {currencies.map((code) => {
-                  const active = values.currency === code;
-                  return (
-                    <Pressable
-                      key={code}
-                      disabled={loading}
-                      onPress={() => patch({ currency: code })}
-                      style={[styles.currencySegment, active && styles.segmentActive]}
-                    >
-                      <AppText variant="caption" weight={500} style={[styles.segmentText, active && styles.segmentTextActive]}>{code}</AppText>
-                    </Pressable>
-                  );
-                })}
+              <View style={styles.currencyAnchor}>
+                <Pressable
+                  disabled={loading}
+                  onPress={() => {
+                    selectHaptic();
+                    setSuggestionsOpen(false);
+                    setCurrencyOpen((v) => !v);
+                  }}
+                  style={styles.currencyTrigger}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: currencyOpen }}
+                >
+                  <AppText variant="monoData" style={styles.currencyTriggerText}>{values.currency}</AppText>
+                  <Ionicons
+                    name={currencyOpen ? 'chevron-up' : 'chevron-down'}
+                    size={14}
+                    color={colors.mutedForeground}
+                  />
+                </Pressable>
+                {/* Floats over the fields below (absolute) so opening it never reflows the form. */}
+                {currencyOpen && (
+                  <View style={styles.currencyMenu}>
+                    {currencies.map((code) => {
+                      const active = values.currency === code;
+                      return (
+                        <Pressable
+                          key={code}
+                          disabled={loading}
+                          onPress={() => {
+                            selectHaptic();
+                            patch({ currency: code });
+                            setCurrencyOpen(false);
+                          }}
+                          style={[styles.currencyOption, active && styles.currencyOptionActive]}
+                        >
+                          <AppText variant="monoData" style={styles.currencyOptionCode}>{code}</AppText>
+                          <AppText variant="monoMeta" muted style={styles.currencyOptionSymbol}>
+                            {currencySymbol(code)}
+                          </AppText>
+                          {active && <Ionicons name="checkmark" size={16} color={colors.brandOrange} />}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             </View>
           </View>
@@ -353,7 +400,10 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
                 <Pressable
                   key={seg.id}
                   disabled={loading}
-                  onPress={() => patch({ billingCycle: seg.id })}
+                  onPress={() => {
+                    selectHaptic();
+                    patch({ billingCycle: seg.id });
+                  }}
                   style={[styles.cycleSegment, active && styles.segmentActive]}
                 >
                   <AppText variant="caption" weight={500} style={[styles.segmentText, active && styles.segmentTextActive]}>{seg.label}</AppText>
@@ -366,22 +416,45 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           <FieldLabel style={styles.fieldLabel}>
             {mode === 'edit' ? 'NEXT RENEWAL' : 'FIRST PAYMENT'}
           </FieldLabel>
-          <Pressable
-            style={styles.dateBox}
-            disabled={loading}
-            onPress={() => setShowDatePicker((v) => !v)}
-          >
-            <AppText variant="monoData" style={styles.dateText}>{format(renewalAsDate, 'MMM d, yyyy')}</AppText>
-            <AppText variant="monoMeta" style={styles.dateRelative}>{relativeLabel}</AppText>
-          </Pressable>
-          {showDatePicker && (
+          <View style={styles.dateAnchor}>
+            <Pressable
+              style={styles.dateBox}
+              disabled={loading}
+              onPress={() => setShowDatePicker((v) => !v)}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showDatePicker }}
+            >
+              <View style={styles.dateBoxLeft}>
+                <Ionicons name="calendar-outline" size={16} color={colors.mutedForeground} />
+                <AppText variant="monoData" style={styles.dateText}>{format(renewalAsDate, 'MMM d, yyyy')}</AppText>
+              </View>
+              <AppText variant="monoMeta" style={styles.dateRelative}>{relativeLabel}</AppText>
+            </Pressable>
+            {/* iOS: float the calendar over the fields below; a day-tap applies and closes. */}
+            {showDatePicker && Platform.OS === 'ios' && (
+              <View style={styles.dateMenu}>
+                <DateTimePicker
+                  value={renewalAsDate}
+                  mode="date"
+                  display="inline"
+                  onChange={(event, date) => {
+                    if (event.type === 'set' && date) {
+                      patch({ renewalDate: format(date, 'yyyy-MM-dd') });
+                    }
+                    setShowDatePicker(false); // commit-and-dismiss on selection
+                  }}
+                />
+              </View>
+            )}
+          </View>
+          {/* Android: native modal dialog (its own overlay), not inline. */}
+          {showDatePicker && Platform.OS === 'android' && (
             <DateTimePicker
               value={renewalAsDate}
               mode="date"
-              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              display="default"
               onChange={(event, date) => {
-                // Android fires 'dismissed' on cancel; hide its dialog either way.
-                if (Platform.OS === 'android') setShowDatePicker(false);
+                setShowDatePicker(false);
                 if (event.type === 'set' && date) {
                   patch({ renewalDate: format(date, 'yyyy-MM-dd') });
                 }
@@ -389,24 +462,27 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
             />
           )}
 
-          {/* Category tiles */}
+          {/* Category chips — compact icon + label pills that wrap. */}
           <FieldLabel style={styles.fieldLabel}>CATEGORY</FieldLabel>
-          <View style={styles.categoryGrid}>
+          <View style={styles.categoryChips}>
             {categories.map((cat) => {
               const active = values.category === cat.id;
               return (
                 <Pressable
                   key={cat.id}
                   disabled={loading}
-                  onPress={() => patch({ category: cat.id })}
-                  style={[styles.categoryTile, active && styles.categoryTileActive]}
+                  onPress={() => {
+                    selectHaptic();
+                    patch({ category: cat.id });
+                  }}
+                  style={[styles.categoryChip, active && styles.categoryChipActive]}
                 >
                   <Ionicons
                     name={categoryIconFor(cat.id)}
-                    size={18}
+                    size={14}
                     color={active ? colors.brandOrange : colors.mutedForeground}
                   />
-                  <AppText variant="caption" weight={500} style={[styles.categoryTileText, active && styles.categoryTileTextActive]}>
+                  <AppText variant="caption" weight={500} style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>
                     {cat.name}
                   </AppText>
                 </Pressable>
@@ -426,14 +502,6 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
             onChangeText={(notes) => patch({ notes })}
           />
 
-          {/* Normalized preview */}
-          <View style={styles.previewRow}>
-            <AppText variant="monoMeta" style={styles.previewText}>
-              {formatCurrency(perMonth, values.currency)} / month ·{' '}
-              {formatCurrency(perMonth * 12, values.currency)} / year
-            </AppText>
-          </View>
-
           {error ? <AppText variant="footnote" style={styles.error}>{error}</AppText> : null}
 
           <Button
@@ -445,8 +513,10 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
 
           {mode === 'edit' && (
             <View style={styles.editActions}>
+              <View style={styles.editDivider} />
               {editStatus === 'active' && (
                 <Pressable disabled={loading} onPress={confirmCancelRenewal} style={styles.editAction}>
+                  <Ionicons name="close-circle-outline" size={18} color={colors.brandOrange} />
                   <AppText variant="footnote" weight={600} style={styles.cancelActionText}>Cancel subscription</AppText>
                 </Pressable>
               )}
@@ -459,10 +529,12 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
                   }
                   style={styles.editAction}
                 >
+                  <Ionicons name="refresh-outline" size={18} color={colors.foreground} />
                   <AppText variant="footnote" weight={600} style={styles.resumeActionText}>Resume subscription</AppText>
                 </Pressable>
               )}
               <Pressable disabled={loading} onPress={confirmDelete} style={styles.editAction}>
+                <Ionicons name="trash-outline" size={18} color={colors.destructive} />
                 <AppText variant="footnote" weight={600} style={styles.deleteActionText}>Delete</AppText>
               </Pressable>
             </View>
@@ -490,9 +562,15 @@ const styles = StyleSheet.create({
   },
   reviewBannerText: { flex: 1, color: colors.foreground },
 
-  fieldLabel: { marginTop: 14 },
-  fieldRow: { flexDirection: 'row', gap: 12 },
+  // Space before each field group — the main lever for the form's vertical rhythm.
+  fieldLabel: { marginTop: 24 },
+  // First field sits right under the title, so it needs less top space than the rest.
+  firstFieldLabel: { marginTop: 8 },
+  // zIndex lifts the row (and its absolute currency menu) above the fields below.
+  fieldRow: { flexDirection: 'row', gap: 12, zIndex: 20 },
 
+  // zIndex keeps the service row + its absolute suggestions above the fields below.
+  serviceAnchor: { position: 'relative', zIndex: 30 },
   serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -507,12 +585,22 @@ const styles = StyleSheet.create({
   serviceInput: { flex: 1, fontFamily: fonts.sans.medium, color: colors.foreground },
 
   suggestions: {
+    position: 'absolute',
+    top: 56, // serviceRow height (52) + 4 gap
+    left: 0,
+    right: 0,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.base,
     backgroundColor: colors.card,
-    marginTop: 4,
     overflow: 'hidden',
+    zIndex: 40,
+    // Float above the form: shadow (iOS) + elevation (Android).
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
   suggestionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 8 },
   suggestionIcon: {
@@ -529,13 +617,14 @@ const styles = StyleSheet.create({
   costBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 44,
+    height: 52,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.base,
     backgroundColor: colors.card,
     paddingHorizontal: 12,
   },
+  // Cost is the sheet's headline figure — the monoStatSm role (22/700 mono).
   costSymbol: { color: colors.mutedForeground, marginRight: 4 },
   costInput: { flex: 1, color: colors.foreground },
 
@@ -548,11 +637,56 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   cycleSegment: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' },
-  currencySegment: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' },
   segmentActive: { backgroundColor: colors.foreground },
+
+  // Currency dropdown — trigger matches the cost box height; the menu floats
+  // over the fields below as an absolute overlay so it never reflows the form.
+  currencyField: { width: 120, zIndex: 20 },
+  currencyAnchor: { position: 'relative', zIndex: 20 },
+  currencyTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 52,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.base,
+    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+  },
+  currencyTriggerText: { color: colors.foreground },
+  currencyMenu: {
+    position: 'absolute',
+    top: 56, // trigger height (52) + 4 gap
+    right: 0,
+    width: 120,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.base,
+    backgroundColor: colors.card,
+    overflow: 'hidden',
+    zIndex: 30,
+    // Float above the form: shadow (iOS) + elevation (Android).
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  currencyOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 40,
+    paddingHorizontal: 12,
+  },
+  currencyOptionActive: { backgroundColor: 'rgba(229,61,0,0.08)' },
+  currencyOptionCode: { flex: 1, color: colors.foreground },
+  currencyOptionSymbol: { color: colors.mutedForeground },
   segmentText: { color: colors.foreground },
   segmentTextActive: { color: colors.background, fontFamily: fonts.sans.semibold },
 
+  dateAnchor: { position: 'relative', zIndex: 20 },
   dateBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -564,24 +698,44 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     paddingHorizontal: 12,
   },
+  dateBoxLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dateText: { color: colors.foreground },
   dateRelative: { color: colors.brandOrange },
-
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  categoryTile: {
-    width: '23.5%',
-    alignItems: 'center',
-    gap: 4,
+  // Calendar floats over the fields below (absolute) so it never reflows the form.
+  dateMenu: {
+    position: 'absolute',
+    top: 48, // dateBox height (44) + 4 gap
+    left: 0,
+    right: 0,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.base,
     backgroundColor: colors.card,
-    paddingVertical: 10,
-    paddingHorizontal: 2,
+    paddingHorizontal: 8,
+    overflow: 'hidden',
+    zIndex: 30,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
-  categoryTileActive: { borderColor: colors.brandOrange, backgroundColor: 'rgba(229,61,0,0.08)' },
-  categoryTileText: { color: colors.mutedForeground },
-  categoryTileTextActive: { color: colors.brandOrange, fontFamily: fonts.sans.semibold },
+
+  categoryChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.base,
+    backgroundColor: colors.card,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  categoryChipActive: { borderColor: colors.brandOrange, backgroundColor: 'rgba(229,61,0,0.08)' },
+  categoryChipText: { color: colors.mutedForeground },
+  categoryChipTextActive: { color: colors.brandOrange, fontFamily: fonts.sans.semibold },
 
   notesInput: {
     minHeight: 64,
@@ -594,20 +748,25 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 
-  previewRow: { marginTop: 16, alignItems: 'center' },
-  previewText: { color: colors.mutedForeground },
+  error: { color: colors.destructive, marginTop: 16 },
 
-  error: { color: colors.destructive, marginTop: 12 },
-
-  submitButton: { marginTop: 16 },
+  submitButton: { marginTop: 28 },
 
   editActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 24,
-    marginTop: 18,
+    marginTop: 20,
   },
-  editAction: { paddingVertical: 6 },
+  editDivider: {
+    height: 1,
+    backgroundColor: colors.hairline,
+    marginBottom: 6,
+  },
+  editAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
   cancelActionText: { color: colors.brandOrange },
   resumeActionText: { color: colors.foreground },
   deleteActionText: { color: colors.destructive },
