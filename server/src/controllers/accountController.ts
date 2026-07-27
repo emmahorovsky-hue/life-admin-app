@@ -51,10 +51,13 @@ export const uploadAvatar = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
+    // Prisma 6 types Bytes as Uint8Array<ArrayBuffer>; sharp's Buffer is backed
+    // by the wider ArrayBufferLike, so copy into a plain ArrayBuffer-backed view.
+    const data = new Uint8Array(processed);
     await prisma.userAvatar.upsert({
       where: { userId: req.user.userId },
-      create: { userId: req.user.userId, data: processed, mimeType: 'image/webp' },
-      update: { data: processed, mimeType: 'image/webp' },
+      create: { userId: req.user.userId, data, mimeType: 'image/webp' },
+      update: { data, mimeType: 'image/webp' },
     });
 
     res.status(200).json({ user: await freshPublicUser(req.user.userId) });
