@@ -310,12 +310,38 @@ configuration error instead of silently calling localhost.
 a placeholder, or points at localhost — the config in `mobile/app.config.ts`
 throws during build configuration.
 
-### 6.2 Build
+### 6.2 Configure the logo.dev token
+
+Brand logos on subscription rows come from [logo.dev](https://logo.dev), keyed by
+`LOGO_DEV_TOKEN` (read in `mobile/app.config.ts`, exposed as
+`extra.logoDevToken`). Without it every row falls back to its category icon — the
+feature degrades gracefully and the build still succeeds, which is precisely how
+it stayed unset and unnoticed through several releases (LIF-216).
+
+The token is publishable (`pk_`) and ships in the app bundle, but **this repo is
+public**, so unlike `API_URL` it does not belong in `eas.json`:
+
+1. Set `LOGO_DEV_TOKEN` as an [EAS environment variable](https://docs.expo.dev/eas/environment-variables/)
+   on the project, visible to the build profiles you use
+2. For local development, copy `mobile/.env.example` to `mobile/.env` and set it
+   there — Expo loads that file when it evaluates `app.config.ts`. `mobile/.env`
+   is gitignored, and CI's `env-file-guard` job fails the build if any `.env`
+   file is ever tracked
+
+Use the same token as the web client's `VITE_LOGO_DEV_TOKEN` — one logo.dev
+project covers both platforms.
+
+### 6.3 Build
 
 ```bash
 cd mobile
 npx eas build --profile production --platform all
 ```
+
+After a build, confirm the token actually made it in: real brand logos (not
+category icons) should appear on the Subscriptions rows and in the add/edit
+sheet. A subscription whose name maps to no known domain correctly keeps its
+category icon.
 
 ## Monitoring & Troubleshooting
 

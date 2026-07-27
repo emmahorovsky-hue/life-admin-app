@@ -119,6 +119,16 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `VITE_API_URL`  | Frontend axios baseURL (defaults to `/api` for same-origin proxy)    |
 | `VITE_LOGO_DEV_TOKEN` | Brand logos on subscription rows via logo.dev (optional; rows fall back to category icons without it). Publishable client-side token. |
 
+Mobile reads its own env at build time in `mobile/app.config.ts`, which surfaces the
+values under `expo.extra` — nothing in `mobile/` sees `process.env` at runtime. Copy
+`mobile/.env.example` to `mobile/.env` for local dev; for EAS builds see DEPLOYMENT.md
+Part 6.
+
+| Var (mobile)    | Where used                                                           |
+|-----------------|----------------------------------------------------------------------|
+| `API_URL`       | Baked into the binary as `extra.apiUrl`; `lib/api.ts` falls back to localhost only under `__DEV__`, and a production build without it throws during config |
+| `LOGO_DEV_TOKEN`| Brand logos on subscription rows via logo.dev, as `extra.logoDevToken` (read by `lib/subscriptionLogo.ts`). Same publishable token as the web `VITE_LOGO_DEV_TOKEN`. Optional; rows fall back to category icons without it. Not committed — the repo is public |
+
 ### Database schema highlights
 
 - `User.emailVerified` — users can use the app without verifying, but a banner (`UnverifiedEmailBanner.tsx`) is shown
