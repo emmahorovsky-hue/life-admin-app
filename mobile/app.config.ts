@@ -19,6 +19,24 @@ function resolveApiUrl(): string | undefined {
   return apiUrl;
 }
 
+// LIF-216: the logo.dev token is genuinely optional — rows fall back to the
+// category icon — so an unset value must not fail the build the way API_URL
+// does. But that graceful degradation is exactly why the token stayed unset
+// through several releases without anyone noticing, so say so in the build log.
+function resolveLogoDevToken(): string | undefined {
+  const token = process.env.LOGO_DEV_TOKEN;
+
+  if (!token && process.env.EAS_BUILD_PROFILE) {
+    console.warn(
+      '[app.config] LOGO_DEV_TOKEN is not set — subscription rows will fall back to ' +
+        'category icons instead of brand logos. Set it as an EAS environment variable; ' +
+        'see DEPLOYMENT.md 6.2.',
+    );
+  }
+
+  return token;
+}
+
 export default {
   expo: {
     name: 'Paypr',
@@ -63,7 +81,7 @@ export default {
         projectId: '173c8d3b-4b6b-4ff1-9988-010e8d138228',
       },
       apiUrl: resolveApiUrl(),
-      logoDevToken: process.env.LOGO_DEV_TOKEN,
+      logoDevToken: resolveLogoDevToken(),
     },
   },
 };
