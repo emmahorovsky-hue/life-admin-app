@@ -296,7 +296,8 @@ export default function DashboardScreen() {
 
 // Dashboard "Quiet" 1b (LIF-211). Several sizes here are design-exact and sit
 // off the LIF-210 type ladder by intent (54 hero, 16 row name, 11 eyebrow/axis);
-// the screen is deliberately Archivo-only, card-free, and near-monochrome.
+// the screen is card-free and near-monochrome. Mostly Archivo, but renewal
+// amounts use Space Mono (the monoData face) to match figures on every other tab.
 const styles = StyleSheet.create({
   // paddingBottom is applied dynamically via useTabBarInset to clear the glass tab bar.
   content: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, gap: 34 },
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
   emptyRenewals: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted, paddingVertical: ROW_PAD_V },
   emptyBlock: { alignItems: 'flex-start', gap: 4 },
   renewAmount: {
-    fontFamily: fonts.sans.semibold,
+    fontFamily: fonts.mono.bold,
     fontSize: 15,
     color: colors.foreground,
     fontVariant: ['tabular-nums'],

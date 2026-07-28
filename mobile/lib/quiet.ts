@@ -70,7 +70,7 @@ export const quiet = StyleSheet.create({
   rowRight: { alignItems: 'flex-end', flexShrink: 0 },
 
   /** The screen's one accent: something needs attention within 7 days. */
-  dueDot: { width: 6, height: 6, borderRadius: 999, backgroundColor: colors.brandOrange },
+  dueDot: { width: 6, height: 6, borderRadius: 0, backgroundColor: colors.brandOrange },
   dueSpacer: { width: 6, height: 6 },
 
   /** Inline empty / muted copy. */
