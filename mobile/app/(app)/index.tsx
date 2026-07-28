@@ -271,7 +271,7 @@ export default function DashboardScreen() {
                   <AppText style={quiet.rowName} numberOfLines={1}>{r.name}</AppText>
                   <AppText style={quiet.rowMeta}>{timing}</AppText>
                 </View>
-                <AppText style={styles.renewAmount}>{amount}</AppText>
+                <AppText variant="monoData" style={styles.renewAmount}>{amount}</AppText>
               </Pressable>
             );
           })
@@ -338,12 +338,9 @@ const styles = StyleSheet.create({
   upcomingTitle: { color: colors.foreground, marginBottom: 4 },
   emptyRenewals: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted, paddingVertical: ROW_PAD_V },
   emptyBlock: { alignItems: 'flex-start', gap: 4 },
-  renewAmount: {
-    fontFamily: fonts.mono.bold,
-    fontSize: 15,
-    color: colors.foreground,
-    fontVariant: ['tabular-nums'],
-  },
+  // Family comes from the monoData variant; only the size is local, matching
+  // how Subscriptions and Timeline size their own figures off the same role.
+  renewAmount: { fontSize: 15, color: colors.foreground },
   seeAll: { paddingTop: 14 },
   seeAllText: { fontFamily: fonts.sans.medium, fontSize: 13, color: colors.foreground },
 });
