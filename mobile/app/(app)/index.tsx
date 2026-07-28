@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -18,6 +19,7 @@ import {
   DashboardSummary,
   DEFAULT_CURRENCY,
   DUE_SOON_DAYS,
+  Subscription,
   dominantCurrency,
   formatCurrency,
   formatCurrencyTotals,
@@ -25,6 +27,11 @@ import {
 } from '@life-admin/shared';
 import { dashboardApi } from '../../lib/dashboard';
 import { subscriptionApi } from '../../lib/subscriptions';
+import { getApiErrorMessage } from '../../lib/utils';
+import {
+  SubscriptionSheets,
+  SubscriptionSheetsHandle,
+} from '../../components/SubscriptionSheets';
 import { AppText, Button } from '../../components/ui';
 import { Sparkline } from '../../components/Sparkline';
 import { useAuth } from '../../contexts/AuthContext';
@@ -97,6 +104,7 @@ export default function DashboardScreen() {
   const onScroll = useMinimizeOnScroll();
   const tabBarInset = useTabBarInset();
   const { width } = useWindowDimensions();
+  const sheetRef = useRef<SubscriptionSheetsHandle>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -104,6 +112,10 @@ export default function DashboardScreen() {
   // each renewal to its own subscription's currency.
   const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
   const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
+  // The full subscription for each id, kept from the same getAll() the currency
+  // map is built from — the dashboard's upcomingRenewals payload is trimmed, so
+  // tapping a row needs the whole record to open the detail/edit sheets.
+  const [subsById, setSubsById] = useState<Map<string, Subscription>>(new Map());
 
   const load = useCallback(async () => {
     try {
@@ -115,6 +127,7 @@ export default function DashboardScreen() {
       const primary = dominantCurrency(allSubs.map((sub) => sub.currency));
       setDisplayCurrency(primary);
       setCurrencyById(new Map(allSubs.map((sub) => [sub.id, sub.currency])));
+      setSubsById(new Map(allSubs.map((sub) => [sub.id, sub])));
     } catch {
       // Keep whatever is already rendered; the !summary gate handles first load.
     } finally {
@@ -133,6 +146,26 @@ export default function DashboardScreen() {
     await load();
     setRefreshing(false);
   }, [load]);
+
+  // Open the detail sheet for a tapped renewal. The full record is usually
+  // already in subsById (loaded alongside the summary); fetch by id only as a
+  // fallback if it isn't — e.g. a renewal that arrived after the last load.
+  const openRenewal = useCallback(
+    async (id: string) => {
+      const existing = subsById.get(id);
+      if (existing) {
+        sheetRef.current?.openDetail(existing);
+        return;
+      }
+      try {
+        const full = await subscriptionApi.getById(id);
+        sheetRef.current?.openDetail(full);
+      } catch (err) {
+        Alert.alert('Error', getApiErrorMessage(err, 'Failed to open subscription'));
+      }
+    },
+    [subsById],
+  );
 
   if (loading) {
     return (
@@ -182,6 +215,7 @@ export default function DashboardScreen() {
   };
 
   return (
+    <>
     <Animated.ScrollView
       style={quiet.screen}
       contentContainerStyle={[styles.content, { paddingBottom: tabBarInset }]}
@@ -264,7 +298,7 @@ export default function DashboardScreen() {
                 // The row reads as three separate scraps of text otherwise; the
                 // due-soon dot is decorative and has no text of its own.
                 accessibilityLabel={`${r.name}, ${amount}, ${timing}${dueSoon ? ', due soon' : ''}`}
-                onPress={() => router.push('/(app)/subscriptions')}
+                onPress={() => openRenewal(r.id)}
               >
                 <View style={dueSoon ? quiet.dueDot : quiet.dueSpacer} />
                 <View style={quiet.rowBody}>
@@ -291,6 +325,8 @@ export default function DashboardScreen() {
       {/* Savings insight (section 6) intentionally omitted until a real
           unused-subscription signal exists server-side — see LIF-211. */}
     </Animated.ScrollView>
+    <SubscriptionSheets ref={sheetRef} onSaved={load} />
+    </>
   );
 }
 

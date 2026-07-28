@@ -25,9 +25,9 @@ import { subscriptionApi } from '../../lib/subscriptions';
 import { getApiErrorMessage } from '../../lib/utils';
 import { SubscriptionLogo } from '../../components/SubscriptionLogo';
 import {
-  SubscriptionFormSheet,
-  SubscriptionFormSheetHandle,
-} from '../../components/SubscriptionFormSheet';
+  SubscriptionSheets,
+  SubscriptionSheetsHandle,
+} from '../../components/SubscriptionSheets';
 import {
   ReceiptScanChooser,
   ReceiptScanChooserHandle,
@@ -48,7 +48,7 @@ export default function SubscriptionsScreen() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const sheetRef = useRef<SubscriptionFormSheetHandle>(null);
+  const sheetRef = useRef<SubscriptionSheetsHandle>(null);
   const chooserRef = useRef<ReceiptScanChooserHandle>(null);
 
   const load = useCallback(async () => {
@@ -138,7 +138,7 @@ export default function SubscriptionsScreen() {
           // Collapse the logo/name/meta/price fragments into one spoken label,
           // matching the Timeline row so both list screens read the same way.
           accessibilityLabel={`${sub.name}, ${price}, ${meta}`}
-          onPress={() => sheetRef.current?.open(sub)}
+          onPress={() => sheetRef.current?.openDetail(sub)}
         >
           <SubscriptionLogo
             name={sub.name}
@@ -285,10 +285,10 @@ export default function SubscriptionsScreen() {
         />
       )}
 
-      <SubscriptionFormSheet ref={sheetRef} onSaved={load} />
+      <SubscriptionSheets ref={sheetRef} onSaved={load} />
       <ReceiptScanChooser
         ref={chooserRef}
-        onManual={() => sheetRef.current?.open(null)}
+        onManual={() => sheetRef.current?.openAdd()}
         onExtracted={(candidate) => sheetRef.current?.openWithCandidate(candidate)}
       />
     </View>

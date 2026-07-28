@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   SectionList,
   StyleSheet,
@@ -21,6 +22,10 @@ import {
 } from '@life-admin/shared';
 import { subscriptionApi } from '../../lib/subscriptions';
 import { getApiErrorMessage } from '../../lib/utils';
+import {
+  SubscriptionSheets,
+  SubscriptionSheetsHandle,
+} from '../../components/SubscriptionSheets';
 import { EmptyState } from '../../components/EmptyState';
 import { AppText, Button, ScreenTitle } from '../../components/ui';
 import { colors, fonts } from '../../lib/theme';
@@ -41,6 +46,7 @@ const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name 
 export default function TimelineScreen() {
   const router = useRouter();
   const tabBarInset = useTabBarInset();
+  const sheetRef = useRef<SubscriptionSheetsHandle>(null);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -111,6 +117,7 @@ export default function TimelineScreen() {
 
 
   return (
+    <>
     <SectionList
       style={quiet.screen}
       contentContainerStyle={[styles.content, { paddingBottom: tabBarInset }]}
@@ -150,10 +157,11 @@ export default function TimelineScreen() {
         const dueSoon = days <= DUE_SOON_DAYS;
         const amount = formatCurrency(parseFloat(sub.cost), sub.currency);
         return (
-          <View
+          <Pressable
             style={quiet.row}
-            accessible
+            accessibilityRole="button"
             accessibilityLabel={`${sub.name}, ${amount}, ${relativeDays(days)}${dueSoon ? ', due soon' : ''}`}
+            onPress={() => sheetRef.current?.openDetail(sub)}
           >
             <View style={dueSoon ? quiet.dueDot : quiet.dueSpacer} />
             <View style={quiet.rowBody}>
@@ -166,10 +174,12 @@ export default function TimelineScreen() {
               <AppText style={styles.rowRelative}>{relativeDays(days)}</AppText>
               <AppText variant="monoData" style={styles.rowAmount}>{amount}</AppText>
             </View>
-          </View>
+          </Pressable>
         );
       }}
     />
+    <SubscriptionSheets ref={sheetRef} onSaved={load} />
+    </>
   );
 }
 

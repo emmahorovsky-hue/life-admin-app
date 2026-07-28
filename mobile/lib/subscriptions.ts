@@ -20,6 +20,14 @@ export const subscriptionApi = {
     return response.data;
   },
 
+  // Fetch one fully-populated subscription. The dashboard's upcomingRenewals
+  // payload is a trimmed shape (no currency/billingCycle/notes/…), so tapping a
+  // Home row hydrates the full record here before opening the detail sheet.
+  getById: async (id: string) => {
+    const response = await api.get<Subscription>(`/subscriptions/${id}`);
+    return response.data;
+  },
+
   create: async (data: CreateSubscriptionData) => {
     const response = await api.post<Subscription>('/subscriptions', data);
     return response.data;
