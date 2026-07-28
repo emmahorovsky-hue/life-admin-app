@@ -9,9 +9,9 @@
 //
 // They live here so the tabs share one definition rather than three copies that
 // drift. This module owns *structure* — spacing, rules, row rhythm, supporting
-// text. It deliberately does not own figure typography: the Dashboard sets
-// amounts in Archivo, while Subscriptions and Timeline keep Space Mono for
-// tabular figures, which is the identity those list screens are meant to retain.
+// text. It deliberately does not own figure typography: all three tabs now set
+// amounts in Space Mono via the `monoData` role, but each screen sizes its own
+// figures, so that stays in the screen's StyleSheet rather than here.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { StyleSheet } from 'react-native';
@@ -69,8 +69,9 @@ export const quiet = StyleSheet.create({
   },
   rowRight: { alignItems: 'flex-end', flexShrink: 0 },
 
-  /** The screen's one accent: something needs attention within 7 days. */
-  dueDot: { width: 6, height: 6, borderRadius: 999, backgroundColor: colors.brandOrange },
+  /** The screen's one accent: something needs attention within 7 days. Square
+   *  by intent (the logo's motif) — the explicit 0 is not a leftover. */
+  dueDot: { width: 6, height: 6, borderRadius: 0, backgroundColor: colors.brandOrange },
   dueSpacer: { width: 6, height: 6 },
 
   /** Inline empty / muted copy. */
