@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-import { colors, fonts } from '../lib/theme';
+import { colors, textStyles } from '../lib/theme';
 import { SCREEN_PAD } from '../lib/quiet';
 import { wordmarkMetrics } from './Wordmark';
 
@@ -15,9 +15,12 @@ const WORDMARK_SIZE = 60;
  * sitting in front of this one:
  *
  * - **The wordmark does not animate in.** `assets/splash-icon.png` is the same
- *   lockup at the same size and position, so the wordmark is already on screen
- *   when this mounts. Fading it in from 0 would read as the logo blinking out
- *   and back. The stamp is the moment; the wordmark is the thing it lands on.
+ *   wordmark at the same size and position, so it is already on screen when
+ *   this mounts. Fading it in from 0 would read as the logo blinking out and
+ *   back. The stamp is the moment; the wordmark is the thing it lands on —
+ *   which is why the static frame carries no square: it is the one part of the
+ *   lockup that arrives, and drawing it there too would blink it out for the
+ *   160ms hold below and then pop it back.
  * - **Nothing starts until `start`.** This component mounts behind the native
  *   splash, so an animation on mount would play — and often finish — while the
  *   user is still looking at the static frame. The parent flips `start` in the
@@ -94,8 +97,12 @@ const styles = StyleSheet.create({
   },
   lockup: { flexDirection: 'row', alignItems: 'flex-end' },
   rule: { width: 104, height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginTop: 28 },
+  // `monoLabel` is exactly this — 11/1.4 tracked uppercase mono — so take the
+  // role rather than restating it (LIF-210). `lineHeight` is pinned because the
+  // centred column's height sets how far above centre the wordmark sits, and
+  // that offset has to match the static frame's: leaving it to the platform
+  // default would move the handover by a few points per OS version.
   tagline: {
-    fontFamily: fonts.mono.regular, fontSize: 11, letterSpacing: 1.4,
-    textTransform: 'uppercase', color: colors.softMuted, marginTop: 24,
+    ...textStyles.monoLabel, lineHeight: 14, color: colors.softMuted, marginTop: 24,
   },
 });

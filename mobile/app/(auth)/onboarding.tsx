@@ -55,10 +55,19 @@ export default function OnboardingScreen() {
   const { markSeen } = useOnboardingSeen();
   const [index, setIndex] = useState(0);
   const list = useRef<FlatList<Reel>>(null);
+  const leaving = useRef(false);
 
   const leave = useCallback(
     async (to: '/(auth)/register' | '/(auth)/login') => {
-      await markSeen();
+      if (leaving.current) return; // a double-tap must not stack two replaces
+      leaving.current = true;
+      try {
+        await markSeen();
+      } catch {
+        // Deliberately swallowed. This screen is only reachable by redirect and
+        // has no back gesture, so these three buttons are the only way out: a
+        // failed keychain write must cost a repeat of onboarding, never the exit.
+      }
       router.replace(to);
     },
     [markSeen, router],
@@ -66,7 +75,7 @@ export default function OnboardingScreen() {
 
   const renderReel = useCallback(
     ({ item, index: i }: ListRenderItemInfo<Reel>) => (
-      <View style={{ width }}>
+      <View style={[styles.reel, { width }]}>
         <Image source={item.photo} style={styles.photo} resizeMode="cover" accessibilityIgnoresInvertColors />
         <View style={styles.copy}>
           <AppText variant="monoLabel" style={{ color: colors.softMuted }}>
@@ -95,6 +104,7 @@ export default function OnboardingScreen() {
 
       <FlatList
         ref={list}
+        style={styles.list}
         data={REELS}
         horizontal
         pagingEnabled
@@ -124,7 +134,7 @@ export default function OnboardingScreen() {
 
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]}>
         <Button title="Create account" onPress={() => leave('/(auth)/register')} />
-        <Pressable onPress={() => leave('/(auth)/login')} accessibilityRole="button">
+        <Pressable onPress={() => leave('/(auth)/login')} accessibilityRole="button" hitSlop={12}>
           <AppText variant="body" weight={600} style={styles.login}>
             Log in
           </AppText>
@@ -140,7 +150,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: SCREEN_PAD, paddingTop: spacing.sm, paddingBottom: spacing.lg,
   },
-  photo: { width: '100%', height: 372, backgroundColor: colors.secondary },
+  // The photo takes what the copy, the pager and the CTA block leave, capped at
+  // the designed 372. It is not a fixed height: RN doesn't shrink flex children
+  // by default, so a fixed one pushed the CTA off the bottom of every screen
+  // shorter than a 6.1" phone — 372 + copy + chrome is ~800pt against 647 of
+  // usable height on an SE. Nothing here scrolls vertically, so the buttons
+  // were simply unreachable.
+  list: { flex: 1 },
+  reel: { flex: 1 },
+  photo: { width: '100%', flex: 1, maxHeight: 372, backgroundColor: colors.secondary },
   copy: { paddingHorizontal: SCREEN_PAD, paddingTop: 30, gap: spacing.md },
   title: { letterSpacing: -0.8, lineHeight: 34 },
   bodyCopy: { color: colors.mutedForeground, lineHeight: 22 },

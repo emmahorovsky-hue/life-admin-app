@@ -76,16 +76,27 @@ export default {
       'expo-secure-store',
       'expo-notifications',
       // LIF-218: the static frame iOS draws before JS boots. `splash-icon.png`
-      // is the Paypr lockup rasterised at 3.5px per point (font-size 210 = the
+      // is the Paypr wordmark rasterised at 3.5px per point (font-size 210 = the
       // 60pt wordmark `components/BrandSplash.tsx` renders), so imageWidth is
       // 1024 / 3.5 — at that width the static wordmark and the animated one are
       // the same size in the same place, and the handover is invisible. Change
-      // one of the two and you must change the other.
+      // one of the two and you must change the other. The orange square is
+      // deliberately absent from the frame: BrandSplash stamps it in.
+      //
+      // Android gets the square alone. Android 12+ masks the splash icon into a
+      // circle, which would crop a wordmark this wide to "yp" — the mark is the
+      // part of the lockup that survives the mask.
       ['expo-splash-screen', {
         image: './assets/splash-icon.png',
         imageWidth: 293,
         resizeMode: 'contain',
         backgroundColor: '#FBFBF9', // Snow — lightColors.background.hex
+        android: {
+          image: './assets/splash-icon-android.png',
+          imageWidth: 180,
+          resizeMode: 'contain',
+          backgroundColor: '#FBFBF9',
+        },
       }],
       ['expo-image-picker', { cameraPermission: 'Allow Life Admin to scan receipts.' }],
       '@react-native-community/datetimepicker',
