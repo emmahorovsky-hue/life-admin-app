@@ -59,7 +59,9 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        backgroundColor: '#E6F4FE',
+        // Snow, matching the splash and the app background (LIF-218). Was
+        // #E6F4FE — a pale blue left over from the Expo template.
+        backgroundColor: '#FBFBF9',
         foregroundImage: './assets/android-icon-foreground.png',
         backgroundImage: './assets/android-icon-background.png',
         monochromeImage: './assets/android-icon-monochrome.png',
@@ -73,6 +75,18 @@ export default {
       'expo-router',
       'expo-secure-store',
       'expo-notifications',
+      // LIF-218: the static frame iOS draws before JS boots. `splash-icon.png`
+      // is the Paypr lockup rasterised at 3.5px per point (font-size 210 = the
+      // 60pt wordmark `components/BrandSplash.tsx` renders), so imageWidth is
+      // 1024 / 3.5 — at that width the static wordmark and the animated one are
+      // the same size in the same place, and the handover is invisible. Change
+      // one of the two and you must change the other.
+      ['expo-splash-screen', {
+        image: './assets/splash-icon.png',
+        imageWidth: 293,
+        resizeMode: 'contain',
+        backgroundColor: '#FBFBF9', // Snow — lightColors.background.hex
+      }],
       ['expo-image-picker', { cameraPermission: 'Allow Life Admin to scan receipts.' }],
       '@react-native-community/datetimepicker',
     ],

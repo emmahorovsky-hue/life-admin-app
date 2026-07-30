@@ -8,6 +8,7 @@ import {
   type GlassTabItem,
 } from 'expo-glass-tabs';
 import { useAuth } from '../../contexts/AuthContext';
+import { useOnboardingSeen } from '../../lib/onboarding';
 import { colors } from '../../lib/theme';
 
 // SF Symbol names (rendered via expo-symbols); solid variants match the old
@@ -21,9 +22,13 @@ const ITEMS: (GlassTabItem & { href: string })[] = [
 
 export default function AppLayout() {
   const { user, loading } = useAuth();
+  const { seen } = useOnboardingSeen();
 
-  if (loading) return null;
-  if (!user) return <Redirect href="/(auth)/login" />;
+  // LIF-218: a logged-out visitor goes to onboarding the first time on this
+  // device and to login every time after. `seen` is null until the flag has
+  // been read — redirecting on it early would send first-timers to login.
+  if (loading || seen === null) return null;
+  if (!user) return <Redirect href={seen ? '/(auth)/login' : '/(auth)/onboarding'} />;
 
   return (
     <TabBarMinimizeProvider>
