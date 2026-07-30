@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
@@ -17,13 +18,15 @@ import {
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ToastProvider } from '../components/ui';
+import { BrandSplash } from '../components/BrandSplash';
 import { colors } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const router = useRouter();
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
+  const [splashDone, setSplashDone] = useState(false);
 
   // The web app's typefaces (LIF-197): Archivo for sans, Space Mono for the
   // receipt-style mono. One family per weight — RN static fonts don't
@@ -44,9 +47,22 @@ function RootLayoutNav() {
   // on fonts so screens never flash system typefaces — but a font-load failure
   // must still release the splash (fall back to system fonts) rather than
   // stranding the app on it forever.
+  const ready = !loading && (fontsLoaded || !!fontError);
+
   useEffect(() => {
-    if (!loading && (fontsLoaded || fontError)) SplashScreen.hideAsync();
-  }, [loading, fontsLoaded, fontError]);
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  // LIF-218: the animated splash takes over from the native one in the same
+  // frame `ready` flips — the native frame is the same lockup at the same size,
+  // so the handover is invisible and `BrandSplash` animates from it rather than
+  // playing (and finishing) unseen behind it.
+  //
+  // It leaves only when the animation has finished AND auth has resolved, so
+  // the brand moment is never cut short. Logged-out first-timers skip it: they
+  // get onboarding, which is its own brand moment.
+  const handleSplashDone = useCallback(() => setSplashDone(true), []);
+  const showBrandSplash = (!splashDone || loading) && (loading || !!user);
 
   useEffect(() => {
     const handle = (url: string) => {
@@ -87,11 +103,18 @@ function RootLayoutNav() {
   // header reserves the top safe area. Apply the top inset once here — every
   // screen (tabs, auth, settings detail) inherits it and clears the notch.
   // Top edge only: the tab bar and Toast own the bottom inset.
+  // The splash sits outside the SafeAreaView, not inside it: the native splash
+  // centres its lockup on the whole screen, and an absolute fill inside the
+  // safe area starts below the notch — the wordmark would jump down by the top
+  // inset at handover. Being the later sibling also puts it over the tab bar.
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.background }}>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }} />
-    </SafeAreaView>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.background }}>
+        <StatusBar style="dark" />
+        <Stack screenOptions={{ headerShown: false }} />
+      </SafeAreaView>
+      {showBrandSplash && <BrandSplash start={ready} onDone={handleSplashDone} />}
+    </View>
   );
 }
 
