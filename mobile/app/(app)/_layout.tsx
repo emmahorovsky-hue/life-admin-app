@@ -26,8 +26,10 @@ export default function AppLayout() {
 
   // LIF-218: a logged-out visitor goes to onboarding the first time on this
   // device and to login every time after. `seen` is null until the flag has
-  // been read — redirecting on it early would send first-timers to login.
-  if (loading || seen === null) return null;
+  // been read — redirecting on it early would send first-timers to login. Only
+  // the logged-out branch consults it, so a logged-in launch must not wait on
+  // it: that would put a keychain read in front of the first paint of the tabs.
+  if (loading || (!user && seen === null)) return null;
   if (!user) return <Redirect href={seen ? '/(auth)/login' : '/(auth)/onboarding'} />;
 
   return (
