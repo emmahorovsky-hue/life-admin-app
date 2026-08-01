@@ -6,23 +6,27 @@ import { colors } from '../lib/theme';
 import { SCREEN_PAD } from '../lib/quiet';
 
 /**
- * Top-left close on the auth screens — the way back to the onboarding carousel
- * (LIF-221). Login and register are presented as modals over the carousel, so
- * this dismisses them downward. A returning user can land straight on login with
- * no carousel beneath (nothing to dismiss); there we navigate to it instead.
+ * Top-left close on the auth modal — the way back to the onboarding carousel
+ * (LIF-221). Login is presented as a modal over the carousel, so this dismisses
+ * it downward.
+ *
+ * A returning user is sent straight to login as the stack root, with no carousel
+ * beneath: there is nothing to go back *to*, so the button doesn't render rather
+ * than inventing a destination — an X that opens a first-run carousel the user
+ * already dismissed is worse than no X.
+ *
  * Absolutely positioned so it overlays the vertically-centred form without
  * shifting it, and it sits below the top safe-area inset the root `SafeAreaView`
  * already applies.
  */
 export function AuthClose() {
   const router = useRouter();
-  const close = () => {
-    if (router.canDismiss()) router.dismissAll();
-    else router.replace('/(auth)/onboarding');
-  };
+  // Stack depth beneath a given modal doesn't change while it's up, so reading
+  // this at render (rather than on press) is stable for this screen's lifetime.
+  if (!router.canDismiss()) return null;
   return (
     <Pressable
-      onPress={close}
+      onPress={() => router.dismissAll()}
       accessibilityRole="button"
       accessibilityLabel="Back to intro"
       hitSlop={8}

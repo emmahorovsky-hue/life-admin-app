@@ -108,7 +108,10 @@ export default function ResetPasswordScreen() {
         style={styles.button}
       />
 
-      <Link href="/(auth)/login" style={[textStyles.body, styles.link]}>
+      {/* `dismissTo` so this pops back to the login modal it was opened from
+          rather than stacking a second one (LIF-221); it degrades to a replace
+          when there's no login in the stack — a cold-start reset deep link. */}
+      <Link dismissTo href="/(auth)/login" style={[textStyles.body, styles.link]}>
         Back to sign in
       </Link>
     </View>
