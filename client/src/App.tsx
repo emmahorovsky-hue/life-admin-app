@@ -40,10 +40,12 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 function App() {
   return (
     <AuthProvider>
-      {/* ThemeProvider sits under AuthProvider so it can adopt the server
-          theme preference, and above Router so every route is themed. */}
-      <ThemeProvider>
+      {/* ThemeProvider sits under AuthProvider so it can adopt the server theme
+          preference, and under Router so it can read the route — marketing and
+          pre-login paths are light-only (see lib/themeRoutes.ts). It still wraps
+          everything rendered, Toaster included. */}
       <Router>
+      <ThemeProvider>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -109,9 +111,9 @@ function App() {
             <Route path="/" element={<Landing />} />
           </Routes>
         </Suspense>
-      </Router>
-      <Toaster />
+        <Toaster />
       </ThemeProvider>
+      </Router>
     </AuthProvider>
   );
 }

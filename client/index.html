@@ -44,10 +44,18 @@
   <body>
     <!-- FOUC guard: apply the cached theme before first paint. Mirrors
          ThemeProvider (src/contexts/ThemeContext.tsx) — keep the key and the
-         resolution logic in sync. -->
+         resolution logic in sync. The light-only path list mirrors
+         src/lib/themeRoutes.ts; without it a hard load of a marketing or
+         pre-login route would paint dark before React removes the class. -->
     <script>
       (function () {
         try {
+          var lightOnly = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/terms', '/privacy'];
+          var path = location.pathname;
+          if (path.length > 1) path = path.replace(/\/+$/, '');
+          for (var i = 0; i < lightOnly.length; i++) {
+            if (path === lightOnly[i] || path.indexOf(lightOnly[i] + '/') === 0) return;
+          }
           var theme = localStorage.getItem('paypr-theme');
           var dark =
             theme === 'dark' ||
