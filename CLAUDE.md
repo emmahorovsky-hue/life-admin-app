@@ -26,7 +26,7 @@ npm run build    # tsc + vite build
 npm run lint     # ESLint (max-warnings 0 — any warning fails)
 npm run test:unit      # Vitest unit tests (jsdom)
 npm run test:unit:watch # Vitest in watch mode
-npm run test:e2e # Playwright e2e tests (spins up the Vite dev server on port 4173; needs the backend on 3001 for the /api proxy)
+npm run test:e2e # Playwright e2e tests (builds and previews the production bundle on port 4173; needs the backend on 3001 for the /api proxy — see below)
 ```
 
 ### Mobile (`mobile/`)
@@ -43,6 +43,24 @@ npm run web      # Expo dev server for web
 ```bash
 cd server && npx jest src/__tests__/auth.verification.test.ts
 ```
+
+### Running the e2e suite
+
+Playwright owns the frontend itself (`webServer` in `client/playwright.config.ts` runs `npm run build && npm run preview` on 4173, so e2e exercises the real production bundle). You supply the backend on 3001 — **start it with both rate limiters off**:
+
+```bash
+cd server && DISABLE_AUTH_RATE_LIMIT=true DISABLE_RATE_LIMIT=true npm run dev
+```
+
+Without that flag the last two auth specs (`Session Persistence › user stays logged in after page refresh`, `Logout › user can logout`) fail on a clean checkout. Each test registers a fresh user, and by the end of the run the auth limiter rejects `/api/auth/register`; the tests surface it as "expected `/dashboard`, got `/register`", which reads exactly like an auth regression but is ordering-dependent — the same tests pass in isolation. **Before debugging an e2e auth failure, grep the backend log for `auth.rate_limit.exceeded`.** The flag is safe to keep in `server/.env`: `routes/auth.ts` ignores it when `NODE_ENV=production`.
+
+**There are two limiters, and `DISABLE_AUTH_RATE_LIMIT` only switches off one of them.** The other is the coarse per-IP backstop mounted on the whole API (`app.use('/api', apiLimiter)` in `index.ts`), which defaults to **300 requests per 15 minutes** and is disabled by `DISABLE_RATE_LIMIT`. A full e2e run makes a few dozen requests, so a couple of back-to-back runs against one long-lived server will trip it — and once tripped it stays tripped for the rest of the window, so the *next* run fails from its very first registration.
+
+It presents differently from the auth limiter, which is what makes it confusing: every `/api/*` call returns 429 with `RATE_LIMIT_EXCEEDED`, and it writes **no** `auth.rate_limit.exceeded` line, so the grep above comes back empty and the failures look like a broken backend. Confirm it with `curl -s -o /dev/null -w '%{http_code}' localhost:3001/api/auth/me` — a 429 on an unauthenticated request that should be a 401 is the tell. Restarting the server clears it (the counter is in memory), but running with `DISABLE_RATE_LIMIT=true` avoids it entirely. Both flags are ignored when `NODE_ENV=production`, and both are inert under `NODE_ENV=test`. `API_RATE_LIMIT_MAX` / `API_RATE_LIMIT_WINDOW_MS` tune the ceiling if you'd rather raise it than remove it.
+
+A new e2e spec that registers an account and then touches the app chrome needs to opt out of first-run onboarding (LIF-220): the wizard opens over the dashboard for any empty account and its overlay intercepts clicks on the sidebar, logout included. `e2e/auth.spec.ts` shows the pattern — seed `paypr.onboarding.v1` with `status: 'done'` via `page.addInitScript` before the app boots.
+
+Playwright also pins an exact chromium build, so bumping `@playwright/test` makes every e2e test fail to launch (`Executable doesn't exist at …`) until you run `npx playwright install chromium`.
 
 ### Test database setup
 
@@ -115,7 +133,9 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `GRACE_PERIOD_DAYS` | Days an account may stay unverified before deletion (default 7)  |
 | `WARNING_LEAD_HOURS`| Hours before the deadline the warning email is sent (default 24) |
 | `TOKEN_RETENTION_DAYS` | Days a used/expired verification/reset/email-change token row is kept before the daily sweep deletes it (default 30). Not zero on purpose — the consume paths report `already_used`/`expired` rather than `invalid`, which needs the row to still exist. |
-| `DISABLE_AUTH_RATE_LIMIT` | Dev only: `true` disables auth rate limiting; ignored (with a warning) when `NODE_ENV=production` |
+| `DISABLE_AUTH_RATE_LIMIT` | Dev only: `true` disables the tighter per-endpoint **auth** limiters (`routes/auth.ts`); ignored (with a warning) when `NODE_ENV=production` |
+| `DISABLE_RATE_LIMIT` | Dev only: `true` disables the **general** per-IP API limiter mounted on all of `/api` (`middleware/rateLimit.ts`); ignored (with a warning) when `NODE_ENV=production`. Separate from the flag above — e2e runs need both |
+| `API_RATE_LIMIT_MAX` / `API_RATE_LIMIT_WINDOW_MS` | General limiter ceiling and window (defaults 300 / 15 min, per IP) |
 | `VITE_API_URL`  | Frontend axios baseURL (defaults to `/api` for same-origin proxy)    |
 | `VITE_LOGO_DEV_TOKEN` | Brand logos on subscription rows via logo.dev (optional; rows fall back to category icons without it). Publishable client-side token. |
 
