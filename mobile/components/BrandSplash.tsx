@@ -59,6 +59,15 @@ export function BrandSplash({ start, onDone }: { start: boolean; onDone?: () => 
   }, [start, stamp, rule, tag]);
 
   const metrics = wordmarkMetrics(WORDMARK_SIZE);
+  // The square is floated out of layout flow rather than sitting in a row with
+  // the wordmark (LIF-221). In a row it keeps its width even at opacity 0, so
+  // the centred lockup pushes "Paypr" ~9pt left of centre — but the static
+  // native frame draws the wordmark *alone*, dead-centre. That mismatch showed
+  // as the wordmark jumping sideways on the handover. Text-only box → the
+  // wordmark centres exactly where the static frame left it; the square lands on
+  // its trailing edge without shifting it. `marginBottom`/`marginLeft` become
+  // the absolute insets so the gap and baseline are unchanged from the lockup.
+  const { marginBottom, marginLeft, ...squareBox } = metrics.square;
 
   return (
     <View style={styles.screen}>
@@ -66,8 +75,12 @@ export function BrandSplash({ start, onDone }: { start: boolean; onDone?: () => 
         <Animated.Text style={metrics.text}>Paypr</Animated.Text>
         <Animated.View
           style={[
-            metrics.square,
+            squareBox,
             {
+              position: 'absolute',
+              left: '100%',
+              marginLeft,
+              bottom: marginBottom,
               opacity: stamp,
               transform: [
                 { scale: stamp.interpolate({ inputRange: [0, 1], outputRange: [2.6, 1] }) },
@@ -95,7 +108,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: SCREEN_PAD,
     zIndex: 100,
   },
-  lockup: { flexDirection: 'row', alignItems: 'flex-end' },
+  // Text-only box (the square is absolute) so its width is the wordmark's and
+  // the parent's `alignItems: center` lands it exactly where the static native
+  // splash frame drew it — see the float note above (LIF-221).
+  lockup: {},
   rule: { width: 104, height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginTop: 28 },
   // `monoLabel` is exactly this — 11/1.4 tracked uppercase mono — so take the
   // role rather than restating it (LIF-210). `lineHeight` is pinned because the
