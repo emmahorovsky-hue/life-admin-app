@@ -98,6 +98,14 @@ test.describe('First-run onboarding', () => {
     await registerFreshUser(page);
 
     await expect(wizard(page)).toBeVisible();
+    // AppDialog moves focus to its first control (the close button) and wires
+    // its Escape listener in the same post-paint effect flush. The dialog is
+    // painted — and so passes `toBeVisible` — a frame before that flush runs, so
+    // pressing Escape off the visibility check alone can send the key into a
+    // dead listener and leave the wizard open (flaky in the production-bundle CI
+    // run). Waiting for focus to land inside the card proves the handler is
+    // attached before the keypress.
+    await expect(wizard(page).getByRole('button', { name: 'Close' })).toBeFocused();
     await page.keyboard.press('Escape');
 
     await expect(wizard(page)).not.toBeVisible();
