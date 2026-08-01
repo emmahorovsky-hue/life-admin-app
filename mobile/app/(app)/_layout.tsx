@@ -20,7 +20,7 @@ const ITEMS: (GlassTabItem & { href: string })[] = [
 ];
 
 export default function AppLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, locked } = useAuth();
 
   // The carousel is the logged-out home, every launch — not a first-run gate.
   // It was originally shown once per device (LIF-218) behind a keychain flag;
@@ -28,6 +28,12 @@ export default function AppLayout() {
   // Auth screens now open as modals *over* it, so their close button always has
   // somewhere to dismiss to.
   if (loading) return null;
+  // Locked at cold start: there is no user yet because the token has not been
+  // unlocked, but that is not the same as logged out. Hold still rather than
+  // redirect — the lock screen (rendered from the root layout) is already
+  // covering this, and bouncing to the carousel would only have to bounce back
+  // the moment unlock resolves. LIF-222.
+  if (locked) return null;
   if (!user) return <Redirect href="/(auth)/onboarding" />;
 
   return (

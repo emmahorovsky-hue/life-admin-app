@@ -110,6 +110,14 @@ export default {
         cameraPermission: 'Paypr uses the camera to scan receipts, so it can fill in subscription details for you.',
         photosPermission: 'Paypr accesses your photos so you can pick a saved receipt to scan, or set a profile picture.',
       }],
+      // LIF-222: becomes NSFaceIDUsageDescription in Info.plist — native config,
+      // not shippable over the air, so it needs a new build to take effect. Same
+      // rule as the LIF-219 strings above: Apple wants the purpose string to say
+      // *why* the app wants Face ID, not merely that it does. The default the
+      // plugin ships ("Allow $(PRODUCT_NAME) to use Face ID") states the what.
+      ['expo-local-authentication', {
+        faceIDPermission: 'Paypr uses Face ID so you can unlock your subscriptions without typing your password.',
+      }],
       '@react-native-community/datetimepicker',
     ],
     extra: {

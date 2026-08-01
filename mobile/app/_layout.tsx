@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
@@ -19,13 +19,22 @@ import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/spac
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ToastProvider } from '../components/ui';
 import { BrandSplash } from '../components/BrandSplash';
+import { BiometricLockScreen } from '../components/BiometricLockScreen';
 import { colors } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * How long the app may sit in the background before biometric quick-unlock
+ * re-arms (LIF-222). Short enough that a stolen unlocked phone is not left open
+ * indefinitely, long enough that flicking to Mail to read a renewal notice and
+ * coming straight back does not demand a face.
+ */
+const RELOCK_AFTER_MS = 60_000;
+
 function RootLayoutNav() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, locked, relock } = useAuth();
   const [splashDone, setSplashDone] = useState(false);
 
   // The web app's typefaces (LIF-197): Archivo for sans, Space Mono for the
@@ -63,6 +72,26 @@ function RootLayoutNav() {
   // get onboarding, which is its own brand moment.
   const handleSplashDone = useCallback(() => setSplashDone(true), []);
   const showBrandSplash = (!splashDone || loading) && (loading || !!user);
+
+  // Re-arm the gate when the app has been away long enough. `relock` no-ops when
+  // the feature is off, so this costs one keychain read per foreground and
+  // nothing else. Timestamped rather than timer-based because a suspended app
+  // does not run timers — elapsed wall-clock is the only honest measure.
+  const backgroundedAt = useRef<number | null>(null);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        const since = backgroundedAt.current;
+        backgroundedAt.current = null;
+        if (since !== null && Date.now() - since >= RELOCK_AFTER_MS) relock();
+      } else if (state === 'background' && backgroundedAt.current === null) {
+        // 'inactive' is excluded on purpose: iOS reports it for the app switcher,
+        // Control Centre and incoming calls, none of which are leaving the app.
+        backgroundedAt.current = Date.now();
+      }
+    });
+    return () => sub.remove();
+  }, [relock]);
 
   useEffect(() => {
     const handle = (url: string) => {
@@ -114,6 +143,9 @@ function RootLayoutNav() {
         <Stack screenOptions={{ headerShown: false }} />
       </SafeAreaView>
       {showBrandSplash && <BrandSplash start={ready} onDone={handleSplashDone} />}
+      {/* Last sibling, so it covers the tab bar and the splash alike. Outside the
+          SafeAreaView for the same reason BrandSplash is: it fills the screen. */}
+      {locked && <BiometricLockScreen />}
     </View>
   );
 }
