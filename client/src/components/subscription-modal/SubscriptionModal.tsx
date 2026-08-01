@@ -4,8 +4,10 @@ import { format, differenceInCalendarDays } from 'date-fns';
 import {
   normalizeToMonthlyCost,
   currencySymbol,
+  filterSuggestions,
   relativeDaysSigned,
   parseRenewalDate,
+  ServiceSuggestion,
 } from '@life-admin/shared';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/currency';
@@ -17,7 +19,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { categoryIconFor } from '@/lib/subscriptionLogo';
 import { categories, currencies, SubscriptionFormValues } from '@/lib/subscriptions';
-import { filterSuggestions, ServiceSuggestion } from './suggestions';
 
 export type SubscriptionModalMode = 'add' | 'edit';
 export type EditStatus = 'active' | 'cancelling' | 'ended';

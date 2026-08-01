@@ -8,7 +8,7 @@ import {
   type GlassTabItem,
 } from 'expo-glass-tabs';
 import { useAuth } from '../../contexts/AuthContext';
-import { useOnboardingSeen } from '../../lib/onboarding';
+import { useIntroSeen } from '../../lib/introSeen';
 import { colors } from '../../lib/theme';
 
 // SF Symbol names (rendered via expo-symbols); solid variants match the old
@@ -22,7 +22,7 @@ const ITEMS: (GlassTabItem & { href: string })[] = [
 
 export default function AppLayout() {
   const { user, loading } = useAuth();
-  const { seen } = useOnboardingSeen();
+  const { seen } = useIntroSeen();
 
   // LIF-218: a logged-out visitor goes to onboarding the first time on this
   // device and to login every time after. `seen` is null until the flag has

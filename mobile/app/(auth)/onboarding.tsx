@@ -16,7 +16,7 @@ import { colors } from '../../lib/theme';
 import { SCREEN_PAD } from '../../lib/quiet';
 import { AppText, Button, ScreenTitle } from '../../components/ui';
 import { Wordmark } from '../../components/Wordmark';
-import { useOnboardingSeen } from '../../lib/onboarding';
+import { useIntroSeen } from '../../lib/introSeen';
 
 type Reel = {
   photo: ImageSourcePropType;
@@ -52,7 +52,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { markSeen } = useOnboardingSeen();
+  const { markSeen } = useIntroSeen();
   const [index, setIndex] = useState(0);
   const list = useRef<FlatList<Reel>>(null);
   const leaving = useRef(false);
