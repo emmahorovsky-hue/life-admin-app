@@ -9,7 +9,7 @@ import {
   type OnboardingState,
 } from './onboarding';
 
-const skipped: OnboardingState = { status: 'skipped', step: 2, picks: ['Netflix'] };
+const skipped: OnboardingState = { status: 'skipped', step: 2, picks: ['Netflix'], created: [] };
 
 describe('onboarding state', () => {
   beforeEach(() => localStorage.clear());
@@ -33,6 +33,25 @@ describe('onboarding state', () => {
   ])('falls back to the default for %s', (_label, raw) => {
     localStorage.setItem(ONBOARDING_STORAGE_KEY, raw);
     expect(readOnboardingState()).toEqual(DEFAULT_ONBOARDING_STATE);
+  });
+
+  // States written before `created` existed are still out there in real
+  // browsers; they must read back as "nothing known to be created" rather than
+  // undefined, which would blow up the Set the wizard seeds from it.
+  it('reads a state stored without `created` as an empty list', () => {
+    localStorage.setItem(
+      ONBOARDING_STORAGE_KEY,
+      '{"status":"skipped","step":2,"picks":["Netflix"]}'
+    );
+    expect(readOnboardingState().created).toEqual([]);
+  });
+
+  it('drops non-string entries from `created` too', () => {
+    localStorage.setItem(
+      ONBOARDING_STORAGE_KEY,
+      '{"status":"skipped","step":2,"picks":[],"created":["Netflix",false,{}]}'
+    );
+    expect(readOnboardingState().created).toEqual(['Netflix']);
   });
 
   it('drops non-string picks rather than trusting the stored array', () => {

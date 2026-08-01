@@ -59,10 +59,19 @@ export function BrandSplash({ start, onDone }: { start: boolean; onDone?: () => 
   }, [start, stamp, rule, tag]);
 
   const metrics = wordmarkMetrics(WORDMARK_SIZE);
+  // The square keeps its layout width even at opacity 0, so a plain centred row
+  // pushed "Paypr" ~9pt left of centre — while the static native frame draws the
+  // wordmark *alone*, dead-centre. That mismatch showed as the wordmark jumping
+  // sideways on the handover (LIF-221). Mirroring the square's footprint as left
+  // padding makes the box symmetrical about the text: the wordmark centres
+  // exactly where the static frame left it, and the square still lands on its
+  // trailing edge — in normal flow, so nothing spills outside the parent for
+  // Android to clip.
+  const gutter = metrics.square.width + metrics.square.marginLeft;
 
   return (
     <View style={styles.screen}>
-      <View style={styles.lockup}>
+      <View style={[styles.lockup, { paddingLeft: gutter }]}>
         <Animated.Text style={metrics.text}>Paypr</Animated.Text>
         <Animated.View
           style={[
@@ -95,6 +104,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: SCREEN_PAD,
     zIndex: 100,
   },
+  // `paddingLeft` is applied inline — it mirrors the square so the parent's
+  // `alignItems: center` centres the *text*, not the whole lockup, landing it
+  // exactly where the static native splash frame drew it (see the note above).
   lockup: { flexDirection: 'row', alignItems: 'flex-end' },
   rule: { width: 104, height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginTop: 28 },
   // `monoLabel` is exactly this — 11/1.4 tracked uppercase mono — so take the

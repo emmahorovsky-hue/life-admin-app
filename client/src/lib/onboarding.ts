@@ -17,18 +17,31 @@ export interface OnboardingState {
   step: OnboardingStep;
   /** Service names ticked in step 1, so a resumed wizard reopens with them. */
   picks: string[];
+  /**
+   * Service names already created server-side. Persisted, not just held in the
+   * wizard, because the dedupe has to survive the wizard unmounting: a partial
+   * failure followed by skip → resume would otherwise re-send the rows that
+   * already landed and leave the user with duplicates.
+   */
+  created: string[];
 }
 
 export const DEFAULT_ONBOARDING_STATE: OnboardingState = {
   status: 'pending',
   step: 1,
   picks: [],
+  created: [],
 };
 
 const STATUSES: OnboardingStatus[] = ['pending', 'skipped', 'done'];
 
 function isStep(value: unknown): value is OnboardingStep {
   return value === 1 || value === 2 || value === 3;
+}
+
+/** Keep only the string entries of a stored array; anything else is discarded. */
+function stringsOnly(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 }
 
 /**
@@ -45,13 +58,16 @@ export function readOnboardingState(): OnboardingState {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return DEFAULT_ONBOARDING_STATE;
 
-    const { status, step, picks } = parsed as Partial<OnboardingState>;
+    const { status, step, picks, created } = parsed as Partial<OnboardingState>;
     return {
       status: STATUSES.includes(status as OnboardingStatus)
         ? (status as OnboardingStatus)
         : DEFAULT_ONBOARDING_STATE.status,
       step: isStep(step) ? step : DEFAULT_ONBOARDING_STATE.step,
-      picks: Array.isArray(picks) ? picks.filter((p): p is string => typeof p === 'string') : [],
+      picks: stringsOnly(picks),
+      // Absent in states written before `created` existed — an empty list is
+      // the right reading of those: nothing is known to have been created.
+      created: stringsOnly(created),
     };
   } catch {
     return DEFAULT_ONBOARDING_STATE;

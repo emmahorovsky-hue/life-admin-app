@@ -98,7 +98,18 @@ export default {
           backgroundColor: '#FBFBF9',
         },
       }],
-      ['expo-image-picker', { cameraPermission: 'Allow Life Admin to scan receipts.' }],
+      // LIF-219: these become NSCameraUsageDescription / NSPhotoLibraryUsageDescription
+      // in Info.plist, so they are the copy in the system permission dialogs — native
+      // config, not JS, and therefore not shippable over the air. The camera string
+      // named "Life Admin" until the first App Store submission; nothing else in the
+      // product has carried that name since the Paypr rebrand. photosPermission was
+      // left to expo-image-picker's generic default even though the library is used
+      // in two places (lib/receiptScan.ts, components/settings/AvatarTile.tsx), so it
+      // is spelled out here — Apple asks purpose strings to say why, not just what.
+      ['expo-image-picker', {
+        cameraPermission: 'Paypr uses the camera to scan receipts, so it can fill in subscription details for you.',
+        photosPermission: 'Paypr accesses your photos so you can pick a saved receipt to scan, or set a profile picture.',
+      }],
       '@react-native-community/datetimepicker',
     ],
     extra: {
