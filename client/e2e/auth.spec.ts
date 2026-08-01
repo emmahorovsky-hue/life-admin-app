@@ -3,6 +3,20 @@
 
 import { test, expect } from '@playwright/test';
 
+// Every account these tests create is brand new and empty, so the first-run
+// onboarding wizard (LIF-220) opens over the dashboard and its overlay covers
+// the sidebar — which is where the logout button lives. These tests are about
+// authentication, not onboarding, so opt out before the app boots rather than
+// dismissing the modal in each one. Onboarding has its own spec.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'paypr.onboarding.v1',
+      JSON.stringify({ status: 'done', step: 3, picks: [] }),
+    );
+  });
+});
+
 test.describe('User Registration', () => {
   test('user can register with valid credentials', async ({ page }) => {
     await page.goto('/register');

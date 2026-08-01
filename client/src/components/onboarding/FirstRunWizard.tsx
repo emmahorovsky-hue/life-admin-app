@@ -40,11 +40,25 @@ const STEP_META = [
   { n: 3 as const, pill: 'Filed', title: "That's the file open" },
 ];
 
-/** ISO date one month out — the sensible default renewal for a monthly plan. */
-function oneMonthFromToday(): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() + 1);
-  return d.toISOString().split('T')[0];
+/**
+ * Default renewal for a monthly plan: one month out, but never further than the
+ * dashboard's upcoming-renewals window.
+ *
+ * The window is 30 days (`dashboardController`, `next <= thirtyDaysFromNow`) and
+ * most calendar months are 31, so an unclamped "one month" would file rows that
+ * are missing from the one panel that exists to show them — and only in long
+ * months, so it would read as intermittent rather than wrong. Clamping keeps the
+ * end of the flow consistent: what you just filed is what you then see.
+ */
+function defaultRenewalDate(): string {
+  const oneMonth = new Date();
+  oneMonth.setMonth(oneMonth.getMonth() + 1);
+
+  const windowEnd = new Date();
+  windowEnd.setDate(windowEnd.getDate() + 30);
+
+  const chosen = oneMonth < windowEnd ? oneMonth : windowEnd;
+  return chosen.toISOString().split('T')[0];
 }
 
 /**
@@ -73,7 +87,7 @@ export function FirstRunWizard({
   const createdNames = useRef<Set<string>>(new Set());
   // Computed once per mount via a state initialiser rather than a ref, so it can
   // be read during render (a ref cannot) while staying stable across re-renders.
-  const [defaultRenewal] = useState(oneMonthFromToday);
+  const [defaultRenewal] = useState(defaultRenewalDate);
 
   const selected = useMemo(
     () => SUBSCRIPTION_SUGGESTIONS.filter((s) => picks.includes(s.name)),
@@ -203,50 +217,57 @@ export function FirstRunWizard({
         </div>
       }
       footer={
-        <div className="flex w-full flex-col gap-3">
-          {/* Running total — mobile only; on desktop the step 2 sheet carries it. */}
+        /*
+          Desktop is one row: skip on the left, Back + primary on the right.
+          Stacked on mobile the same DOM would put the primary mid-column and
+          leave `Skip setup` closest to the thumb — the least-wanted action in
+          the easiest place to hit — so the order is reassigned: skip, Back,
+          running total, primary. That also puts the total directly above the
+          button it describes. `contents` dissolves the desktop grouping box on
+          mobile so all four can be ordered against the outer column.
+        */
+        <div className="flex w-full flex-col gap-3 md:flex-row md:items-center">
           {step < 3 && (
-            <div className="flex items-baseline gap-2 md:hidden">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-                {selected.length} {itemNoun} · per month
-              </span>
-              <span aria-hidden="true" className="leader-dots mb-0.5 flex-1" />
-              <span className="font-mono text-sm font-bold">
-                {formatCurrency(monthlyTotal, DEFAULT_CURRENCY)}
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={() => onSkip(step, picks)}
+              className="order-1 rounded-[2px] text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:order-none"
+            >
+              Skip setup
+            </button>
           )}
-          <div className="flex items-center gap-3 max-md:flex-col-reverse max-md:items-stretch">
+          <div className="flex gap-2 max-md:contents md:flex-1 md:justify-end">
             {step < 3 && (
-              <button
-                type="button"
-                onClick={() => onSkip(step, picks)}
-                className="rounded-[2px] text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 max-md:h-11"
-              >
-                Skip setup
-              </button>
-            )}
-            <div className="flex flex-1 justify-end gap-2 max-md:flex-col">
-              {step < 3 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={step === 1 || submitting}
-                  onClick={() => setStep(1)}
-                  className="max-md:h-11 max-md:w-full"
-                >
-                  Back
-                </Button>
-              )}
               <Button
                 type="button"
-                onClick={handlePrimary}
-                disabled={primaryDisabled}
-                className="max-md:h-11 max-md:w-full"
+                variant="outline"
+                disabled={step === 1 || submitting}
+                onClick={() => setStep(1)}
+                className="order-2 max-md:h-11 md:order-none"
               >
-                {submitting ? 'Filing…' : primaryLabel}
+                Back
               </Button>
-            </div>
+            )}
+            {/* Running total — mobile only; on desktop the step 2 sheet carries it. */}
+            {step < 3 && (
+              <div className="order-3 flex items-baseline gap-2 md:hidden">
+                <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                  {selected.length} {itemNoun} · per month
+                </span>
+                <span aria-hidden="true" className="leader-dots mb-0.5 flex-1" />
+                <span className="font-mono text-sm font-bold">
+                  {formatCurrency(monthlyTotal, DEFAULT_CURRENCY)}
+                </span>
+              </div>
+            )}
+            <Button
+              type="button"
+              onClick={handlePrimary}
+              disabled={primaryDisabled}
+              className="order-4 max-md:h-11 md:order-none"
+            >
+              {submitting ? 'Filing…' : primaryLabel}
+            </Button>
           </div>
         </div>
       }
