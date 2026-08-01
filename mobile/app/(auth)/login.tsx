@@ -97,7 +97,15 @@ export default function AuthScreen() {
   return (
     <View style={styles.screen}>
       <AuthClose />
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      {/* The modal sheet is shorter than a full screen and sign-up is the taller
+          form, so on a small device the keyboard can cover the submit button.
+          The iOS inset keeps it scrollable; Android's default `adjustResize`
+          already shrinks the window. */}
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         <Animated.View style={{ opacity: fade }}>
           <ScreenTitle style={styles.title}>{isSignup ? 'Create account' : 'Sign in'}</ScreenTitle>
 
