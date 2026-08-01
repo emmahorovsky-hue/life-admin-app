@@ -3,6 +3,19 @@
 
 import { test, expect } from '@playwright/test';
 
+// The first-run onboarding wizard (LIF-220) renders a blocking full-screen
+// overlay for a new user with no subscriptions, which sits over the sidebar and
+// intercepts clicks (e.g. Log out). These auth flows aren't about onboarding, so
+// mark it done in localStorage before the app boots so the wizard never mounts.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'paypr.onboarding.v1',
+      JSON.stringify({ status: 'done', step: 3, picks: [], created: [] }),
+    );
+  });
+});
+
 test.describe('User Registration', () => {
   test('user can register with valid credentials', async ({ page }) => {
     await page.goto('/register');
