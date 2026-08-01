@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { hairline, radius, spacing } from '@life-admin/shared';
@@ -13,10 +13,12 @@ import {
   DefaultCurrencySheet,
   DefaultCurrencySheetHandle,
 } from '../../../components/settings/DefaultCurrencySheet';
-import { AppText, Button, Card } from '../../../components/ui';
+import { AppText, Button, Card, Switch, useToast } from '../../../components/ui';
 import { colors } from '../../../lib/theme';
 import { SCREEN_PAD } from '../../../lib/quiet';
 import { useTabBarInset } from '../../../lib/useTabBarInset';
+import { biometricPref, confirm, getLabel, isAvailable, type BiometricLabel } from '../../../lib/biometrics';
+import { tokenStorage } from '../../../lib/storage';
 
 type AccountModal = null | 'name' | 'email' | 'password';
 
@@ -39,11 +41,73 @@ function DottedRule() {
  * opening name/email/password dialogs, plus the default-currency picker that
  * web keeps in AppearancePanel (folded in here until mobile dark mode lands).
  */
+/**
+ * Biometric quick-unlock toggle state (LIF-222).
+ *
+ * iOS only for now. SecureStore's `requireAuthentication` is supported on
+ * Android too, but with different semantics — it prompts on writes as well as
+ * reads, so merely enabling the setting would trigger a prompt. That needs its
+ * own pass; the row stays hidden there rather than shipping a half-behaviour.
+ */
+function useBiometricUnlock(userId: string | undefined) {
+  const toast = useToast();
+  const [available, setAvailable] = useState(false);
+  const [label, setLabel] = useState<BiometricLabel>('Face ID');
+  const [enabled, setEnabled] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || !userId) return;
+    let isMounted = true;
+    void (async () => {
+      const [can, name, pref] = await Promise.all([
+        isAvailable(),
+        getLabel(),
+        biometricPref.get(userId),
+      ]);
+      // Trust storage over the preference: if the pref says on but the token is
+      // not actually gated (enrolment removed, or a failed migration), the
+      // switch must show the truth rather than imply a protection that is absent.
+      const on = can && pref && (await tokenStorage.isProtected());
+      if (!isMounted) return;
+      setAvailable(can);
+      setLabel(name);
+      setEnabled(on);
+    })();
+    return () => { isMounted = false; };
+  }, [userId]);
+
+  const toggle = async (next: boolean) => {
+    if (!userId) return;
+    setSaving(true);
+    try {
+      // Confirm before turning it on, never after: the user should find out it
+      // works now, not at next launch when it is the only way in.
+      if (next && !(await confirm(`Confirm it's you to unlock Paypr with ${label}.`))) return;
+
+      if (!(await tokenStorage.setProtected(next))) {
+        toast.error('Could not update the setting — please sign in again.');
+        return;
+      }
+      await biometricPref.set(userId, next);
+      setEnabled(next);
+      toast.success(next ? `${label} unlock is on.` : `${label} unlock is off.`);
+    } catch {
+      toast.error('Could not update the setting. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return { show: available, label, enabled, saving, toggle };
+}
+
 export default function AccountScreen() {
   const { user } = useAuth();
   const tabBarInset = useTabBarInset();
   const [modal, setModal] = useState<AccountModal>(null);
   const currencySheetRef = useRef<DefaultCurrencySheetHandle>(null);
+  const biometric = useBiometricUnlock(user?.id);
 
   const displayName = [user?.name, user?.surname].filter(Boolean).join(' ') || user?.email;
   const passwordSubtitle = user?.passwordChangedAt
@@ -109,6 +173,31 @@ export default function AccountScreen() {
               onPress={() => setModal('password')}
             />
           </View>
+
+          {/* Next to the password row because it is a credential setting, and
+              mobile's settings index has no Security panel to put it in yet.
+              Hidden outright without enrolled biometrics — a disabled switch
+              would raise a question the screen cannot answer. */}
+          {biometric.show && (
+            <>
+              <DottedRule />
+              <View style={styles.row}>
+                <View style={styles.rowText}>
+                  <AppText variant="body" weight={600} style={styles.rowTitle}>
+                    Unlock with {biometric.label}
+                  </AppText>
+                  <AppText variant="footnote" style={styles.rowSubtitle}>
+                    Open Paypr without typing your password.
+                  </AppText>
+                </View>
+                <Switch
+                  checked={biometric.enabled}
+                  onCheckedChange={biometric.toggle}
+                  disabled={biometric.saving}
+                />
+              </View>
+            </>
+          )}
 
           <DottedRule />
           <View style={styles.row}>
