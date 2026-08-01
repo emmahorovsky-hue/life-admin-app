@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,15 @@ import {
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { PaperSheet } from '@/components/PaperSheet';
 import { EmptyState } from '@/components/EmptyState';
+import { FirstRunWizard } from '@/components/onboarding/FirstRunWizard';
+import { ResumeSetupCard } from '@/components/onboarding/ResumeSetupCard';
+import {
+  readOnboardingState,
+  writeOnboardingState,
+  shouldShowWizard,
+  shouldShowResumeCard,
+  type OnboardingState,
+} from '@/lib/onboarding';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -109,6 +119,30 @@ function CategoryChart({ data, currency }: CategorySpendGroup) {
   );
 }
 
+interface DashboardData {
+  summary: DashboardSummary;
+  displayCurrency: string;
+  currencyById: Map<string, string>;
+  categoryGroups: CategorySpendGroup[];
+}
+
+// Fetching is kept out of the component so the initial load and the post-
+// onboarding refetch share one implementation without either of them setting
+// state from inside an effect body.
+async function fetchDashboardData(): Promise<DashboardData> {
+  const [summary, allSubs] = await Promise.all([
+    dashboardApi.getSummary(),
+    subscriptionApi.getAll(),
+  ]);
+  const displayCurrency = dominantCurrency(allSubs.map((sub) => sub.currency));
+  return {
+    summary,
+    displayCurrency,
+    currencyById: new Map(allSubs.map((sub) => [sub.id, sub.currency])),
+    categoryGroups: categorySpendByCurrency(allSubs, displayCurrency),
+  };
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -120,29 +154,55 @@ export default function Dashboard() {
   // subscription's currency (the summary payload carries only id + cost).
   const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
   const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
+  // First-run onboarding (LIF-220).
+  const [onboarding, setOnboarding] = useState<OnboardingState>(readOnboardingState);
+  // Whether the wizard is open is derived, not stored, so it can't drift from
+  // the persisted status. These two flags are the only user-driven overrides:
+  // `wizardClosed` after an explicit dismiss, and `filedThisSession` to hold the
+  // final "Filed" step on screen after filing flips the status to `done` and the
+  // account stops being empty — which would otherwise close it mid-step.
+  const [wizardClosed, setWizardClosed] = useState(false);
+  const [filedThisSession, setFiledThisSession] = useState(false);
+
+  const applyDashboard = useCallback((data: DashboardData) => {
+    setSummary(data.summary);
+    setDisplayCurrency(data.displayCurrency);
+    setCurrencyById(data.currencyById);
+    setCategoryGroups(data.categoryGroups);
+  }, []);
 
   useEffect(() => {
-    const loadDashboard = async () => {
-      try {
-        const [summaryData, allSubs] = await Promise.all([
-          dashboardApi.getSummary(),
-          subscriptionApi.getAll(),
-        ]);
-        setSummary(summaryData);
-
-        const primary = dominantCurrency(allSubs.map((sub) => sub.currency));
-        setDisplayCurrency(primary);
-        setCurrencyById(new Map(allSubs.map((sub) => [sub.id, sub.currency])));
-        setCategoryGroups(categorySpendByCurrency(allSubs, primary));
-      } catch (err) {
-        console.error('Failed to load dashboard:', err);
-      } finally {
-        setLoading(false);
-      }
+    let cancelled = false;
+    fetchDashboardData()
+      .then((data) => {
+        if (!cancelled) applyDashboard(data);
+      })
+      .catch((err) => console.error('Failed to load dashboard:', err))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
     };
+  }, [applyDashboard]);
 
-    loadDashboard();
+  const refetchDashboard = useCallback(async () => {
+    try {
+      applyDashboard(await fetchDashboardData());
+    } catch (err) {
+      console.error('Failed to reload dashboard:', err);
+    }
+  }, [applyDashboard]);
+
+  const updateOnboarding = useCallback((next: OnboardingState) => {
+    setOnboarding(next);
+    writeOnboardingState(next);
   }, []);
+
+  const hasSubscriptions = (summary?.activeSubscriptions ?? 0) > 0;
+  const wizardOpen =
+    !wizardClosed &&
+    (filedThisSession || (!loading && !!summary && shouldShowWizard(onboarding, hasSubscriptions)));
 
   if (loading) {
     return (
@@ -198,6 +258,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {shouldShowResumeCard(onboarding, hasSubscriptions) && (
+        <ResumeSetupCard
+          step={onboarding.step}
+          onResume={() => {
+            updateOnboarding({ ...onboarding, status: 'pending' });
+            setWizardClosed(false);
+          }}
+        />
+      )}
+
       <div>
         <h2 className="text-3xl font-bold">
           Welcome back, {user?.name || user?.email?.split('@')[0]}<span className="text-brand-orange">.</span>
@@ -401,6 +471,30 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {wizardOpen && (
+        <FirstRunWizard
+          open
+          initialStep={onboarding.step}
+          initialPicks={onboarding.picks}
+          onSkip={(step, picks) => {
+            updateOnboarding({ status: 'skipped', step, picks });
+            setWizardClosed(true);
+          }}
+          onFiled={() => {
+            setFiledThisSession(true);
+            updateOnboarding({ ...onboarding, status: 'done', step: 3 });
+            void refetchDashboard();
+          }}
+          onComplete={(count) => {
+            setWizardClosed(true);
+            if (count > 0) {
+              toast.success('Setup complete.', {
+                description: `${count} ${count === 1 ? 'subscription' : 'subscriptions'} added — we'll watch the renewals.`,
+              });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
