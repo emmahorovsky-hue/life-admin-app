@@ -100,7 +100,8 @@ export default function AuthScreen() {
       {/* The modal sheet is shorter than a full screen and sign-up is the taller
           form, so on a small device the keyboard can cover the submit button.
           The iOS inset keeps it scrollable; Android's default `adjustResize`
-          already shrinks the window. */}
+          already shrinks the window. `AuthClose` above stays absolute, so it
+          overlays this rather than shifting the vertically-centred form. */}
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
