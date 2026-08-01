@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
+import { addMonths, format } from 'date-fns';
 import { Check } from 'lucide-react';
 import { AppDialog } from '@/components/ui/AppDialog';
 import { Button } from '@/components/ui/button';
@@ -16,8 +17,16 @@ interface FirstRunWizardProps {
   open: boolean;
   initialStep: OnboardingStep;
   initialPicks: string[];
-  /** Dismissed part-way — remember where they were so the resume card can return them. */
-  onSkip: (step: OnboardingStep, picks: string[]) => void;
+  /**
+   * Names a previous run already created server-side. Seeds the dedupe so a
+   * resumed wizard re-sends only what never landed.
+   */
+  initialCreated?: string[];
+  /**
+   * Dismissed part-way — remember where they were so the resume card can return
+   * them, and which rows already exist so resuming can't duplicate them.
+   */
+  onSkip: (step: OnboardingStep, picks: string[], created: string[]) => void;
   /**
    * `count` subscriptions were just created server-side. Fires as step 3 opens,
    * separately from {@link onComplete}, so the dashboard can mark the flow done
@@ -40,11 +49,13 @@ const STEP_META = [
   { n: 3 as const, pill: 'Filed', title: "That's the file open" },
 ];
 
-/** ISO date one month out — the sensible default renewal for a monthly plan. */
+/**
+ * ISO date one month out — the sensible default renewal for a monthly plan.
+ * `addMonths` clamps to the end of a short month; `setMonth` would overflow the
+ * 31st into the month after next.
+ */
 function oneMonthFromToday(): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() + 1);
-  return d.toISOString().split('T')[0];
+  return format(addMonths(new Date(), 1), 'yyyy-MM-dd');
 }
 
 /**
@@ -56,6 +67,7 @@ export function FirstRunWizard({
   open,
   initialStep,
   initialPicks,
+  initialCreated = [],
   onSkip,
   onFiled,
   onComplete,
@@ -69,8 +81,10 @@ export function FirstRunWizard({
 
   // Names already created server-side. A partial failure leaves the user on
   // step 2 to retry, and without this the successful rows would be created a
-  // second time — duplicate subscriptions from a single "File" press.
-  const createdNames = useRef<Set<string>>(new Set());
+  // second time — duplicate subscriptions from a single "File" press. Seeded
+  // from persisted state so the guard also holds across skip → resume, where
+  // the wizard unmounts and a fresh ref would have forgotten them.
+  const createdNames = useRef<Set<string>>(new Set(initialCreated));
   // Computed once per mount via a state initialiser rather than a ref, so it can
   // be read during render (a ref cannot) while staying stable across re-renders.
   const [defaultRenewal] = useState(oneMonthFromToday);
@@ -96,6 +110,15 @@ export function FirstRunWizard({
     const parsed = parseFloat(rowFor(s.name).cost);
     return sum + (Number.isFinite(parsed) ? parsed : 0);
   }, 0);
+
+  // Mirror the server's rules (cost isFloat min 0, renewalDate isISO8601) so an
+  // emptied field is caught here. Left to the server it comes back as a bare
+  // "Validation failed", which tells the user nothing about which field to fix.
+  const incompleteRows = selected.filter((s) => {
+    const row = rowFor(s.name);
+    const cost = parseFloat(row.cost);
+    return !row.renewalDate || !Number.isFinite(cost) || cost < 0;
+  });
 
   const togglePick = (name: string) =>
     setPicks((prev) => (prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]));
@@ -132,12 +155,13 @@ export function FirstRunWizard({
 
     if (failures.length > 0) {
       // Stay on step 2 with every edit intact; the retry only re-sends the rows
-      // that did not make it.
+      // that did not make it. The server's own message is appended rather than
+      // substituted — on its own it can be as unhelpful as "Validation failed",
+      // which leaves the user with no idea that their edits survived.
+      const detail = getApiErrorMessage((failures[0] as PromiseRejectedResult).reason, '');
       setError(
-        getApiErrorMessage(
-          (failures[0] as PromiseRejectedResult).reason,
-          `${failures.length} of ${pending.length} could not be saved. Your edits are kept — try again.`
-        )
+        `${failures.length} of ${pending.length} could not be saved. Your edits are kept — try again.` +
+          (detail ? ` (${detail})` : '')
       );
       return;
     }
@@ -148,11 +172,13 @@ export function FirstRunWizard({
     onFiled(count);
   };
 
+  const skipNow = () => onSkip(step, picks, [...createdNames.current]);
+
   const handleClose = () => {
     // Once the rows are filed the work is done, so dismissing from step 3 is a
     // completion, not a skip — anything else would re-offer a finished flow.
     if (step === 3) onComplete(filedCount);
-    else onSkip(step, picks);
+    else skipNow();
   };
 
   const handlePrimary = () => {
@@ -168,7 +194,8 @@ export function FirstRunWizard({
         ? `File ${selected.length}`
         : 'Go to dashboard';
 
-  const primaryDisabled = submitting || (step === 2 && selected.length === 0);
+  const primaryDisabled =
+    submitting || (step === 2 && (selected.length === 0 || incompleteRows.length > 0));
 
   const itemNoun = selected.length === 1 ? 'item' : 'items';
 
@@ -220,7 +247,7 @@ export function FirstRunWizard({
             {step < 3 && (
               <button
                 type="button"
-                onClick={() => onSkip(step, picks)}
+                onClick={skipNow}
                 className="rounded-[2px] text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 max-md:h-11"
               >
                 Skip setup
@@ -251,7 +278,11 @@ export function FirstRunWizard({
         </div>
       }
     >
-      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+      {error && (
+        <p role="alert" className="mb-4 text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
       {step === 1 && (
         <>
@@ -328,9 +359,14 @@ export function FirstRunWizard({
                     <div key={s.name} className="flex flex-wrap items-center gap-2">
                       <SubscriptionLogo name={s.name} category={s.category} size={28} />
                       <span className="min-w-0 flex-1 truncate text-sm font-bold">{s.name}</span>
+                      {/* type=number, matching the subscription modal: a free
+                          text field lets a comma-decimal locale type "18,50",
+                          which parseFloat silently truncates to 18. */}
                       <Input
                         aria-label={`${s.name} monthly cost`}
-                        inputMode="decimal"
+                        type="number"
+                        min="0"
+                        step="0.01"
                         value={row.cost}
                         onChange={(e) => setEdit(s.name, { cost: e.target.value })}
                         className="h-9 w-[92px] rounded-[2px] font-mono text-sm"
@@ -358,11 +394,16 @@ export function FirstRunWizard({
               </div>
             </PaperSheet>
           )}
+          {incompleteRows.length > 0 && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Every line needs an amount and a renewal date before it can be filed.
+            </p>
+          )}
         </>
       )}
 
       {step === 3 && (
-        <div className="flex flex-col items-center gap-4 py-6 text-center">
+        <div role="status" className="flex flex-col items-center gap-4 py-6 text-center">
           <PayprMark size={44} />
           <span
             className="border-2 border-brand-orange px-3 py-1 font-mono text-xs uppercase tracking-widest text-brand-orange"

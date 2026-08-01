@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import { dashboardApi, type DashboardSummary } from '@/lib/dashboard';
-import { subscriptionApi } from '@/lib/subscriptions';
+import { subscriptionApi, type Subscription } from '@/lib/subscriptions';
 import { ONBOARDING_STORAGE_KEY, readOnboardingState } from '@/lib/onboarding';
 
 vi.mock('@/lib/dashboard', () => ({ dashboardApi: { getSummary: vi.fn() } }));
@@ -36,6 +36,20 @@ function renderDashboard() {
 
 const wizardTitle = () => screen.queryByText('Pick what you pay for');
 
+/** Minimal row — only the fields the dashboard reads off a subscription. */
+const subRow = (over: Partial<Subscription> = {}) =>
+  ({
+    id: 's1',
+    name: 'Netflix',
+    cost: '15.99',
+    currency: 'SGD',
+    billingCycle: 'monthly',
+    category: 'streaming',
+    isActive: true,
+    cancelledAt: null,
+    ...over,
+  }) as Subscription;
+
 describe('Dashboard first-run onboarding', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -50,7 +64,19 @@ describe('Dashboard first-run onboarding', () => {
   });
 
   it('never opens for an account that already has subscriptions', async () => {
-    mockedDashboard.getSummary.mockResolvedValue({ ...emptySummary, activeSubscriptions: 2 });
+    mockedSubs.getAll.mockResolvedValue([subRow()]);
+    mockedDashboard.getSummary.mockResolvedValue({ ...emptySummary, activeSubscriptions: 1 });
+    renderDashboard();
+
+    await screen.findByText(/welcome back, sam/i);
+    expect(wizardTitle()).not.toBeInTheDocument();
+  });
+
+  // `activeSubscriptions` excludes cancelled rows, so gating on it would re-offer
+  // the first-run wizard to someone who has a file and simply cancelled it all.
+  it('never opens for an account whose only subscriptions are cancelled', async () => {
+    mockedSubs.getAll.mockResolvedValue([subRow({ cancelledAt: '2026-01-01T00:00:00.000Z' })]);
+    mockedDashboard.getSummary.mockResolvedValue({ ...emptySummary, activeSubscriptions: 0 });
     renderDashboard();
 
     await screen.findByText(/welcome back, sam/i);
@@ -76,7 +102,12 @@ describe('Dashboard first-run onboarding', () => {
     await user.click(screen.getByRole('button', { name: /skip setup/i }));
 
     await waitFor(() => expect(wizardTitle()).not.toBeInTheDocument());
-    expect(readOnboardingState()).toEqual({ status: 'skipped', step: 1, picks: ['Netflix'] });
+    expect(readOnboardingState()).toEqual({
+      status: 'skipped',
+      step: 1,
+      picks: ['Netflix'],
+      created: [],
+    });
 
     // The dashboard itself is untouched — nothing is blocked by having skipped.
     expect(screen.getByText(/welcome back, sam/i)).toBeInTheDocument();
@@ -124,6 +155,59 @@ describe('Dashboard first-run onboarding', () => {
     expect(await screen.findByText('1 subscription filed')).toBeInTheDocument();
     expect(readOnboardingState().status).toBe('done');
     // Initial load + the refetch that repopulates the tiles behind the modal.
+    await waitFor(() => expect(mockedDashboard.getSummary).toHaveBeenCalledTimes(2));
+  });
+
+  // The dedupe lives in a ref, so it dies with the wizard. Unless the created
+  // names are persisted, resuming after a partial failure re-sends the rows that
+  // already landed and the user ends up with duplicates.
+  it('does not re-create rows that already landed, across skip and resume', async () => {
+    const user = userEvent.setup();
+    mockedSubs.create
+      .mockResolvedValueOnce({ id: 's1' } as never)
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValue({ id: 's2' } as never);
+    localStorage.setItem(
+      ONBOARDING_STORAGE_KEY,
+      JSON.stringify({ status: 'pending', step: 2, picks: ['Netflix', 'Spotify'] })
+    );
+    renderDashboard();
+
+    await user.click(await screen.findByRole('button', { name: 'File 2' }));
+    await screen.findByText(/could not be saved/i);
+    expect(readOnboardingState().created).toEqual([]);
+
+    await user.click(screen.getByRole('button', { name: /skip setup/i }));
+    // Netflix landed, so the skip has to remember it.
+    await waitFor(() => expect(readOnboardingState().created).toEqual(['Netflix']));
+
+    await user.click(await screen.findByRole('button', { name: /resume setup/i }));
+    await user.click(await screen.findByRole('button', { name: 'File 2' }));
+
+    await waitFor(() => expect(mockedSubs.create).toHaveBeenCalledTimes(3));
+    const names = mockedSubs.create.mock.calls.map((c) => c[0].name);
+    expect(names).toEqual(['Netflix', 'Spotify', 'Spotify']);
+  });
+
+  // A skip can follow a partial failure, in which case rows exist and the tiles
+  // behind the modal are stale.
+  it('refetches after a skip that left rows behind', async () => {
+    const user = userEvent.setup();
+    mockedSubs.create.mockRejectedValueOnce(new Error('network down'));
+    localStorage.setItem(
+      ONBOARDING_STORAGE_KEY,
+      JSON.stringify({ status: 'pending', step: 2, picks: ['Netflix', 'Spotify'] })
+    );
+    mockedSubs.create.mockReset();
+    mockedSubs.create
+      .mockResolvedValueOnce({ id: 's1' } as never)
+      .mockRejectedValueOnce(new Error('network down'));
+    renderDashboard();
+
+    await user.click(await screen.findByRole('button', { name: 'File 2' }));
+    await screen.findByText(/could not be saved/i);
+    await user.click(screen.getByRole('button', { name: /skip setup/i }));
+
     await waitFor(() => expect(mockedDashboard.getSummary).toHaveBeenCalledTimes(2));
   });
 });
