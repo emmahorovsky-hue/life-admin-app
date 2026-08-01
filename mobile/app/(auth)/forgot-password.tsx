@@ -41,7 +41,7 @@ export default function ForgotPasswordScreen() {
         <AppText variant="body" style={styles.body}>
           If that address is registered, you'll receive a password reset link shortly.
         </AppText>
-        <Link href="/(auth)/login" style={[textStyles.body, styles.link]}>
+        <Link dismissTo href="/(auth)/login" style={[textStyles.body, styles.link]}>
           Back to sign in
         </Link>
       </View>
@@ -75,7 +75,11 @@ export default function ForgotPasswordScreen() {
         style={styles.button}
       />
 
-      <Link href="/(auth)/login" style={styles.link}>
+      {/* `dismissTo`, not a push: login is a modal, and this screen was pushed
+          from inside it — a plain Link would stack a second login sheet on top
+          of the first (LIF-221). Falls back to a replace when login isn't in
+          the stack, i.e. a cold-start deep link straight to here. */}
+      <Link dismissTo href="/(auth)/login" style={styles.link}>
         Back to sign in
       </Link>
     </View>
