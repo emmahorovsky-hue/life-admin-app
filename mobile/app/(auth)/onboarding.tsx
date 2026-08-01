@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing } from '@life-admin/shared';
 import { colors } from '../../lib/theme';
@@ -57,9 +57,16 @@ export default function OnboardingScreen() {
   const list = useRef<FlatList<Reel>>(null);
   const leaving = useRef(false);
 
+  // The carousel now stays mounted beneath the login / register modal (LIF-221)
+  // instead of unmounting on exit, so reset the one-shot guard each time it
+  // regains focus — otherwise a return via the modal's X leaves the CTAs dead.
+  useFocusEffect(useCallback(() => {
+    leaving.current = false;
+  }, []));
+
   const leave = useCallback(
-    async (to: '/(auth)/register' | '/(auth)/login') => {
-      if (leaving.current) return; // a double-tap must not stack two replaces
+    async (mode: 'signin' | 'signup') => {
+      if (leaving.current) return; // a double-tap must not stack two screens
       leaving.current = true;
       try {
         await markSeen();
@@ -68,7 +75,10 @@ export default function OnboardingScreen() {
         // has no back gesture, so these three buttons are the only way out: a
         // failed keychain write must cost a repeat of onboarding, never the exit.
       }
-      router.replace(to);
+      // `push`, not `replace`, so the carousel stays mounted beneath the auth
+      // modal — the X (and the swipe-down) then dismiss to it (LIF-221). Both
+      // CTAs open the one `login` route; `mode=signup` picks the sign-up form.
+      router.push(mode === 'signup' ? { pathname: '/(auth)/login', params: { mode: 'signup' } } : '/(auth)/login');
     },
     [markSeen, router],
   );
@@ -95,7 +105,7 @@ export default function OnboardingScreen() {
     <View style={styles.screen}>
       <View style={styles.header}>
         <Wordmark size={16} />
-        <Pressable onPress={() => leave('/(auth)/login')} accessibilityRole="button" hitSlop={12}>
+        <Pressable onPress={() => leave('signin')} accessibilityRole="button" hitSlop={12}>
           <AppText variant="footnote" weight={500} style={{ color: colors.mutedForeground }}>
             Skip
           </AppText>
@@ -133,12 +143,8 @@ export default function OnboardingScreen() {
       </View>
 
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]}>
-        <Button title="Create account" onPress={() => leave('/(auth)/register')} />
-        <Pressable onPress={() => leave('/(auth)/login')} accessibilityRole="button" hitSlop={12}>
-          <AppText variant="body" weight={600} style={styles.login}>
-            Log in
-          </AppText>
-        </Pressable>
+        <Button title="Create account" onPress={() => leave('signup')} />
+        <Button title="Log in" variant="outline" onPress={() => leave('signin')} />
       </View>
     </View>
   );
@@ -168,7 +174,6 @@ const styles = StyleSheet.create({
   dotOff: { backgroundColor: colors.border },
   cta: {
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.hairline,
-    paddingHorizontal: SCREEN_PAD, paddingTop: spacing.xl, gap: spacing.lg,
+    paddingHorizontal: SCREEN_PAD, paddingTop: spacing.xl, gap: spacing.sm,
   },
-  login: { color: colors.brandOrange, textAlign: 'center' },
 });
