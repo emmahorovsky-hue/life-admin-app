@@ -124,6 +124,13 @@ interface DashboardData {
   displayCurrency: string;
   currencyById: Map<string, string>;
   categoryGroups: CategorySpendGroup[];
+  /**
+   * Whether the account holds any subscription at all — the onboarding gate.
+   * Deliberately the row count rather than `summary.activeSubscriptions`, which
+   * excludes cancelled and ended rows: someone who cancelled everything still
+   * has a file, and must not be re-offered the first-run wizard.
+   */
+  hasSubscriptions: boolean;
 }
 
 // Fetching is kept out of the component so the initial load and the post-
@@ -140,6 +147,7 @@ async function fetchDashboardData(): Promise<DashboardData> {
     displayCurrency,
     currencyById: new Map(allSubs.map((sub) => [sub.id, sub.currency])),
     categoryGroups: categorySpendByCurrency(allSubs, displayCurrency),
+    hasSubscriptions: allSubs.length > 0,
   };
 }
 
@@ -163,12 +171,14 @@ export default function Dashboard() {
   // account stops being empty — which would otherwise close it mid-step.
   const [wizardClosed, setWizardClosed] = useState(false);
   const [filedThisSession, setFiledThisSession] = useState(false);
+  const [hasSubscriptions, setHasSubscriptions] = useState(false);
 
   const applyDashboard = useCallback((data: DashboardData) => {
     setSummary(data.summary);
     setDisplayCurrency(data.displayCurrency);
     setCurrencyById(data.currencyById);
     setCategoryGroups(data.categoryGroups);
+    setHasSubscriptions(data.hasSubscriptions);
   }, []);
 
   useEffect(() => {
@@ -199,7 +209,6 @@ export default function Dashboard() {
     writeOnboardingState(next);
   }, []);
 
-  const hasSubscriptions = (summary?.activeSubscriptions ?? 0) > 0;
   const wizardOpen =
     !wizardClosed &&
     (filedThisSession || (!loading && !!summary && shouldShowWizard(onboarding, hasSubscriptions)));
@@ -476,9 +485,14 @@ export default function Dashboard() {
           open
           initialStep={onboarding.step}
           initialPicks={onboarding.picks}
-          onSkip={(step, picks) => {
-            updateOnboarding({ status: 'skipped', step, picks });
+          initialCreated={onboarding.created}
+          onSkip={(step, picks, created) => {
+            updateOnboarding({ status: 'skipped', step, picks, created });
             setWizardClosed(true);
+            // A skip can follow a partial failure, so rows may already exist.
+            // Without this the tiles keep reading zero — and the resume strip
+            // keeps showing — until the next full page load.
+            if (created.length > 0) void refetchDashboard();
           }}
           onFiled={() => {
             setFiledThisSession(true);

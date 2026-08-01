@@ -89,8 +89,13 @@ export function AppDialog({
 
       // Cycle focus within the card. Re-queried on each Tab because the
       // focusable set changes as steps/among disabled buttons change.
+      //
+      // Hidden-ness is judged by attribute, not by `offsetParent`: jsdom does no
+      // layout, so an offsetParent check is null for every element and silently
+      // collapses this list to one entry — the trap would degrade to pinning
+      // focus in place, and no test could tell that from a working trap.
       const focusable = Array.from(cardRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        (el) => el.offsetParent !== null || el === document.activeElement
+        (el) => !el.closest('[hidden], [aria-hidden="true"]')
       );
       if (focusable.length === 0) return;
 
