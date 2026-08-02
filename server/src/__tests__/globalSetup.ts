@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { defaultBaseUrl, withDatabase, databaseName } from './testDb';
 
 // Run once for the entire jest process — not per test file.
@@ -10,16 +11,17 @@ import { defaultBaseUrl, withDatabase, databaseName } from './testDb';
 // workers are forked afterwards, so they inherit the env. globalTeardown
 // (same process) drops the database again via the JEST_RUN_DB handoff.
 export default async function globalSetup() {
-  // JEST_BASE_DATABASE_URL is captured in jest.config.js before @prisma/client
-  // (imported above) auto-loads server/.env — process.env.DATABASE_URL here may
-  // already hold the DEV database URL, which must never be used as the base.
+  // JEST_BASE_DATABASE_URL is the caller's DATABASE_URL, captured in
+  // jest.config.js before anything else can mutate it. Read it rather than
+  // process.env.DATABASE_URL, which must never be allowed to seed the per-run
+  // database name from a DEV url.
   const baseUrl = process.env.JEST_BASE_DATABASE_URL || defaultBaseUrl();
   const runDbName = `${databaseName(baseUrl)}_${process.pid}_${crypto.randomBytes(3).toString('hex')}`;
 
   // CREATE DATABASE must be issued from a connection to a different database —
   // use the "postgres" maintenance DB on the same server.
   const admin = new PrismaClient({
-    datasources: { db: { url: withDatabase(baseUrl, 'postgres') } },
+    adapter: new PrismaPg({ connectionString: withDatabase(baseUrl, 'postgres') }),
   });
   try {
     await admin.$executeRawUnsafe(`CREATE DATABASE "${runDbName}"`);

@@ -8,10 +8,13 @@ process.env.NODE_ENV = 'test';
 require('dotenv').config({ path: path.join(__dirname, '.env.test') });
 
 // Capture the caller's DATABASE_URL (CI sets it; local shells usually don't)
-// before anything else runs — importing @prisma/client auto-loads server/.env,
-// which would otherwise leak the DEV database URL into globalSetup and make it
-// derive the per-run test DB from the dev database. globalSetup reads this
-// instead of DATABASE_URL for exactly that reason.
+// before anything else runs, and let globalSetup derive the per-run test DB
+// from this rather than from a later process.env.DATABASE_URL.
+//
+// Prisma 7 dropped the client's automatic .env loading, so @prisma/client no
+// longer leaks server/.env's DEV url into globalSetup on import — this capture
+// is now belt-and-braces against anything else (a stray dotenv call, a future
+// import) mutating DATABASE_URL between here and globalSetup.
 process.env.JEST_BASE_DATABASE_URL = process.env.DATABASE_URL || '';
 
 module.exports = {

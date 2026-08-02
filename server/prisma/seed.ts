@@ -1,7 +1,20 @@
+// Must stay the first import. `npm run seed` runs this through tsx, not the
+// Prisma CLI, so neither prisma.config.ts nor (since Prisma 7) @prisma/client
+// loads server/.env — without this, DATABASE_URL is undefined here.
+import 'dotenv/config';
 import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// pg falls back to libpq defaults (unix socket, database named after the OS
+// user) on an undefined connection string rather than erroring, so seeding
+// without DATABASE_URL would quietly target the wrong database.
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is required to seed — set it in server/.env');
+}
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Starting seed...');
