@@ -1,12 +1,5 @@
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import {
-  BottomSheetBackdrop,
-  BottomSheetBackdropProps,
-  BottomSheetModal,
-  BottomSheetView,
-} from '@gorhom/bottom-sheet';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { radius, spacing, type SubscriptionCandidate } from '@life-admin/shared';
@@ -19,9 +12,8 @@ import {
 import { subscriptionApi } from '../lib/subscriptions';
 import { getApiErrorMessage } from '../lib/utils';
 import { ExtractionLoadingOverlay } from './ExtractionLoadingOverlay';
-import { AppText, GlassSheetBackground, useToast } from './ui';
+import { AppText, FormSheet, useToast, type FormSheetHandle } from './ui';
 import { colors } from '../lib/theme';
-import { SHEET_BACKDROP_OPACITY, SHEET_HANDLE } from '../lib/quiet';
 
 export interface ReceiptScanChooserHandle {
   /** Open the "add a subscription" chooser. */
@@ -58,28 +50,15 @@ const SCAN_OPTIONS: Option[] = [
 export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
   function ReceiptScanChooser({ onManual, onExtracted }, ref) {
     const toast = useToast();
-    const insets = useSafeAreaInsets();
-    const sheetRef = useRef<BottomSheetModal>(null);
+    const sheetRef = useRef<FormSheetHandle>(null);
     const [busy, setBusy] = useState(false);
 
     useImperativeHandle(ref, () => ({
-      open: () => sheetRef.current?.present(),
+      open: () => sheetRef.current?.open(),
     }));
 
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop
-          {...props}
-          appearsOnIndex={0}
-          disappearsOnIndex={-1}
-          opacity={SHEET_BACKDROP_OPACITY}
-        />
-      ),
-      [],
-    );
-
     const handleManual = useCallback(() => {
-      sheetRef.current?.dismiss();
+      sheetRef.current?.close();
       onManual();
     }, [onManual]);
 
@@ -92,7 +71,7 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
           return;
         }
 
-        sheetRef.current?.dismiss();
+        sheetRef.current?.close();
         setBusy(true);
         // Always clear the loading overlay BEFORE presenting the form sheet or
         // showing a toast — presenting a bottom sheet while the overlay is still
@@ -129,45 +108,35 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
 
     return (
       <>
-        <BottomSheetModal
+        <FormSheet
           ref={sheetRef}
-          backdropComponent={renderBackdrop}
-          backgroundComponent={GlassSheetBackground}
-          handleIndicatorStyle={SHEET_HANDLE}
+          title="Add a subscription"
+          subtitle="Scan a receipt and we'll fill in the details for you to review."
+          accessibilityLabel="Add a subscription"
         >
-          <BottomSheetView
-            accessibilityLabel="Add a subscription"
-            style={[styles.sheetContent, { paddingBottom: insets.bottom + spacing.lg }]}
-          >
-            <AppText variant="title" style={styles.sheetTitle}>Add a subscription</AppText>
-            <AppText variant="footnote" style={styles.sheetSubtitle}>
-              Scan a receipt and we&apos;ll fill in the details for you to review.
-            </AppText>
-
-            {SCAN_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.label}
-                accessibilityRole="button"
-                onPress={() => void runScan(opt.pick)}
-                style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
-              >
-                <Ionicons name={opt.icon} size={20} color={colors.foreground} />
-                <AppText variant="headline" weight={600} style={styles.menuLabel}>{opt.label}</AppText>
-              </Pressable>
-            ))}
-
-            <View style={styles.divider} />
-
+          {SCAN_OPTIONS.map((opt) => (
             <Pressable
+              key={opt.label}
               accessibilityRole="button"
-              onPress={handleManual}
+              onPress={() => void runScan(opt.pick)}
               style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
             >
-              <Ionicons name="create-outline" size={20} color={colors.mutedForeground} />
-              <AppText variant="headline" weight={600} style={[styles.menuLabel, styles.menuLabelMuted]}>Enter manually</AppText>
+              <Ionicons name={opt.icon} size={20} color={colors.foreground} />
+              <AppText variant="headline" weight={600} style={styles.menuLabel}>{opt.label}</AppText>
             </Pressable>
-          </BottomSheetView>
-        </BottomSheetModal>
+          ))}
+
+          <View style={styles.divider} />
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={handleManual}
+            style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
+          >
+            <Ionicons name="create-outline" size={20} color={colors.mutedForeground} />
+            <AppText variant="headline" weight={600} style={[styles.menuLabel, styles.menuLabelMuted]}>Enter manually</AppText>
+          </Pressable>
+        </FormSheet>
 
         {/* Branded extraction overlay (LIF-209). In-tree, not a native Modal —
             a Modal fights the bottom sheets and leaves gestures dead (LIF-208).
@@ -179,25 +148,17 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
 );
 
 const styles = StyleSheet.create({
-  sheetContent: { paddingTop: spacing.sm, paddingHorizontal: spacing.sm },
-  sheetTitle: {
-    color: colors.foreground,
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-  },
-  sheetSubtitle: {
-    color: colors.mutedForeground,
-    paddingHorizontal: spacing.lg,
-    marginTop: 4,
-    marginBottom: spacing.sm,
-  },
-
+  // Rows sit on the sheet's own body inset, but their pressed highlight bleeds
+  // past it — hence the negative margin cancelled by an equal padding. This is
+  // what lets the title keep the standard inset every other sheet's title has,
+  // instead of the sheet overriding its body padding to suit the rows.
   menuRow: {
     minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingHorizontal: spacing.lg,
+    marginHorizontal: -spacing.sm,
+    paddingHorizontal: spacing.sm,
     borderRadius: radius.base,
   },
   menuRowPressed: { backgroundColor: colors.secondary },
@@ -208,6 +169,5 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
     marginVertical: spacing.xs,
-    marginHorizontal: spacing.lg,
   },
 });

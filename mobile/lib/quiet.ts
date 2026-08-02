@@ -34,16 +34,26 @@ export const ROW_LOGO = 36;
 // colour difference was invisible on Snow-vs-white, but the corner was not.
 // Unified on gorhom's 15pt default (LIF-223); glass needs one seam, not two.
 //
-// Every settings overlay now takes these through `ui/FormSheet` rather than
-// reading them directly (LIF-239) — that is what stops the pairing below coming
-// apart again. The three subscription sheets still set them by hand, because
-// they need snap points a content-sized sheet cannot express.
+// Ten of the twelve overlays now take these through `ui/FormSheet` rather than
+// reading them directly (LIF-239). Only SubscriptionFormSheet and
+// FirstRunSetupSheet still set them by hand, because they need snap points a
+// content-sized sheet cannot express; both match FormSheet deliberately —
+// glass background, the 0.2 scrim, and `useSheetBackHandler`.
+//
+// There is no longer a flat sheet. Text-entry sheets used to drop glass for a
+// flat surface and a 0.5 scrim; that split was removed on purpose, so `glass +
+// 0.2` is now the only sheet surface in the app.
 
 /** Corner radius for every bottom sheet. Matches @gorhom/bottom-sheet's own
  *  default, so the four sheets that never overrode it are unchanged. */
 export const SHEET_RADIUS = 15;
 
-/** Sheet background. `GlassSurface role="sheet"` falls back to exactly this. */
+/** Sheet background. `GlassSurface role="sheet"` falls back to exactly this.
+ *
+ *  Nothing imports it any more — every sheet now goes through `GlassSheetBackground`,
+ *  which carries its own copy of these values as the no-glass fallback. Kept as the
+ *  written-down reference for what that fallback must equal; if you change one,
+ *  change both. */
 export const SHEET_BACKGROUND = {
   backgroundColor: colors.background,
   borderRadius: SHEET_RADIUS,
@@ -53,15 +63,17 @@ export const SHEET_BACKGROUND = {
  *  be allocated as. */
 export const SHEET_HANDLE = { backgroundColor: colors.border } as const;
 
-/** Scrim behind a *glass* sheet (LIF-223).
+/** The scrim behind every sheet (LIF-223).
  *
  *  Deliberately far below gorhom's 0.5 default, and not a free knob: glass
  *  refracts whatever is behind it, so at 0.5 the sheet refracts black and
  *  returns opaque grey — worse text contrast than the flat sheet it replaced,
  *  and no visible material either. The trade-off bought here is that modals
- *  feel lighter and less isolating; it was reviewed and accepted. It lives in
- *  a different callback from the background, so it is easy to drop by accident
- *  — if you are removing glass from a sheet, restore its backdrop too. */
+ *  feel lighter and less isolating; it was reviewed and accepted.
+ *
+ *  Now that every sheet is glass this pairs with exactly one background, so
+ *  raising it is never the right fix for a legibility complaint — reach for
+ *  `GlassSurface`'s sheet tint instead, which moves all twelve together. */
 export const SHEET_BACKDROP_OPACITY = 0.2;
 
 export const quiet = StyleSheet.create({

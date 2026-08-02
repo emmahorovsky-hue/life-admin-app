@@ -79,17 +79,16 @@ export const ChangePasswordSheet = forwardRef<OpenableSheetHandle>(function Chan
     <FormSheet
       ref={sheet}
       title="Change password"
-      textEntry
       onDismiss={clear}
-      footer={
+      actions={
         <>
+          <Button title="Update password" loading={loading} onPress={() => void handleSubmit()} />
           <Button
             title="Cancel"
             variant="outline"
             disabled={loading}
             onPress={() => sheet.current?.close()}
           />
-          <Button title="Update password" loading={loading} onPress={() => void handleSubmit()} />
         </>
       }
     >

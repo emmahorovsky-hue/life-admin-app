@@ -19,8 +19,7 @@ import { colors } from '../../lib/theme';
  * session on every device the user owns — worth saying out loud before doing
  * it, and worth a confirm step at all.
  *
- * No `textEntry`, so this is a glass sheet like the rest of the menu-shaped
- * ones; it has nothing to type into.
+ * Nothing to type into — the confirm is the two buttons.
  */
 export const SignOutSheet = forwardRef<OpenableSheetHandle>(function SignOutSheet(_props, ref) {
   const sheet = useRef<FormSheetHandle>(null);
@@ -50,19 +49,19 @@ export const SignOutSheet = forwardRef<OpenableSheetHandle>(function SignOutShee
       // Short request, but dismissing mid-flight would leave a UI claiming the
       // user is signed in after the server has already revoked the session.
       locked={loading}
-      footer={
+      actions={
         <>
-          <Button
-            title="Stay signed in"
-            variant="outline"
-            disabled={loading}
-            onPress={() => sheet.current?.close()}
-          />
           <Button
             title="Sign out"
             variant="destructive"
             loading={loading}
             onPress={() => void handleSignOut()}
+          />
+          <Button
+            title="Stay signed in"
+            variant="outline"
+            disabled={loading}
+            onPress={() => sheet.current?.close()}
           />
         </>
       }

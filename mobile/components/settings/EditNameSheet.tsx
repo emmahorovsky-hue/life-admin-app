@@ -62,16 +62,15 @@ export const EditNameSheet = forwardRef<OpenableSheetHandle>(function EditNameSh
     <FormSheet
       ref={sheet}
       title="Edit name"
-      textEntry
-      footer={
+      actions={
         <>
+          <Button title="Save" loading={loading} onPress={() => void handleSubmit()} />
           <Button
             title="Cancel"
             variant="outline"
             disabled={loading}
             onPress={() => sheet.current?.close()}
           />
-          <Button title="Save" loading={loading} onPress={() => void handleSubmit()} />
         </>
       }
     >

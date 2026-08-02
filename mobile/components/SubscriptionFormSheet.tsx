@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetScrollView,
@@ -39,9 +39,10 @@ import { candidateToFormPrefill } from '../lib/receiptScan';
 import { categoryIconFor } from '../lib/subscriptionLogo';
 import { getApiErrorMessage } from '../lib/utils';
 import { SubscriptionLogo } from './SubscriptionLogo';
-import { AppText, Button, FieldLabel } from './ui';
+import { AppText, Button, FieldLabel, GlassSheetBackground } from './ui';
 import { colors, fonts, textStyles } from '../lib/theme';
-import { SHEET_BACKGROUND, SHEET_HANDLE } from '../lib/quiet';
+import { SHEET_BACKDROP_OPACITY, SHEET_HANDLE } from '../lib/quiet';
+import { useSheetBackHandler } from '../lib/useSheetBackHandler';
 
 // Segmented billing control — 4 canonical cycles. Legacy 'annual' maps to 'yearly'.
 const CYCLE_SEGMENTS = [
@@ -89,6 +90,14 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
     // Fields the receipt extraction flagged as low-confidence, for the review banner.
     // Empty for a plain add/edit.
     const [uncertainFields, setUncertainFields] = useState<string[]>([]);
+    // Drives the Android back handler only — this sheet cannot use FormSheet's
+    // chrome, so it wires back up by hand. See useSheetBackHandler.
+    const [presented, setPresented] = useState(false);
+
+    useSheetBackHandler(
+      presented,
+      useCallback(() => sheetRef.current?.dismiss(), []),
+    );
 
     const mode = editing ? 'edit' : 'add';
 
@@ -129,6 +138,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
         setSuggestionsOpen(false);
         setCurrencyOpen(false);
         setShowDatePicker(false);
+        setPresented(true);
         sheetRef.current?.present();
       },
       openWithCandidate: (candidate) => {
@@ -141,6 +151,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
         setSuggestionsOpen(false);
         setCurrencyOpen(false);
         setShowDatePicker(false);
+        setPresented(true);
         sheetRef.current?.present();
       },
     }));
@@ -260,7 +271,14 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+        <BottomSheetBackdrop
+          {...props}
+          appearsOnIndex={0}
+          disappearsOnIndex={-1}
+          // The 0.2 glass scrim, matching FormSheet — every sheet in the app
+          // is glass now, text entry included.
+          opacity={SHEET_BACKDROP_OPACITY}
+        />
       ),
       [],
     );
@@ -271,14 +289,19 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
         snapPoints={snapPoints}
         enableDynamicSizing={false}
         backdropComponent={renderBackdrop}
+        onDismiss={() => setPresented(false)}
         keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
-        backgroundStyle={SHEET_BACKGROUND}
+        backgroundComponent={GlassSheetBackground}
         handleIndicatorStyle={SHEET_HANDLE}
       >
         <BottomSheetScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <AppText variant="title" style={styles.title}>{mode === 'add' ? 'Add subscription' : 'Edit subscription'}</AppText>
+          {/* Brand period, matching every FormSheet title. */}
+          <AppText variant="title" style={styles.title}>
+            {mode === 'add' ? 'Add subscription' : 'Edit subscription'}
+            <Text style={styles.titleAccent}>.</Text>
+          </AppText>
 
           {/* Receipt-scan review banner — flags fields the extraction was unsure about. */}
           {uncertainFields.length > 0 && (
@@ -550,6 +573,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
 const styles = StyleSheet.create({
   content: { padding: 22, paddingBottom: 48 },
   title: { color: colors.foreground, marginBottom: 16 },
+  titleAccent: { color: colors.brandOrange },
 
   reviewBanner: {
     flexDirection: 'row',

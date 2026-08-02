@@ -133,7 +133,7 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
         />
       </Pressable>
 
-      <FormSheet ref={sheetRef} accessibilityLabel="Photo options" contentStyle={styles.sheetContent}>
+      <FormSheet ref={sheetRef} accessibilityLabel="Photo options">
         <Pressable
           accessibilityRole="button"
           disabled={busy}
@@ -181,13 +181,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandOrange,
   },
   badgeBusy: { opacity: 0.6 },
-  sheetContent: { paddingTop: spacing.sm, paddingHorizontal: spacing.sm },
+  // Matches ReceiptScanChooser's rows — see the note there on the negative
+  // margin. The two menu sheets are the same shape and stay in step.
   menuRow: {
     minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingHorizontal: spacing.lg,
+    marginHorizontal: -spacing.sm,
+    paddingHorizontal: spacing.sm,
     borderRadius: radius.base,
   },
   menuRowPressed: { backgroundColor: colors.secondary },

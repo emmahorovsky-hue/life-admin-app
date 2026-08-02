@@ -2,14 +2,11 @@ import {
   ReactNode,
   forwardRef,
   useCallback,
-  useEffect,
   useImperativeHandle,
   useRef,
   useState,
 } from 'react';
 import {
-  BackHandler,
-  Platform,
   StyleProp,
   StyleSheet,
   Text,
@@ -20,18 +17,16 @@ import {
 import {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
-  BottomSheetFooter,
-  BottomSheetFooterProps,
   BottomSheetModal,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing } from '@life-admin/shared';
 import { colors } from '../../lib/theme';
-import { SHEET_BACKDROP_OPACITY, SHEET_BACKGROUND, SHEET_HANDLE } from '../../lib/quiet';
+import { SHEET_BACKDROP_OPACITY, SHEET_HANDLE } from '../../lib/quiet';
+import { useSheetBackHandler } from '../../lib/useSheetBackHandler';
 import { AppText } from './AppText';
 import { GlassSheetBackground } from './GlassSurface';
-import { Perforation } from '../Perforation';
 
 /** The minimum every ref-driven sheet exposes; what a screen holds a ref to. */
 export interface OpenableSheetHandle {
@@ -46,24 +41,18 @@ export interface FormSheetHandle extends OpenableSheetHandle {
 export interface FormSheetProps {
   /** Heading at the top of the body. Omit for a menu that is only rows. */
   title?: string;
+  /** Supporting line under `title`. Tightens the gap the title would otherwise carry. */
+  subtitle?: string;
   children: ReactNode;
-  /** Right-aligned actions under a dashed rule, pinned to the sheet bottom. */
-  footer?: ReactNode;
   /**
-   * This sheet contains live text entry.
+   * Buttons closing the sheet, stacked full-width below the body.
    *
-   * One prop rather than three, because the three things it decides are the
-   * same decision seen from three angles, and splitting them is precisely how
-   * AvatarTile drifted:
-   *
-   *   - No glass. Live text over a refracting surface is the canonical Liquid
-   *     Glass legibility failure (see GlassSurface's header).
-   *   - Therefore gorhom's default scrim, not SHEET_BACKDROP_OPACITY. The 0.2
-   *     scrim exists *because* glass refracts what is behind it; without glass
-   *     it is simply a weak scrim. quiet.ts warns these two must move together.
-   *   - Keyboard handling, which only a text sheet needs.
+   * Primary first, then the way out ("Save" above "Cancel") — the order every
+   * sheet in the app reads in, and the reason this is a prop rather than
+   * something callers append to `children`: it is what keeps that order and the
+   * spacing above it from being re-decided per sheet.
    */
-  textEntry?: boolean;
+  actions?: ReactNode;
   /**
    * Refuse every dismissal route — pan-down, handle drag, backdrop tap, Android
    * hardware back, and `close()` on the handle — for an operation that must not
@@ -78,12 +67,14 @@ export interface FormSheetProps {
 }
 
 /**
- * The chrome every settings overlay renders through (LIF-239).
+ * The chrome every content-sized bottom sheet renders through (LIF-239).
  *
  * Settings used to ship two presentations at once — some overlays were bottom
  * sheets, four were centred AppDialog cards — and the split was arbitrary: two
  * rows on the same Account screen behaved differently. This is the one sheet
- * shape they all share now.
+ * shape they all share now, and since the settings overlays were only ever half
+ * the app's sheets, the subscription detail, receipt-scan chooser and biometric
+ * opt-in sheets render through it too.
  *
  * Ref-driven (`open()`/`close()`), never a `visible` prop, matching the
  * convention the subscription sheets already established. A consequence worth
@@ -92,14 +83,23 @@ export interface FormSheetProps {
  * dialog's did. Seed state in `open()`, and clear anything sensitive in
  * `onDismiss`.
  *
- * Deliberately not the chrome for SubscriptionFormSheet, FirstRunSetupSheet or
- * SubscriptionDetailSheet: those need fixed percentage snap points and a
- * bounded inner scroll, which a content-sized sheet cannot express. Adding
- * `snapPoints` here to "finish the job" would make this worse for the seven
- * overlays that do fit.
+ * **Every sheet is glass, text entry included.** This used to be conditional: a
+ * `textEntry` prop dropped glass and swapped in a 0.5 scrim, because live text
+ * over a refracting surface is the legibility case LIF-223 called out. That
+ * split was chosen deliberately and reversed just as deliberately — it made
+ * adjacent rows on one Account screen open visibly different sheets, which is
+ * the thing this component exists to stop. If input legibility turns out to be
+ * a real problem, fix it in `GlassSurface`'s sheet tint so the answer stays one
+ * decision for all twelve, rather than reintroducing a per-sheet flag.
+ *
+ * Deliberately not the chrome for SubscriptionFormSheet or FirstRunSetupSheet:
+ * those need fixed percentage snap points and a bounded inner scroll, which a
+ * content-sized sheet cannot express. Adding `snapPoints` here to "finish the
+ * job" would make this worse for the ten overlays that do fit. Those two match
+ * this sheet by hand instead — see the note in quiet.ts.
  */
 export const FormSheet = forwardRef<FormSheetHandle, FormSheetProps>(function FormSheet(
-  { title, children, footer, textEntry, locked, onDismiss, accessibilityLabel, contentStyle },
+  { title, subtitle, children, actions, locked, onDismiss, accessibilityLabel, contentStyle },
   ref,
 ) {
   const sheetRef = useRef<BottomSheetModal>(null);
@@ -126,18 +126,14 @@ export const FormSheet = forwardRef<FormSheetHandle, FormSheetProps>(function Fo
     onDismiss?.();
   }, [onDismiss]);
 
-  // @gorhom/bottom-sheet ships no BackHandler integration of any kind, so
-  // without this Android's back button sails past the open sheet and pops the
-  // screen *underneath* it — which during a locked operation would tear the
-  // sheet down mid-request, the exact thing `locked` exists to prevent.
-  useEffect(() => {
-    if (Platform.OS !== 'android' || !presented) return;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+  // A locked sheet still swallows back — dismissing mid-request is the exact
+  // thing `locked` exists to prevent.
+  useSheetBackHandler(
+    presented,
+    useCallback(() => {
       if (!locked) sheetRef.current?.dismiss();
-      return true;
-    });
-    return () => sub.remove();
-  }, [presented, locked]);
+    }, [locked]),
+  );
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -145,25 +141,13 @@ export const FormSheet = forwardRef<FormSheetHandle, FormSheetProps>(function Fo
         {...props}
         appearsOnIndex={0}
         disappearsOnIndex={-1}
-        opacity={textEntry ? OPAQUE_SHEET_BACKDROP_OPACITY : SHEET_BACKDROP_OPACITY}
+        opacity={SHEET_BACKDROP_OPACITY}
         // 'none' still renders the view, so it goes on swallowing taps — it just
         // stops them dismissing. Exactly what a locked sheet wants.
         pressBehavior={locked ? 'none' : 'close'}
       />
     ),
-    [textEntry, locked],
-  );
-
-  const renderFooter = useCallback(
-    (props: BottomSheetFooterProps) => (
-      <BottomSheetFooter {...props} bottomInset={insets.bottom}>
-        <View style={styles.footer}>
-          <Perforation style={styles.footerRule} />
-          <View style={styles.footerRow}>{footer}</View>
-        </View>
-      </BottomSheetFooter>
-    ),
-    [footer, insets.bottom],
+    [locked],
   );
 
   return (
@@ -179,13 +163,11 @@ export const FormSheet = forwardRef<FormSheetHandle, FormSheetProps>(function Fo
       enablePanDownToClose={!locked}
       enableHandlePanningGesture={!locked}
       backdropComponent={renderBackdrop}
-      footerComponent={footer ? renderFooter : undefined}
-      backgroundComponent={textEntry ? undefined : GlassSheetBackground}
-      backgroundStyle={textEntry ? SHEET_BACKGROUND : undefined}
+      backgroundComponent={GlassSheetBackground}
       handleIndicatorStyle={SHEET_HANDLE}
       // 'interactive', not the 'extend' the snap-point sheets use. With dynamic
       // sizing the highest detent *is* the content height, so 'extend' resolves
-      // to "stay where you are" and the keyboard lands on top of the footer.
+      // to "stay where you are" and the keyboard lands on top of the actions.
       // 'interactive' lifts the sheet by the keyboard height instead.
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
@@ -196,45 +178,37 @@ export const FormSheet = forwardRef<FormSheetHandle, FormSheetProps>(function Fo
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.body,
-          // The footer floats over the body, so the body has to end above it.
-          // A constant, not a measured height: the scroll content's height
-          // feeds dynamic sizing, which sets the sheet height, which positions
-          // the footer — measuring the footer back into this would close that
-          // loop. FOOTER_HEIGHT is exact for the footer rendered above.
-          { paddingBottom: footer ? FOOTER_HEIGHT + insets.bottom : insets.bottom + spacing.xl },
+          { paddingBottom: insets.bottom + spacing.xl },
           contentStyle,
         ]}
       >
         {title ? (
-          <AppText variant="title" style={styles.title}>
+          <AppText variant="title" style={subtitle ? styles.titleTight : styles.title}>
             {title}
             <Text style={styles.accent}>.</Text>
           </AppText>
         ) : null}
+        {subtitle ? (
+          <AppText variant="footnote" style={styles.subtitle}>
+            {subtitle}
+          </AppText>
+        ) : null}
         {children}
+        {actions ? <View style={styles.actions}>{actions}</View> : null}
       </BottomSheetScrollView>
     </BottomSheetModal>
   );
 });
 
-/** gorhom's own backdrop default, named so the pairing in `textEntry` is legible. */
-const OPAQUE_SHEET_BACKDROP_OPACITY = 0.5;
-
-/** Perforation (2) + paddingTop (16) + Button md (44) + paddingBottom (16). */
-const FOOTER_HEIGHT = 78;
-
 const styles = StyleSheet.create({
   body: { padding: 22 },
   title: { color: colors.foreground, marginBottom: spacing.lg },
+  // With a subtitle the pair carries the gap, not the title alone.
+  titleTight: { color: colors.foreground, marginBottom: 4 },
+  subtitle: { color: colors.mutedForeground, marginBottom: spacing.lg },
   accent: { color: colors.brandOrange },
 
-  footer: { backgroundColor: colors.background },
-  footerRule: { marginHorizontal: 0 },
-  footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-  },
+  // Buttons stretch because the container is a column with the default
+  // `alignItems: 'stretch'` — no per-button `alignSelf` at the call sites.
+  actions: { marginTop: spacing.xl, gap: spacing.sm },
 });
