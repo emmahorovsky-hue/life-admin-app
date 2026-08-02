@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import axios from 'axios';
 import { User, AuthResponse } from '@life-admin/shared';
 import { api } from '../lib/api';
@@ -9,6 +10,7 @@ import {
   subscribeToPushTokenRotation,
 } from '../lib/pushNotifications';
 import { tokenStorage } from '../lib/storage';
+import { biometricPref, isAvailable as biometricsAvailable } from '../lib/biometrics';
 
 interface AuthContextType {
   user: User | null;
@@ -46,6 +48,33 @@ const AuthContext = createContext<AuthContextType | null>(null);
  */
 type SessionResult = 'ok' | 'invalid' | 'transient';
 
+/**
+ * Put the token back behind the biometric gate after a sign-in, if this user had
+ * quick-unlock on (LIF-222).
+ *
+ * Sign-out has to drop the gate flag along with the token it guards — the flag
+ * is what says which Keychain item holds the live session, and a stale one
+ * would strand the next launch on a lock screen with nothing behind it. So the
+ * preference in lib/biometrics.ts is the only thing that survives, and without
+ * this the feature would be silently off after every sign-out while the stored
+ * preference still said on.
+ *
+ * Best-effort by design: if biometrics have been un-enrolled since, or the move
+ * fails, the token stays in plain storage — which is the feature-off behaviour,
+ * not a broken session. The Account screen reads the gate itself rather than the
+ * preference, so the switch still shows the truth either way.
+ */
+async function restoreBiometricGate(userId: string): Promise<void> {
+  if (Platform.OS !== 'ios') return;
+  try {
+    if (!(await biometricPref.get(userId))) return;
+    if (!(await biometricsAvailable())) return;
+    await tokenStorage.setProtected(true);
+  } catch {
+    // Falls back to plain storage; the user can re-arm it from Account.
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +94,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    // Signing out while locked is the one case where the interceptor has no
+    // token to attach, and an unauthenticated /auth/logout revokes nothing —
+    // the server would have no idea whose session to end. That matters more
+    // here than anywhere else: revocation is account-wide (LIF-174), and
+    // "sign out" from a lock screen is what someone taps when they think the
+    // phone is compromised, expecting their other sessions to die too.
+    //
+    // So unlock for the revoke — but never let a failed unlock trap them. An
+    // enrolment change makes the item permanently unreadable, and the lock
+    // screen's sign-out is the only way out of that; it has to work without
+    // biometrics. A cancelled or impossible unlock just means the revoke goes
+    // unsent, which is where this started.
+    if (tokenStorage.isLocked()) await tokenStorage.unlock();
+
     // Tell the server first, while the token is still in storage for the request
     // interceptor to attach — this is what actually revokes the session
     // (LIF-174). Best-effort: if we're offline or the token has already expired
@@ -94,7 +137,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchSession = useCallback(async (): Promise<SessionResult> => {
     try {
       const token = await tokenStorage.get();
-      if (!token) return 'invalid';
+      // Having no token in hand is not the same as the server rejecting one.
+      // At cold start it means signed out, and the caller does nothing either
+      // way. During unlock it can only mean a concurrent relock dropped the
+      // cache between the unlock and this read — and treating that as a dead
+      // session would sign out a user whose token is sitting valid in the
+      // Keychain. Only a real 401 is allowed to destroy anything.
+      if (!token) return 'transient';
       const { data } = await api.get<{ user: User }>('/auth/me');
       setUser(data.user);
       return 'ok';
@@ -157,15 +206,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchSession]);
 
   const relock = useCallback(() => {
-    void (async () => {
-      if (!(await tokenStorage.isProtected())) return;
-      // Drop the token, keep `user`. Nulling it would send the layout guard to
-      // the logged-out carousel and back again on unlock — a navigation
-      // round-trip the covered screen would flash through. The gate is what
-      // withholds access; the token cache is what withholds the session.
-      tokenStorage.lock();
-      setLocked(true);
-    })();
+    // Synchronous on purpose. Awaiting a Keychain read here would let the app
+    // finish foregrounding — and paint the user's subscriptions — before the
+    // lock screen mounted. The flag is memoised in lib/storage.ts precisely so
+    // this decision costs nothing; the cold-start path has always read it by
+    // the time any re-lock can happen.
+    if (!tokenStorage.isProtectedNow()) return;
+    // Drop the token, keep `user`. Nulling it would send the layout guard to
+    // the logged-out carousel and back again on unlock — a navigation
+    // round-trip the covered screen would flash through. The gate is what
+    // withholds access; the token cache is what withholds the session.
+    tokenStorage.lock();
+    setLocked(true);
   }, []);
 
   // Register the device for push notifications once a session exists (login,
@@ -188,6 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (!data.token) throw new Error('No token in response');
     await tokenStorage.set(data.token);
+    await restoreBiometricGate(data.user.id);
     setUser(data.user);
   };
 

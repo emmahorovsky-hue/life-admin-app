@@ -37,6 +37,16 @@ const PROTECTED_FLAG_KEY = 'auth_token_is_protected';
  */
 let cachedToken: string | null = null;
 
+/**
+ * In-memory copy of the flag, read from the Keychain at most once per process.
+ *
+ * Not just an optimisation: `relock()` has to decide whether to raise the gate
+ * *synchronously*. Awaiting a Keychain read first leaves a window in which the
+ * app has already foregrounded and is painting the user's subscriptions behind
+ * a lock screen that has not mounted yet. Null means "not read yet".
+ */
+let protectedFlag: boolean | null = null;
+
 export const tokenStorage = {
   /**
    * The token for outgoing requests. Never touches the protected item, so it
@@ -61,6 +71,7 @@ export const tokenStorage = {
   /** Clears both copies — the flag is the only thing that says which is live. */
   remove: async (): Promise<void> => {
     cachedToken = null;
+    protectedFlag = false;
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(PROTECTED_TOKEN_KEY, { keychainService: PROTECTED_SERVICE }),
@@ -68,8 +79,31 @@ export const tokenStorage = {
     ]);
   },
 
-  isProtected: async (): Promise<boolean> =>
-    (await SecureStore.getItemAsync(PROTECTED_FLAG_KEY)) === '1',
+  isProtected: async (): Promise<boolean> => {
+    if (protectedFlag === null) {
+      protectedFlag = (await SecureStore.getItemAsync(PROTECTED_FLAG_KEY)) === '1';
+    }
+    return protectedFlag;
+  },
+
+  /**
+   * Synchronous view of the same flag, for the one caller that cannot await
+   * (`relock`). Reads false until `isProtected()` has run once — which the
+   * cold-start path in AuthContext always does, before any re-lock is possible.
+   */
+  isProtectedNow: (): boolean => protectedFlag === true,
+
+  /**
+   * Gated, but not unlocked in this process — so `get()` has nothing to hand
+   * out. `lib/api.ts` needs to tell this apart from being signed out: the first
+   * means "wait for the lock screen", the second means "there is no session".
+   *
+   * Synchronous, so it depends on the flag already having been read — call it
+   * only after a `get()` that came back null, which is exactly what populates
+   * it. Ordering it the other way round would read false on the first request
+   * of the process and let a bare call through.
+   */
+  isLocked: (): boolean => protectedFlag === true && cachedToken === null,
 
   /**
    * Reads the gated item, prompting for biometrics. The single place a prompt
@@ -117,6 +151,7 @@ export const tokenStorage = {
       await SecureStore.deleteItemAsync(PROTECTED_TOKEN_KEY, { keychainService: PROTECTED_SERVICE });
     }
 
+    protectedFlag = enabled;
     cachedToken = token;
     return true;
   },
