@@ -247,17 +247,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * last forever, not to interrupt someone mid-use.
    */
   useEffect(() => {
-    if (locked || !tokenStorage.isProtectedNow()) return;
-    // A session unlocked before this effect ran (the toggle switched on while
-    // the app was open) has no timestamp yet — start its clock now.
-    if (unlockedAt.current === null) unlockedAt.current = Date.now();
+    if (locked || !user) return;
 
     const id = setInterval(() => {
-      const since = unlockedAt.current;
-      if (since !== null && Date.now() - since >= ABSOLUTE_LOCK_AFTER_MS) relock();
+      // Checked per tick rather than up front: switching the feature on from
+      // Account does not change `locked` or `user`, so an effect that decided
+      // this once would never arm the cap for the session that just enabled it.
+      if (!tokenStorage.isProtectedNow()) return;
+      if (unlockedAt.current === null) {
+        // Gate armed while the app was already open — start its clock now.
+        unlockedAt.current = Date.now();
+        return;
+      }
+      if (Date.now() - unlockedAt.current >= ABSOLUTE_LOCK_AFTER_MS) relock();
     }, ABSOLUTE_LOCK_CHECK_MS);
     return () => clearInterval(id);
-  }, [locked, relock]);
+  }, [locked, user, relock]);
 
   // Register the device for push notifications once a session exists (login,
   // register or restore) — the endpoint needs the Bearer token, so this must
