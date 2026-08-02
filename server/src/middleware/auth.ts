@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
+import { getRequestToken } from '../utils/requestToken';
 import prisma from '../utils/db';
 
 export interface AuthRequest extends Request {
@@ -15,10 +16,7 @@ export const authenticateToken = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token =
-      (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null) ??
-      req.cookies.token;
+    const token = getRequestToken(req);
 
     if (!token) {
       res.status(401).json({

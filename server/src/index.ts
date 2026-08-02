@@ -29,12 +29,46 @@ console.log('Environment validation passed. Starting server...');
 
 const app = express();
 
-// Railway (and most PaaS) terminate TLS at a single reverse-proxy hop and
-// forward the client IP in X-Forwarded-For. Trust exactly one hop so req.ip and
-// express-rate-limit key on the real client IP rather than the proxy's — without
-// this, every user shares one rate-limit bucket and rate-limit v7 warns about an
-// unexpected X-Forwarded-For header.
-app.set('trust proxy', 1);
+// How many reverse-proxy hops sit in front of us, i.e. how much of
+// X-Forwarded-For to unwind before req.ip is the real client. Get this wrong and
+// req.ip silently becomes a proxy's address, which poisons both the rate-limit
+// buckets and the security audit log.
+//
+// Production is TWO hops, not one (LIF-240): the browser hits Vercel, whose
+// rewrite in client/vercel.json proxies /api/* to Railway, whose own edge then
+// forwards to this process. Trusting a single hop resolved req.ip to Vercel's
+// egress IP for every browser user, collapsing the whole web user base into one
+// rate-limit bucket. The mobile app calls Railway directly and is one hop, but
+// it is the same deployment — the higher count is what the header chain
+// requires, and trusting one extra hop that isn't there is harmless: express
+// falls back to the leftmost forwarded address.
+//
+// Local dev reaches the server directly (Vite proxy), so one is plenty. Override
+// with TRUST_PROXY_HOPS if the edge topology ever changes.
+const isProduction = process.env.NODE_ENV === 'production';
+const TRUST_PROXY_HOPS = Number(process.env.TRUST_PROXY_HOPS ?? (isProduction ? 2 : 1));
+app.set('trust proxy', TRUST_PROXY_HOPS);
+
+// Diagnostic for confirming the hop count against the real edge chain: logs the
+// raw forwarded header next to the address express resolved from it. Off by
+// default and capped, so leaving it on can't flood the logs.
+if (process.env.LOG_PROXY_DIAGNOSTIC === 'true') {
+  let remaining = 20;
+  app.use((req, _res, next) => {
+    if (remaining > 0) {
+      remaining--;
+      console.log(
+        JSON.stringify({
+          type: 'proxy_diagnostic',
+          xForwardedFor: req.headers['x-forwarded-for'] ?? null,
+          resolvedIp: req.ip,
+          trustProxyHops: TRUST_PROXY_HOPS,
+        })
+      );
+    }
+    next();
+  });
+}
 
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
