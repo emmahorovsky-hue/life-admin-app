@@ -3,6 +3,25 @@ import * as SecureStore from 'expo-secure-store';
 const TOKEN_KEY = 'auth_token';
 
 /**
+ * Every item this module writes is pinned to this device.
+ *
+ * expo-secure-store defaults `keychainAccessible` to `WHEN_UNLOCKED`, and a
+ * Keychain item without `THIS_DEVICE_ONLY` is included in encrypted backups and
+ * restored onto a *new* device. That put the plain token — the default path,
+ * since quick-unlock is opt-in and off — in a class that survives device
+ * migration: a 7-day bearer JWT arriving on hardware the user may no longer
+ * own. The gated item never had this problem (SecAccessControl-protected items
+ * are not migrated), so it was the unprotected majority that was exposed.
+ *
+ * `WHEN_UNLOCKED_THIS_DEVICE_ONLY` rather than the `WHEN_PASSCODE_SET_*`
+ * variant on purpose: the latter deletes the item the moment the user removes
+ * their passcode, which would sign people out rather than protect them.
+ */
+const DEVICE_ONLY: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+};
+
+/**
  * Biometric quick-unlock (LIF-222). When the feature is on the JWT moves to a
  * second Keychain item written with `requireAuthentication`, so the OS itself
  * refuses to return it without Face ID / Touch ID.
@@ -17,6 +36,7 @@ const PROTECTED_SERVICE = 'com.paypr.live.biometric';
 const PROTECTED_OPTIONS: SecureStore.SecureStoreOptions = {
   requireAuthentication: true,
   keychainService: PROTECTED_SERVICE,
+  ...DEVICE_ONLY,
 };
 
 /**
@@ -47,7 +67,39 @@ let cachedToken: string | null = null;
  */
 let protectedFlag: boolean | null = null;
 
+/**
+ * Marks that the plain token has been rewritten under `DEVICE_ONLY`.
+ *
+ * A Keychain item's accessibility is fixed when it is written, so tightening the
+ * constant only helps tokens stored *after* the upgrade — everyone already
+ * signed in would keep a backup-portable copy until they next signed out. There
+ * is no API to read an item's class back, hence a marker rather than a check.
+ */
+const MIGRATED_KEY = 'auth_token_device_only_v1';
+
 export const tokenStorage = {
+  /**
+   * One-off rewrite of a pre-existing plain token into the device-only class.
+   * Runs before the session is restored, and is a no-op after the first success
+   * or when the token is already gated (the protected item was never portable).
+   *
+   * Best-effort on purpose: a failure here must not block launch. The worst case
+   * is that the next attempt tries again.
+   */
+  migrateAccessibility: async (): Promise<void> => {
+    try {
+      if (await SecureStore.getItemAsync(MIGRATED_KEY)) return;
+      const token = await SecureStore.getItemAsync(TOKEN_KEY);
+      if (token) {
+        await SecureStore.deleteItemAsync(TOKEN_KEY);
+        await SecureStore.setItemAsync(TOKEN_KEY, token, DEVICE_ONLY);
+      }
+      await SecureStore.setItemAsync(MIGRATED_KEY, '1', DEVICE_ONLY);
+    } catch {
+      // Leave the marker unset so the next launch retries.
+    }
+  },
+
   /**
    * The token for outgoing requests. Never touches the protected item, so it
    * can never prompt: when the gate is on and we are still locked this returns
@@ -65,7 +117,7 @@ export const tokenStorage = {
       await SecureStore.setItemAsync(PROTECTED_TOKEN_KEY, token, PROTECTED_OPTIONS);
       return;
     }
-    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await SecureStore.setItemAsync(TOKEN_KEY, token, DEVICE_ONLY);
   },
 
   /** Clears both copies — the flag is the only thing that says which is live. */
@@ -142,11 +194,26 @@ export const tokenStorage = {
     if (!token) return false;
 
     if (enabled) {
+      // Delete any stale gated item before writing. The native module falls back
+      // to SecItemUpdate when the key already exists, and updating a
+      // `.biometryCurrentSet` item needs authentication — so without this, a
+      // leftover from an interrupted toggle makes the *next* sign-in fire an
+      // unexplained Face ID prompt, or throw.
+      await SecureStore.deleteItemAsync(PROTECTED_TOKEN_KEY, { keychainService: PROTECTED_SERVICE });
       await SecureStore.setItemAsync(PROTECTED_TOKEN_KEY, token, PROTECTED_OPTIONS);
-      await SecureStore.setItemAsync(PROTECTED_FLAG_KEY, '1');
+      // Plain copy goes before the flag: crashing in this window costs a
+      // re-login (flag off, nothing to read), where the other order would leave
+      // a readable token behind while the app claimed to be gated. A sign-in is
+      // recoverable; a false claim of protection is not.
       await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await SecureStore.setItemAsync(PROTECTED_FLAG_KEY, '1', DEVICE_ONLY);
     } else {
-      await SecureStore.setItemAsync(TOKEN_KEY, token);
+      // Flag before the gated item, and deliberately not the other way round: a
+      // crash between them orphans a biometry-gated copy of a token that is
+      // about to be replaced anyway, whereas dropping the item first would leave
+      // the flag saying "gated" with nothing behind it — a lock screen that can
+      // never open.
+      await SecureStore.setItemAsync(TOKEN_KEY, token, DEVICE_ONLY);
       await SecureStore.deleteItemAsync(PROTECTED_FLAG_KEY);
       await SecureStore.deleteItemAsync(PROTECTED_TOKEN_KEY, { keychainService: PROTECTED_SERVICE });
     }

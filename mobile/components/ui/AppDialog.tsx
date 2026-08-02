@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { radius, spacing } from '@life-admin/shared';
 import { colors } from '../../lib/theme';
+import { useAppActive } from '../../lib/useAppActive';
 import { AppText } from './AppText';
 import { Perforation } from '../Perforation';
 
@@ -46,8 +47,15 @@ export function AppDialog({
   style,
   bodyStyle,
 }: AppDialogProps) {
+  // A Modal presents its own view controller, so the root layout's PrivacyCover
+  // cannot draw over it — an open dialog would be photographed for the app
+  // switcher with its contents intact. Hiding it while the app is not active
+  // keeps that out of the snapshot; the dialog comes back, state and all, on
+  // return, because only `visible` changes here.
+  const appActive = useAppActive();
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible && appActive} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
