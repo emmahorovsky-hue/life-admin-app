@@ -1,25 +1,52 @@
-import { useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { isValidPassword, spacing } from '@life-admin/shared';
-import { AppDialog, AppText, Button, FieldLabel, Input, useToast } from '../ui';
+import {
+  AppText,
+  Button,
+  FieldLabel,
+  FormSheet,
+  SheetInput,
+  useToast,
+  type FormSheetHandle,
+  type OpenableSheetHandle,
+} from '../ui';
 import { changePassword } from '../../lib/profile';
 import { getApiErrorMessage } from '../../lib/utils';
 import { colors } from '../../lib/theme';
 
-interface ChangePasswordDialogProps {
-  visible: boolean;
-  onClose: () => void;
-}
-
-/** RN port of web's ChangePasswordDialog (client/src/components/settings/). */
-export function ChangePasswordDialog({ visible, onClose }: ChangePasswordDialogProps) {
+/** RN port of web's ChangePasswordDialog (client/src/components/settings/), as a sheet. */
+export const ChangePasswordSheet = forwardRef<OpenableSheetHandle>(function ChangePasswordSheet(
+  _props,
+  ref,
+) {
+  const sheet = useRef<FormSheetHandle>(null);
   const toast = useToast();
-  // Mounted only while open (see AccountScreen), so state starts fresh per open.
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // The dialog this replaced was mounted only while open, so the three
+  // plaintext passwords died with it. A sheet lives as long as the screen, so
+  // clear them explicitly rather than leaving them in memory behind a settings
+  // tab. Done on dismiss *and* on open: dismissal is not guaranteed to have run
+  // (the screen can unmount with the sheet still up).
+  const clear = useCallback(() => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setError('');
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    open: () => {
+      clear();
+      setLoading(false);
+      sheet.current?.open();
+    },
+  }));
 
   const handleSubmit = async () => {
     setError('');
@@ -38,8 +65,9 @@ export function ChangePasswordDialog({ visible, onClose }: ChangePasswordDialogP
     setLoading(true);
     try {
       await changePassword({ currentPassword, newPassword });
+      // Dismiss before the toast — the toast host renders beneath the sheet portal.
+      sheet.current?.close();
       toast.success('Password updated');
-      onClose();
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to update password. Please try again.'));
     } finally {
@@ -48,20 +76,26 @@ export function ChangePasswordDialog({ visible, onClose }: ChangePasswordDialogP
   };
 
   return (
-    <AppDialog
-      visible={visible}
-      onClose={onClose}
+    <FormSheet
+      ref={sheet}
       title="Change password"
+      textEntry
+      onDismiss={clear}
       footer={
         <>
-          <Button title="Cancel" variant="outline" disabled={loading} onPress={onClose} />
-          <Button title="Update password" loading={loading} onPress={handleSubmit} />
+          <Button
+            title="Cancel"
+            variant="outline"
+            disabled={loading}
+            onPress={() => sheet.current?.close()}
+          />
+          <Button title="Update password" loading={loading} onPress={() => void handleSubmit()} />
         </>
       }
     >
       <View>
         <FieldLabel>Current password</FieldLabel>
-        <Input
+        <SheetInput
           placeholder="Enter current password"
           value={currentPassword}
           onChangeText={setCurrentPassword}
@@ -72,7 +106,7 @@ export function ChangePasswordDialog({ visible, onClose }: ChangePasswordDialogP
       </View>
       <View style={styles.field}>
         <FieldLabel>New password</FieldLabel>
-        <Input
+        <SheetInput
           placeholder="At least 8 characters"
           value={newPassword}
           onChangeText={setNewPassword}
@@ -86,7 +120,7 @@ export function ChangePasswordDialog({ visible, onClose }: ChangePasswordDialogP
       </View>
       <View style={styles.field}>
         <FieldLabel>Confirm new password</FieldLabel>
-        <Input
+        <SheetInput
           placeholder="Re-enter new password"
           value={confirmPassword}
           onChangeText={setConfirmPassword}
@@ -96,9 +130,9 @@ export function ChangePasswordDialog({ visible, onClose }: ChangePasswordDialogP
         />
       </View>
       {error ? <AppText variant="footnote" style={styles.error}>{error}</AppText> : null}
-    </AppDialog>
+    </FormSheet>
   );
-}
+});
 
 const styles = StyleSheet.create({
   field: { marginTop: spacing.lg },
