@@ -20,6 +20,7 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ToastProvider } from '../components/ui';
 import { BrandSplash } from '../components/BrandSplash';
 import { BiometricLockScreen } from '../components/BiometricLockScreen';
+import { PrivacyCover } from '../components/PrivacyCover';
 import { colors } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -73,20 +74,31 @@ function RootLayoutNav() {
   const handleSplashDone = useCallback(() => setSplashDone(true), []);
   const showBrandSplash = (!splashDone || loading) && (loading || !!user);
 
-  // Re-arm the gate when the app has been away long enough. `relock` no-ops when
-  // the feature is off, so this costs one keychain read per foreground and
-  // nothing else. Timestamped rather than timer-based because a suspended app
-  // does not run timers — elapsed wall-clock is the only honest measure.
+  // Two thresholds, one listener, because they answer different questions.
+  //
+  // The *cover* goes up on 'inactive' — that is precisely when iOS photographs
+  // the app for the switcher, so anything later is too late and the snapshot
+  // shows the dashboard. It is cosmetic, costs nothing, and applies to every
+  // user whether or not quick-unlock is on.
+  //
+  // The *re-lock* only counts real backgrounding, and only past the grace
+  // period. 'inactive' is excluded from it on purpose: iOS reports it for the
+  // app switcher, Control Centre and incoming calls, none of which are leaving
+  // the app, and demanding a face after each would be intolerable.
+  //
+  // Timestamped rather than timer-based because a suspended app does not run
+  // timers — elapsed wall-clock is the only honest measure.
   const backgroundedAt = useRef<number | null>(null);
+  const [covered, setCovered] = useState(false);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
+      setCovered(state !== 'active');
+
       if (state === 'active') {
         const since = backgroundedAt.current;
         backgroundedAt.current = null;
         if (since !== null && Date.now() - since >= RELOCK_AFTER_MS) relock();
       } else if (state === 'background' && backgroundedAt.current === null) {
-        // 'inactive' is excluded on purpose: iOS reports it for the app switcher,
-        // Control Centre and incoming calls, none of which are leaving the app.
         backgroundedAt.current = Date.now();
       }
     });
@@ -146,6 +158,8 @@ function RootLayoutNav() {
       {/* Last sibling, so it covers the tab bar and the splash alike. Outside the
           SafeAreaView for the same reason BrandSplash is: it fills the screen. */}
       {locked && <BiometricLockScreen />}
+      {/* Last of all — the switcher snapshot must not catch anything above it. */}
+      {covered && <PrivacyCover />}
     </View>
   );
 }

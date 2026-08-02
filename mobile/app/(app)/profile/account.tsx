@@ -17,7 +17,13 @@ import { AppText, Button, Card, Switch, useToast } from '../../../components/ui'
 import { colors } from '../../../lib/theme';
 import { SCREEN_PAD } from '../../../lib/quiet';
 import { useTabBarInset } from '../../../lib/useTabBarInset';
-import { biometricPref, confirm, getLabel, isAvailable, type BiometricLabel } from '../../../lib/biometrics';
+import {
+  biometricPref,
+  getLabel,
+  isAvailable,
+  setQuickUnlock,
+  type BiometricLabel,
+} from '../../../lib/biometrics';
 import { tokenStorage } from '../../../lib/storage';
 
 type AccountModal = null | 'name' | 'email' | 'password';
@@ -81,19 +87,21 @@ function useBiometricUnlock(userId: string | undefined) {
     if (!userId) return;
     setSaving(true);
     try {
-      // Confirm before turning it on, never after: the user should find out it
-      // works now, not at next launch when it is the only way in.
-      if (next && !(await confirm(`Confirm it's you to unlock Paypr with ${label}.`))) return;
-
-      if (!(await tokenStorage.setProtected(next))) {
+      // Shared with the post-sign-in offer (lib/biometrics.ts) so the gated
+      // token and the stored preference can never be written by one path and
+      // not the other. The confirm-before-enabling prompt lives in there too.
+      const result = await setQuickUnlock(userId, next, label);
+      if (result === 'cancelled') return;
+      if (result === 'no-session') {
         toast.error('Could not update the setting — please sign in again.');
         return;
       }
-      await biometricPref.set(userId, next);
+      if (result === 'error') {
+        toast.error('Could not update the setting. Please try again.');
+        return;
+      }
       setEnabled(next);
       toast.success(next ? `${label} unlock is on.` : `${label} unlock is off.`);
-    } catch {
-      toast.error('Could not update the setting. Please try again.');
     } finally {
       setSaving(false);
     }

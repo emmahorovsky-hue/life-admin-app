@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { AppState, Modal, StyleSheet, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { getLabel, type BiometricLabel } from '../lib/biometrics';
 import { colors } from '../lib/theme';
@@ -18,6 +18,13 @@ import { AppText, Button } from './ui';
  * whatever route the router restored and nothing authenticated can paint behind
  * it. Cancelling leaves the user here — there is deliberately no path onward
  * except unlocking or signing out.
+ *
+ * A `Modal`, not a plain absolute fill, because `AppDialog` is one too: an RN
+ * Modal presents its own view controller, which no `zIndex` in the root view can
+ * outrank. As a sibling `View` this screen appeared *underneath* any open
+ * dialog — open one in Settings, background the app past the grace period, and
+ * the dialog came back interactive on top of the lock. `onRequestClose` is a
+ * deliberate no-op: Android's back button must not dismiss the gate.
  */
 export function BiometricLockScreen() {
   const { unlock, logout } = useAuth();
@@ -76,36 +83,52 @@ export function BiometricLockScreen() {
   }, [attempt, busy]);
 
   return (
-    <View style={styles.screen}>
-      <Wordmark size={44} />
-      <View style={styles.rule} />
+    <Modal visible animationType="none" onRequestClose={() => {}}>
+      <View style={styles.screen}>
+        <Wordmark size={44} />
+        <View style={styles.rule} />
 
-      <AppText variant="footnote" style={styles.message}>
-        {failed
-          ? `Paypr is locked. Unlock with ${label}, or sign in again with your password.`
-          : `Paypr is locked. Unlock with ${label} to continue.`}
-      </AppText>
+        <AppText variant="footnote" style={styles.message}>
+          {failed
+            ? `Paypr is locked. Unlock with ${label}, or sign in again with your password.`
+            : `Paypr is locked. Unlock with ${label} to continue.`}
+        </AppText>
 
-      <Button
-        title={busy ? 'Unlocking…' : `Unlock with ${label}`}
-        onPress={attempt}
-        loading={busy}
-        style={styles.action}
-      />
-      <Button title="Sign out" variant="outline" onPress={logout} style={styles.action} />
-    </View>
+        <Button
+          title={busy ? 'Unlocking…' : `Unlock with ${label}`}
+          onPress={attempt}
+          loading={busy}
+          style={styles.action}
+        />
+        <Button title="Sign out" variant="outline" onPress={logout} style={styles.action} />
+
+        {/* Only after a failure, because that is when it might be true. Signing
+            out revokes the session on the server — but doing so needs the token,
+            and the token is behind the gate that just refused. Adding a face or
+            finger invalidates the Keychain item permanently, so in that case the
+            sign-out is local only and the session stays live elsewhere until it
+            expires. Better to say so than to imply an account-wide revoke that
+            did not happen (LIF-174). */}
+        {failed && (
+          <AppText variant="caption" style={styles.caveat}>
+            If {label} has stopped working entirely, signing out here only clears this device.
+            Sign out at paypr.live to end sessions everywhere.
+          </AppText>
+        )}
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  // Fills the Modal's own view controller, so no absolute positioning or zIndex
+  // is needed — being a Modal at all is what puts it above everything.
   screen: {
-    ...StyleSheet.absoluteFill,
+    flex: 1,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SCREEN_PAD,
-    // Above the tab bar and the brand splash, both of which sit at 100.
-    zIndex: 200,
   },
   rule: { width: 104, height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginTop: 24 },
   message: {
@@ -117,4 +140,11 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
   },
   action: { alignSelf: 'stretch', marginTop: 10 },
+  caveat: {
+    marginTop: 20,
+    maxWidth: 280,
+    textAlign: 'center',
+    lineHeight: 16,
+    color: colors.softMuted,
+  },
 });
