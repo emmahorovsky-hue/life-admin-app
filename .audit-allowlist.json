@@ -1,0 +1,41 @@
+{
+  "$comment": [
+    "Advisories the CI security gate is allowed to ignore. See scripts/audit-gate.mjs.",
+    "",
+    "An entry belongs here ONLY when there is no published fix to upgrade or",
+    "override to, AND the vulnerable code path is unreachable from this app.",
+    "If a patched version exists, pin it via `overrides` in package.json instead —",
+    "do not add it here.",
+    "",
+    "Every entry needs an `expires` date. On that date the gate starts failing",
+    "again, forcing a re-evaluation. That is deliberate: this file must not become",
+    "a place where advisories go to be forgotten."
+  ],
+  "allow": [
+    {
+      "id": "GHSA-qwww-vcr4-c8h2",
+      "package": "react-router / react-router-dom",
+      "title": "React Router: RSC Mode CSRF Bypass Allows Action Execution Before 400 Response",
+      "url": "https://github.com/advisories/GHSA-qwww-vcr4-c8h2",
+      "expires": "2026-11-01",
+      "reason": [
+        "No published fix exists. The advisory names 8.3.0 as the first patched",
+        "version, but react-router-dom has never published ANY 8.x release —",
+        "latest is 7.18.2 across all dist-tags (checked 2026-08-01). There is",
+        "nothing to upgrade to and nothing to pin via `overrides`. npm's only",
+        "proposal is a downgrade to 7.11.0, which discards seven minors of fixes.",
+        "",
+        "The vulnerable code path is unreachable here. The advisory is in RSC",
+        "server-action handling; this client is a plain SPA — client/src/App.tsx",
+        "uses BrowserRouter, and there is no @react-router/dev, @react-router/node",
+        "or @react-router/serve anywhere, no RSC mode, no server actions, no",
+        "framework mode. The version matcher flags us on range alone.",
+        "",
+        "Review on expiry: if react-router 8.3.0 has shipped, upgrade and delete",
+        "this entry (that is a semver-major with breaking route-API changes — see",
+        "LIF-215). If it still has not, re-confirm the SPA-only assumption above",
+        "still holds and extend."
+      ]
+    }
+  ]
+}

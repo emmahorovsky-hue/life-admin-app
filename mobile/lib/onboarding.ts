@@ -7,13 +7,14 @@
 // `shouldShowSetup`/`shouldShowResumeRow` also take `hasSubscriptions`, which
 // comes from the server, and that is what actually settles it. Same as web.
 //
-// Not to be confused with lib/introSeen.ts — the logged-out photo carousel.
+// Not to be confused with the logged-out photo carousel (app/(auth)/onboarding.tsx),
+// which is shown on every launch and keeps no per-device flag of its own.
 
 import { useCallback, useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 
-// SecureStore rather than AsyncStorage for the same reason introSeen gives:
-// it's the store already in the tree, and none of this is worth a dependency.
+// SecureStore rather than AsyncStorage because it's the store already in the
+// tree (tokenStorage uses it), and none of this is worth a new dependency.
 const SETUP_KEY = 'first_run_setup_v1';
 
 export type SetupStatus = 'pending' | 'skipped' | 'done';

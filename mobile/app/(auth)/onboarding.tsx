@@ -16,7 +16,6 @@ import { colors } from '../../lib/theme';
 import { SCREEN_PAD } from '../../lib/quiet';
 import { AppText, Button, ScreenTitle } from '../../components/ui';
 import { Wordmark } from '../../components/Wordmark';
-import { useIntroSeen } from '../../lib/introSeen';
 
 type Reel = {
   photo: ImageSourcePropType;
@@ -43,16 +42,18 @@ const REELS: Reel[] = [
 ];
 
 /**
- * First-run onboarding — the 1d "Sheet" layout (LIF-218). Reached only by a
- * logged-out visitor who hasn't seen it; `app/(app)/_layout.tsx` owns that
- * decision. Every exit marks the flag before navigating, so Skip counts as
- * seen — the reel is a welcome, not a gate.
+ * The logged-out home — the 1d "Sheet" layout (LIF-218). Every logged-out
+ * visitor lands here, every launch; `app/(app)/_layout.tsx` owns that redirect.
+ * It was once a first-run gate behind a per-device "seen" flag, but the reel is
+ * a welcome, not a gate: it now also serves as the surface the auth modals are
+ * presented over, which is what gives their X somewhere to dismiss to.
+ *
+ * All three exits (Skip and the two CTAs) open the same auth modal.
  */
 export default function OnboardingScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { markSeen } = useIntroSeen();
   const [index, setIndex] = useState(0);
   const list = useRef<FlatList<Reel>>(null);
   const leaving = useRef(false);
@@ -65,22 +66,15 @@ export default function OnboardingScreen() {
   }, []));
 
   const leave = useCallback(
-    async (mode: 'signin' | 'signup') => {
+    (mode: 'signin' | 'signup') => {
       if (leaving.current) return; // a double-tap must not stack two screens
       leaving.current = true;
-      try {
-        await markSeen();
-      } catch {
-        // Deliberately swallowed. This screen is only reachable by redirect and
-        // has no back gesture, so these three buttons are the only way out: a
-        // failed keychain write must cost a repeat of onboarding, never the exit.
-      }
       // `push`, not `replace`, so the carousel stays mounted beneath the auth
       // modal — the X (and the swipe-down) then dismiss to it (LIF-221). Both
       // CTAs open the one `login` route; `mode=signup` picks the sign-up form.
       router.push(mode === 'signup' ? { pathname: '/(auth)/login', params: { mode: 'signup' } } : '/(auth)/login');
     },
-    [markSeen, router],
+    [router],
   );
 
   const renderReel = useCallback(

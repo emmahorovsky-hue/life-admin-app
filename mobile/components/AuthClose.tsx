@@ -6,14 +6,14 @@ import { colors } from '../lib/theme';
 import { SCREEN_PAD } from '../lib/quiet';
 
 /**
- * Top-left close on the auth modal — the way back to the onboarding carousel
- * (LIF-221). Login is presented as a modal over the carousel, so this dismisses
- * it downward.
+ * Top-left close on the auth modal — the way back to the carousel (LIF-221).
+ * Login is presented as a modal over it, so this dismisses downward.
  *
- * A returning user is sent straight to login as the stack root, with no carousel
- * beneath: there is nothing to go back *to*, so the button doesn't render rather
- * than inventing a destination — an X that opens a first-run carousel the user
- * already dismissed is worse than no X.
+ * The carousel is the logged-out home on every launch, so there is always
+ * something to go back to and this button always renders. The one path that
+ * arrives without a carousel beneath is a cold-start deep link straight to
+ * login (an email verification link) — there we navigate to the carousel rather
+ * than dismiss, which lands the user in the same place either way.
  *
  * Absolutely positioned so it overlays the vertically-centred form without
  * shifting it, and it sits below the top safe-area inset the root `SafeAreaView`
@@ -21,12 +21,18 @@ import { SCREEN_PAD } from '../lib/quiet';
  */
 export function AuthClose() {
   const router = useRouter();
-  // Stack depth beneath a given modal doesn't change while it's up, so reading
-  // this at render (rather than on press) is stable for this screen's lifetime.
-  if (!router.canDismiss()) return null;
+  // `canGoBack`/`back` rather than `canDismiss`/`dismissAll`: they are a matched
+  // pair, both resolving against the focused navigator. The dismiss pair is not
+  // — `canDismiss` walks *down* the state tree and reports true if any stack has
+  // depth, while `dismissAll` queues a POP_TO_TOP that the root Stack (a single
+  // route, `(auth)`) can absorb. Popping one modal is what we mean anyway.
+  const close = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(auth)/onboarding');
+  };
   return (
     <Pressable
-      onPress={() => router.dismissAll()}
+      onPress={close}
       accessibilityRole="button"
       accessibilityLabel="Back to intro"
       hitSlop={8}
@@ -41,11 +47,11 @@ const styles = StyleSheet.create({
   button: {
     position: 'absolute',
     top: spacing.sm,
-    // A 40pt centred tap target, nudged left so the glyph — not the box edge —
-    // lines up with the screen padding the form content uses.
-    left: SCREEN_PAD - 8,
-    width: 40,
-    height: 40,
+    // A 44pt centred tap target — the iOS minimum — nudged left so the glyph,
+    // not the box edge, lines up with the screen padding the form content uses.
+    left: SCREEN_PAD - 10,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
