@@ -74,8 +74,9 @@ export function logSecurityEvent(
     type: 'security_event',
     event,
     timestamp: new Date().toISOString(),
-    // `trust proxy` is set in index.ts, so req.ip is the real client IP
-    // behind Railway's proxy.
+    // The real client IP, provided `trust proxy` in index.ts still matches the
+    // number of edge hops in front of this process — if it drifts, every entry
+    // here silently records a proxy's address instead (LIF-240).
     ip: req.ip,
     userAgent: req.get('user-agent'),
     ...(userId !== undefined && { userId }),
