@@ -1,14 +1,18 @@
 /**
- * Starter directory for the Service autocomplete in the subscription modal.
- * Selecting a suggestion autofills name + category + cost + billing cycle.
- * Costs are monthly. This can later be sourced from an API.
+ * Starter directory of well-known services, and the matcher over it.
+ *
+ * Two consumers hardcoded the identical 16 rows — the web subscription modal's
+ * Service autocomplete and mobile's (LIF-224 needed a third for the first-run
+ * setup sheet). It is plain data with no React in it, so it belongs here rather
+ * than in a third copy. Selecting an entry autofills name + category + cost +
+ * billing cycle. Costs are monthly. This can later be sourced from an API.
  */
 export interface ServiceSuggestion {
   name: string;
-  /** Category id — aligns with CATEGORY_IDS in @life-admin/shared. */
+  /** Category id — aligns with CATEGORY_IDS in ./subscriptions. */
   category: string;
   cost: number;
-  /** Billing-cycle id — aligns with billingCycles in @life-admin/shared. */
+  /** Billing-cycle id — aligns with BILLING_CYCLES in ./subscriptions. */
   cycle: string;
 }
 

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { PaperSheet } from '@/components/PaperSheet';
 import { PayprMark } from '@/components/PayprMark';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
-import { SUBSCRIPTION_SUGGESTIONS } from '@/components/subscription-modal/suggestions';
+import { SUBSCRIPTION_SUGGESTIONS } from '@life-admin/shared';
 import { subscriptionApi } from '@/lib/subscriptions';
 import { formatCurrency, DEFAULT_CURRENCY } from '@/lib/currency';
 import { getApiErrorMessage, cn } from '@/lib/utils';

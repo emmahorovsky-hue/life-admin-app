@@ -4,6 +4,7 @@ export * from './types/subscription';
 export * from './types/dashboard';
 export * from './constants/app';
 export * from './constants/extraction';
+export * from './constants/services';
 export * from './constants/subscriptions';
 export * from './tokens';
 export * from './utils/currency';
