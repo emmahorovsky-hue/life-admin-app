@@ -6,14 +6,21 @@ import { hairline, radius, spacing } from '@life-admin/shared';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AvatarTile } from '../../../components/settings/AvatarTile';
 import { SettingsDetailHeader } from '../../../components/settings/SettingsDetailHeader';
-import { EditNameDialog } from '../../../components/settings/EditNameDialog';
-import { ChangeEmailDialog } from '../../../components/settings/ChangeEmailDialog';
-import { ChangePasswordDialog } from '../../../components/settings/ChangePasswordDialog';
+import { EditNameSheet } from '../../../components/settings/EditNameSheet';
+import { ChangeEmailSheet } from '../../../components/settings/ChangeEmailSheet';
+import { ChangePasswordSheet } from '../../../components/settings/ChangePasswordSheet';
 import {
   DefaultCurrencySheet,
   DefaultCurrencySheetHandle,
 } from '../../../components/settings/DefaultCurrencySheet';
-import { AppText, Button, Card, Switch, useToast } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  Card,
+  Switch,
+  useToast,
+  type OpenableSheetHandle,
+} from '../../../components/ui';
 import { colors } from '../../../lib/theme';
 import { SCREEN_PAD } from '../../../lib/quiet';
 import { useTabBarInset } from '../../../lib/useTabBarInset';
@@ -25,8 +32,6 @@ import {
   type BiometricLabel,
 } from '../../../lib/biometrics';
 import { tokenStorage } from '../../../lib/storage';
-
-type AccountModal = null | 'name' | 'email' | 'password';
 
 /**
  * Dotted row separator — same iOS quirk as Perforation: borderStyle only
@@ -113,7 +118,9 @@ function useBiometricUnlock(userId: string | undefined) {
 export default function AccountScreen() {
   const { user } = useAuth();
   const tabBarInset = useTabBarInset();
-  const [modal, setModal] = useState<AccountModal>(null);
+  const nameSheetRef = useRef<OpenableSheetHandle>(null);
+  const emailSheetRef = useRef<OpenableSheetHandle>(null);
+  const passwordSheetRef = useRef<OpenableSheetHandle>(null);
   const currencySheetRef = useRef<DefaultCurrencySheetHandle>(null);
   const biometric = useBiometricUnlock(user?.id);
 
@@ -148,7 +155,12 @@ export default function AccountScreen() {
                 {displayName}
               </AppText>
             </View>
-            <Button title="Edit" variant="outline" size="sm" onPress={() => setModal('name')} />
+            <Button
+              title="Edit"
+              variant="outline"
+              size="sm"
+              onPress={() => nameSheetRef.current?.open()}
+            />
           </View>
 
           <DottedRule />
@@ -165,7 +177,12 @@ export default function AccountScreen() {
                 </View>
               )}
             </View>
-            <Button title="Change" variant="outline" size="sm" onPress={() => setModal('email')} />
+            <Button
+              title="Change"
+              variant="outline"
+              size="sm"
+              onPress={() => emailSheetRef.current?.open()}
+            />
           </View>
 
           <DottedRule />
@@ -178,7 +195,7 @@ export default function AccountScreen() {
               title="Change password"
               variant="outline"
               size="sm"
-              onPress={() => setModal('password')}
+              onPress={() => passwordSheetRef.current?.open()}
             />
           </View>
 
@@ -225,11 +242,11 @@ export default function AccountScreen() {
         </Card>
       </ScrollView>
 
-      {/* Mounted only while open so each open starts with fresh form state. */}
-      {modal === 'name' && <EditNameDialog visible onClose={() => setModal(null)} />}
-      {modal === 'email' && <ChangeEmailDialog visible onClose={() => setModal(null)} />}
-      {modal === 'password' && <ChangePasswordDialog visible onClose={() => setModal(null)} />}
-
+      {/* Ref-driven and always mounted. Each sheet seeds its own form state in
+          open(), which is what the conditional mounting used to give for free. */}
+      <EditNameSheet ref={nameSheetRef} />
+      <ChangeEmailSheet ref={emailSheetRef} />
+      <ChangePasswordSheet ref={passwordSheetRef} />
       <DefaultCurrencySheet ref={currencySheetRef} />
     </View>
   );
