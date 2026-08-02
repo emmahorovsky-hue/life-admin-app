@@ -19,9 +19,9 @@ import {
 import { subscriptionApi } from '../lib/subscriptions';
 import { getApiErrorMessage } from '../lib/utils';
 import { ExtractionLoadingOverlay } from './ExtractionLoadingOverlay';
-import { AppText, useToast } from './ui';
+import { AppText, GlassSheetBackground, useToast } from './ui';
 import { colors } from '../lib/theme';
-import { SHEET_BACKGROUND, SHEET_HANDLE } from '../lib/quiet';
+import { SHEET_BACKDROP_OPACITY, SHEET_HANDLE } from '../lib/quiet';
 
 export interface ReceiptScanChooserHandle {
   /** Open the "add a subscription" chooser. */
@@ -68,7 +68,12 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+        <BottomSheetBackdrop
+          {...props}
+          appearsOnIndex={0}
+          disappearsOnIndex={-1}
+          opacity={SHEET_BACKDROP_OPACITY}
+        />
       ),
       [],
     );
@@ -127,7 +132,7 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
         <BottomSheetModal
           ref={sheetRef}
           backdropComponent={renderBackdrop}
-          backgroundStyle={SHEET_BACKGROUND}
+          backgroundComponent={GlassSheetBackground}
           handleIndicatorStyle={SHEET_HANDLE}
         >
           <BottomSheetView

@@ -8,11 +8,12 @@ import {
   useState,
 } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
-import { radius, spacing } from '@life-admin/shared';
+import Animated, { FadeOutDown, Keyframe } from 'react-native-reanimated';
+import { spacing } from '@life-admin/shared';
 import { colors } from '../../lib/theme';
 import { useTabBarInset } from '../../lib/useTabBarInset';
 import { AppText } from './AppText';
+import { GlassSurface } from './GlassSurface';
 
 type ToastVariant = 'success' | 'error';
 
@@ -30,6 +31,17 @@ interface ToastApi {
 const ToastContext = createContext<ToastApi | null>(null);
 
 const AUTO_DISMISS_MS = 2500;
+
+// Translate-only entrance, because `opacity: 0` disables glass rendering
+// entirely: with a fade, frame 1 has no glass and the toast pops into being
+// instead of materialising. Kept to a short 24pt travel rather than reanimated's
+// SlideInDown, which starts at the screen edge and would drag the toast up
+// across the tab bar. The exit stays a fade — the glass is already on screen by
+// then, and fading is the dismissal the app has always had.
+const ToastEnter = new Keyframe({
+  0: { transform: [{ translateY: 24 }] },
+  100: { transform: [{ translateY: 0 }] },
+}).duration(220);
 
 const accents: Record<ToastVariant, { label: string; color: string }> = {
   success: { label: 'OK', color: colors.success },
@@ -79,24 +91,27 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           pointerEvents="box-none"
           style={[styles.region, { bottom: tabBarInset }]}
         >
+          {/* The animated wrapper stays *outside* the glass — see ToastEnter. */}
           <Animated.View
             key={toast.id}
-            entering={FadeInDown.duration(200)}
+            entering={ToastEnter}
             exiting={FadeOutDown.duration(150)}
           >
-            <Pressable
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              onPress={dismiss}
-              style={styles.card}
-            >
-              <AppText variant="monoLabel" style={{ color: accents[toast.variant].color }}>
-                {accents[toast.variant].label}
-              </AppText>
-              <AppText variant="body" weight={600} style={styles.message} numberOfLines={2}>
-                {toast.message}
-              </AppText>
-            </Pressable>
+            <GlassSurface role="floating" style={styles.card}>
+              <Pressable
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                onPress={dismiss}
+                style={styles.cardInner}
+              >
+                <AppText variant="monoLabel" style={{ color: accents[toast.variant].color }}>
+                  {accents[toast.variant].label}
+                </AppText>
+                <AppText variant="body" weight={600} style={styles.message} numberOfLines={2}>
+                  {toast.message}
+                </AppText>
+              </Pressable>
+            </GlassSurface>
           </Animated.View>
         </View>
       )}
@@ -117,22 +132,16 @@ const styles = StyleSheet.create({
     right: spacing.lg,
     alignItems: 'center',
   },
-  card: {
+  // Layout only — the paint (white, ink hairline, shadow) and the 2px corner
+  // live in GlassSurface's `floating` role, which is where the glass branch
+  // swaps them for a tinted refraction.
+  card: { maxWidth: 448 },
+  cardInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    maxWidth: 448,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.foreground,
-    borderRadius: radius.base,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    shadowColor: colors.foreground,
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
   message: { flexShrink: 1 },
 });

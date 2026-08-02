@@ -4,6 +4,7 @@ export { Button, type ButtonProps } from './Button';
 export { Card, type CardProps } from './Card';
 export { FieldLabel } from './FieldLabel';
 export {
+  GlassSheetBackground,
   GlassSurface,
   useGlassEnabled,
   type GlassRole,

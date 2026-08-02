@@ -9,11 +9,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { currencies, radius, spacing } from '@life-admin/shared';
 import { useAuth } from '../../contexts/AuthContext';
-import { AppText, useToast } from '../ui';
+import { AppText, GlassSheetBackground, useToast } from '../ui';
 import { updateProfile } from '../../lib/profile';
 import { getApiErrorMessage } from '../../lib/utils';
 import { colors, fonts } from '../../lib/theme';
-import { SHEET_BACKGROUND, SHEET_HANDLE } from '../../lib/quiet';
+import { SHEET_BACKDROP_OPACITY, SHEET_HANDLE } from '../../lib/quiet';
 
 export interface DefaultCurrencySheetHandle {
   open: () => void;
@@ -62,7 +62,12 @@ export const DefaultCurrencySheet = forwardRef<DefaultCurrencySheetHandle>(
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+        <BottomSheetBackdrop
+          {...props}
+          appearsOnIndex={0}
+          disappearsOnIndex={-1}
+          opacity={SHEET_BACKDROP_OPACITY}
+        />
       ),
       [],
     );
@@ -71,7 +76,7 @@ export const DefaultCurrencySheet = forwardRef<DefaultCurrencySheetHandle>(
       <BottomSheetModal
         ref={sheetRef}
         backdropComponent={renderBackdrop}
-        backgroundStyle={SHEET_BACKGROUND}
+        backgroundComponent={GlassSheetBackground}
         handleIndicatorStyle={SHEET_HANDLE}
       >
         <BottomSheetView style={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}>
