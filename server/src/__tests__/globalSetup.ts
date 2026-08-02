@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { defaultBaseUrl, withDatabase, databaseName } from './testDb';
 
 // Run once for the entire jest process — not per test file.
@@ -19,7 +20,7 @@ export default async function globalSetup() {
   // CREATE DATABASE must be issued from a connection to a different database —
   // use the "postgres" maintenance DB on the same server.
   const admin = new PrismaClient({
-    datasources: { db: { url: withDatabase(baseUrl, 'postgres') } },
+    adapter: new PrismaPg({ connectionString: withDatabase(baseUrl, 'postgres') }),
   });
   try {
     await admin.$executeRawUnsafe(`CREATE DATABASE "${runDbName}"`);

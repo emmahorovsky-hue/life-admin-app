@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { withDatabase } from './testDb';
 
 // Drops the per-run database created by globalSetup. Runs in the same process,
@@ -10,7 +11,7 @@ export default async function globalTeardown() {
   if (!runDbName || !process.env.DATABASE_URL) return;
 
   const admin = new PrismaClient({
-    datasources: { db: { url: withDatabase(process.env.DATABASE_URL, 'postgres') } },
+    adapter: new PrismaPg({ connectionString: withDatabase(process.env.DATABASE_URL, 'postgres') }),
   });
   try {
     // FORCE (Postgres 13+) terminates any connection a worker left behind.
