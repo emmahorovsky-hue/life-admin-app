@@ -41,6 +41,7 @@ import { getApiErrorMessage } from '../lib/utils';
 import { SubscriptionLogo } from './SubscriptionLogo';
 import { AppText, Button, FieldLabel } from './ui';
 import { colors, fonts, textStyles } from '../lib/theme';
+import { SHEET_BACKGROUND, SHEET_HANDLE } from '../lib/quiet';
 
 // Segmented billing control — 4 canonical cycles. Legacy 'annual' maps to 'yearly'.
 const CYCLE_SEGMENTS = [
@@ -273,8 +274,8 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
         keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={{ backgroundColor: colors.border }}
+        backgroundStyle={SHEET_BACKGROUND}
+        handleIndicatorStyle={SHEET_HANDLE}
       >
         <BottomSheetScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <AppText variant="title" style={styles.title}>{mode === 'add' ? 'Add subscription' : 'Edit subscription'}</AppText>
@@ -547,7 +548,6 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
 );
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: colors.background },
   content: { padding: 22, paddingBottom: 48 },
   title: { color: colors.foreground, marginBottom: 16 },
 

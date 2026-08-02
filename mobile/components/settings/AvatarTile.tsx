@@ -15,6 +15,7 @@ import { avatarAssetError, deleteAvatar, uploadAvatar, useAvatarSource } from '.
 import { getApiErrorMessage } from '../../lib/utils';
 import { AppText, useToast } from '../ui';
 import { colors, fonts } from '../../lib/theme';
+import { SHEET_BACKGROUND, SHEET_HANDLE } from '../../lib/quiet';
 
 // Pixel twins of the web tile's md/lg variants (client AvatarTile.tsx).
 const sizes = {
@@ -151,8 +152,8 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
       <BottomSheetModal
         ref={sheetRef}
         backdropComponent={renderBackdrop}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={{ backgroundColor: colors.border }}
+        backgroundStyle={SHEET_BACKGROUND}
+        handleIndicatorStyle={SHEET_HANDLE}
       >
         <BottomSheetView
           accessibilityLabel="Photo options"
@@ -206,8 +207,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandOrange,
   },
   badgeBusy: { opacity: 0.6 },
-
-  sheetBackground: { backgroundColor: colors.card, borderRadius: radius.base },
   sheetContent: { paddingTop: spacing.sm, paddingHorizontal: spacing.sm },
   menuRow: {
     minHeight: 52,

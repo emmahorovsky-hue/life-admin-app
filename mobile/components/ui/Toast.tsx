@@ -9,9 +9,9 @@ import {
 } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { radius, spacing } from '@life-admin/shared';
 import { colors } from '../../lib/theme';
+import { useTabBarInset } from '../../lib/useTabBarInset';
 import { AppText } from './AppText';
 
 type ToastVariant = 'success' | 'error';
@@ -30,9 +30,6 @@ interface ToastApi {
 const ToastContext = createContext<ToastApi | null>(null);
 
 const AUTO_DISMISS_MS = 2500;
-// Clears the tab bar (49pt) with a small gap; on tabless screens (auth) the
-// toast simply floats a little higher, which is fine.
-const TAB_BAR_CLEARANCE = 61;
 
 const accents: Record<ToastVariant, { label: string; color: string }> = {
   success: { label: 'OK', color: colors.success },
@@ -46,7 +43,11 @@ const accents: Record<ToastVariant, { label: string; color: string }> = {
  * auto-dismisses, tap dismisses early.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const insets = useSafeAreaInsets();
+  // Shares the tab bar's own geometry rather than a hard-coded clearance. The
+  // old constant (61) assumed a 49pt bar and predated the glass pill, which
+  // sits at max(insets.bottom - 16, 12) and is 58 tall: on a device with
+  // insets.bottom === 0 the toast rendered 9pt *behind* the bar.
+  const tabBarInset = useTabBarInset();
   const [toast, setToast] = useState<ToastState | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextId = useRef(0);
@@ -76,7 +77,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toast && (
         <View
           pointerEvents="box-none"
-          style={[styles.region, { bottom: insets.bottom + TAB_BAR_CLEARANCE }]}
+          style={[styles.region, { bottom: tabBarInset }]}
         >
           <Animated.View
             key={toast.id}

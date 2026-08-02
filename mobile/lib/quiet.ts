@@ -27,6 +27,27 @@ export const ROW_PAD_V = 15;
  *  earn their place; Dashboard and Timeline are dot-led renewal lists. */
 export const ROW_LOGO = 36;
 
+// ── Bottom sheets ────────────────────────────────────────────────────────────
+// The six BottomSheetModals used to disagree: four took `colors.background`,
+// two took `colors.card` and pinned `borderRadius: radius.base` (2), so the app
+// shipped two different sheet corners — 15pt on four, near-square on two. The
+// colour difference was invisible on Snow-vs-white, but the corner was not.
+// Unified on gorhom's 15pt default (LIF-223); glass needs one seam, not two.
+
+/** Corner radius for every bottom sheet. Matches @gorhom/bottom-sheet's own
+ *  default, so the four sheets that never overrode it are unchanged. */
+export const SHEET_RADIUS = 15;
+
+/** Sheet background. `GlassSurface role="sheet"` falls back to exactly this. */
+export const SHEET_BACKGROUND = {
+  backgroundColor: colors.background,
+  borderRadius: SHEET_RADIUS,
+} as const;
+
+/** Drag handle. Hoisted out of the five per-render object literals it used to
+ *  be allocated as. */
+export const SHEET_HANDLE = { backgroundColor: colors.border } as const;
+
 export const quiet = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
 
