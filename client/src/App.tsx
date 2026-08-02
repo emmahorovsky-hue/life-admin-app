@@ -40,79 +40,80 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 function App() {
   return (
     <AuthProvider>
-      {/* ThemeProvider sits under AuthProvider so it can adopt the server theme
-          preference, and under Router so it can read the route — marketing and
-          pre-login paths are light-only (see lib/themeRoutes.ts). It still wraps
-          everything rendered, Toaster included. */}
       <Router>
-      <ThemeProvider>
-        <Suspense fallback={<LoadingScreen />}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-email/success" element={<VerifyEmailSuccess />} />
-            <Route path="/verify-email/error" element={<VerifyEmailError />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/subscriptions"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Subscriptions />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/timeline"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Timeline />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <SettingsShell />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<SettingsIndexOrRedirect />} />
-              <Route path="account" element={<AccountPanel />} />
-              <Route path="notifications" element={<NotificationsPanel />} />
-              <Route path="appearance" element={<AppearancePanel />} />
-              <Route path="privacy" element={<PrivacyPanel />} />
-            </Route>
-            {/* Permanent redirect: bookmarks and email-change confirmation
-                links (web + already-sent emails) still target /profile. */}
-            <Route path="/profile" element={<ProfileRedirect />} />
-            {import.meta.env.DEV && (
-              <Route path="/design-system" element={<DesignSystem />} />
-            )}
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/" element={<Landing />} />
-          </Routes>
-        </Suspense>
-        <Toaster />
-      </ThemeProvider>
+        {/* ThemeProvider sits under AuthProvider so it can adopt the server
+            theme preference, and under Router so it can read the route —
+            marketing and pre-login paths are light-only (see
+            lib/themeRoutes.ts). It still wraps everything rendered, Toaster
+            included. */}
+        <ThemeProvider>
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/verify-email/success" element={<VerifyEmailSuccess />} />
+              <Route path="/verify-email/error" element={<VerifyEmailError />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Dashboard />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/subscriptions"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Subscriptions />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/timeline"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Timeline />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <SettingsShell />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<SettingsIndexOrRedirect />} />
+                <Route path="account" element={<AccountPanel />} />
+                <Route path="notifications" element={<NotificationsPanel />} />
+                <Route path="appearance" element={<AppearancePanel />} />
+                <Route path="privacy" element={<PrivacyPanel />} />
+              </Route>
+              {/* Permanent redirect: bookmarks and email-change confirmation
+                  links (web + already-sent emails) still target /profile. */}
+              <Route path="/profile" element={<ProfileRedirect />} />
+              {import.meta.env.DEV && (
+                <Route path="/design-system" element={<DesignSystem />} />
+              )}
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/" element={<Landing />} />
+            </Routes>
+          </Suspense>
+          <Toaster />
+        </ThemeProvider>
       </Router>
     </AuthProvider>
   );
