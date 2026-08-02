@@ -13,6 +13,7 @@ import { AppText, useToast } from '../ui';
 import { updateProfile } from '../../lib/profile';
 import { getApiErrorMessage } from '../../lib/utils';
 import { colors, fonts } from '../../lib/theme';
+import { SHEET_BACKGROUND, SHEET_HANDLE } from '../../lib/quiet';
 
 export interface DefaultCurrencySheetHandle {
   open: () => void;
@@ -70,8 +71,8 @@ export const DefaultCurrencySheet = forwardRef<DefaultCurrencySheetHandle>(
       <BottomSheetModal
         ref={sheetRef}
         backdropComponent={renderBackdrop}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={{ backgroundColor: colors.border }}
+        backgroundStyle={SHEET_BACKGROUND}
+        handleIndicatorStyle={SHEET_HANDLE}
       >
         <BottomSheetView style={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}>
           <AppText variant="title" style={styles.title}>Default currency</AppText>
@@ -104,7 +105,6 @@ export const DefaultCurrencySheet = forwardRef<DefaultCurrencySheetHandle>(
 );
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: colors.background },
   content: { padding: 22 },
   title: { color: colors.foreground },
 

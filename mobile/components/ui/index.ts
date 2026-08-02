@@ -3,6 +3,12 @@ export { AppText, type AppTextProps } from './AppText';
 export { Button, type ButtonProps } from './Button';
 export { Card, type CardProps } from './Card';
 export { FieldLabel } from './FieldLabel';
+export {
+  GlassSurface,
+  useGlassEnabled,
+  type GlassRole,
+  type GlassSurfaceProps,
+} from './GlassSurface';
 export { Input } from './Input';
 export { ScreenTitle } from './ScreenTitle';
 export { Switch, type SwitchProps } from './Switch';

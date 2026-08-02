@@ -21,6 +21,7 @@ import {
 import { SubscriptionLogo } from './SubscriptionLogo';
 import { AppText, Button } from './ui';
 import { colors } from '../lib/theme';
+import { SHEET_BACKGROUND, SHEET_HANDLE } from '../lib/quiet';
 
 export interface SubscriptionDetailSheetHandle {
   /** Open the read-only detail sheet for a subscription. */
@@ -102,8 +103,8 @@ export const SubscriptionDetailSheet = forwardRef<SubscriptionDetailSheetHandle,
         enableDynamicSizing
         backdropComponent={renderBackdrop}
         onDismiss={onDismiss}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={{ backgroundColor: colors.border }}
+        backgroundStyle={SHEET_BACKGROUND}
+        handleIndicatorStyle={SHEET_HANDLE}
       >
         {/* Dynamic sizing hugs the content, so the sheet is only as tall as it
             needs to be and the Edit button lands just above the home indicator
@@ -191,7 +192,6 @@ function DetailRow({
 }
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: colors.background },
   content: { padding: 22, paddingBottom: 40 },
 
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },

@@ -21,6 +21,7 @@ import { getApiErrorMessage } from '../lib/utils';
 import { ExtractionLoadingOverlay } from './ExtractionLoadingOverlay';
 import { AppText, useToast } from './ui';
 import { colors } from '../lib/theme';
+import { SHEET_BACKGROUND, SHEET_HANDLE } from '../lib/quiet';
 
 export interface ReceiptScanChooserHandle {
   /** Open the "add a subscription" chooser. */
@@ -126,8 +127,8 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
         <BottomSheetModal
           ref={sheetRef}
           backdropComponent={renderBackdrop}
-          backgroundStyle={styles.sheetBackground}
-          handleIndicatorStyle={{ backgroundColor: colors.border }}
+          backgroundStyle={SHEET_BACKGROUND}
+          handleIndicatorStyle={SHEET_HANDLE}
         >
           <BottomSheetView
             accessibilityLabel="Add a subscription"
@@ -173,7 +174,6 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
 );
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: colors.card, borderRadius: radius.base },
   sheetContent: { paddingTop: spacing.sm, paddingHorizontal: spacing.sm },
   sheetTitle: {
     color: colors.foreground,

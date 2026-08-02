@@ -27,7 +27,7 @@ import { SetupState, SetupStep } from '../lib/onboarding';
 import { SubscriptionLogo } from './SubscriptionLogo';
 import { AppText, Button } from './ui';
 import { colors, fonts, textStyles } from '../lib/theme';
-import { ROW_PAD_V, quiet } from '../lib/quiet';
+import { ROW_PAD_V, SHEET_BACKGROUND, SHEET_HANDLE, quiet } from '../lib/quiet';
 
 export interface FirstRunSetupSheetHandle {
   /** Open the sheet at the step/picks the persisted state remembers. */
@@ -294,8 +294,8 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
         keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={{ backgroundColor: colors.border }}
+        backgroundStyle={SHEET_BACKGROUND}
+        handleIndicatorStyle={SHEET_HANDLE}
       >
         <BottomSheetView style={[styles.container, { height: contentHeight }]}>
           {/* Step counter as an eyebrow — the web strip of bordered pills is
@@ -582,7 +582,6 @@ const SHEET_PAD = 22;
 const HANDLE_HEIGHT = 24;
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: colors.background },
   // Height is set inline to the snap height (BottomSheetView won't stretch to
   // the snap point on its own), so the list in the middle can take the leftover
   // height and scroll inside it while the footer stays pinned.
