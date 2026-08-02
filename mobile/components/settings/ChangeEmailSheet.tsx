@@ -61,19 +61,18 @@ export const ChangeEmailSheet = forwardRef<OpenableSheetHandle>(function ChangeE
     <FormSheet
       ref={sheet}
       title="Change email"
-      textEntry
-      footer={
+      actions={
         <>
+          <Button
+            title="Send confirmation"
+            loading={loading}
+            onPress={() => void handleSubmit()}
+          />
           <Button
             title="Cancel"
             variant="outline"
             disabled={loading}
             onPress={() => sheet.current?.close()}
-          />
-          <Button
-            title="Send confirmation"
-            loading={loading}
-            onPress={() => void handleSubmit()}
           />
         </>
       }

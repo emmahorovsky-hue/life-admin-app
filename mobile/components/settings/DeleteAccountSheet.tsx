@@ -70,27 +70,26 @@ export const DeleteAccountSheet = forwardRef<OpenableSheetHandle>(function Delet
     <FormSheet
       ref={sheet}
       title="Delete account"
-      textEntry
       // Pan-down, the drag handle, backdrop tap, Android hardware back and
       // close() all refuse while the request is in flight — a deletion must not
       // be dismissed out from under the user. (Was the dialog's handleClose,
       // which only had to cover a backdrop tap and a close button.)
       locked={loading}
       onDismiss={clear}
-      footer={
+      actions={
         <>
-          <Button
-            title="Cancel"
-            variant="outline"
-            disabled={loading}
-            onPress={() => sheet.current?.close()}
-          />
           <Button
             title="Delete account"
             variant="destructive"
             loading={loading}
             disabled={!canSubmit}
             onPress={() => void handleSubmit()}
+          />
+          <Button
+            title="Cancel"
+            variant="outline"
+            disabled={loading}
+            onPress={() => sheet.current?.close()}
           />
         </>
       }

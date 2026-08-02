@@ -1,12 +1,5 @@
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  BottomSheetModal,
-  BottomSheetView,
-  BottomSheetBackdrop,
-  BottomSheetBackdropProps,
-} from '@gorhom/bottom-sheet';
 import { format, differenceInCalendarDays } from 'date-fns';
 import {
   Subscription,
@@ -19,9 +12,8 @@ import {
   relativeDaysSigned,
 } from '@life-admin/shared';
 import { SubscriptionLogo } from './SubscriptionLogo';
-import { AppText, Button, GlassSheetBackground } from './ui';
+import { AppText, Button, FormSheet, type FormSheetHandle } from './ui';
 import { colors } from '../lib/theme';
-import { SHEET_BACKDROP_OPACITY, SHEET_HANDLE } from '../lib/quiet';
 
 export interface SubscriptionDetailSheetHandle {
   /** Open the read-only detail sheet for a subscription. */
@@ -49,29 +41,18 @@ const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name 
  */
 export const SubscriptionDetailSheet = forwardRef<SubscriptionDetailSheetHandle, Props>(
   function SubscriptionDetailSheet({ onEdit, onDismiss }, ref) {
-    const sheetRef = useRef<BottomSheetModal>(null);
-    const insets = useSafeAreaInsets();
+    const sheetRef = useRef<FormSheetHandle>(null);
     const [sub, setSub] = useState<Subscription | null>(null);
 
+    // Keeps its own handle rather than re-exporting FormSheet's: `open` takes
+    // the subscription to show, which is what seeds the body.
     useImperativeHandle(ref, () => ({
       open: (subscription) => {
         setSub(subscription);
-        sheetRef.current?.present();
+        sheetRef.current?.open();
       },
-      close: () => sheetRef.current?.dismiss(),
+      close: () => sheetRef.current?.close(),
     }));
-
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop
-          {...props}
-          appearsOnIndex={0}
-          disappearsOnIndex={-1}
-          opacity={SHEET_BACKDROP_OPACITY}
-        />
-      ),
-      [],
-    );
 
     // Derived display values — guarded so a null sub (between dismissals) never throws.
     const view = useMemo(() => {
@@ -103,52 +84,49 @@ export const SubscriptionDetailSheet = forwardRef<SubscriptionDetailSheetHandle,
           : `Renews ${view?.renewalDate}`;
 
     return (
-      <BottomSheetModal
+      <FormSheet
         ref={sheetRef}
-        enableDynamicSizing
-        backdropComponent={renderBackdrop}
         onDismiss={onDismiss}
-        backgroundComponent={GlassSheetBackground}
-        handleIndicatorStyle={SHEET_HANDLE}
+        accessibilityLabel={sub ? `${sub.name} details` : 'Subscription details'}
+        // No `title`: the heading here is the logo/name/status header below,
+        // which the plain string prop cannot express.
+        actions={
+          sub ? (
+            <Button
+              title="Edit subscription"
+              onPress={() => onEdit(sub)}
+              accessibilityLabel={`Edit ${sub.name}`}
+            />
+          ) : null
+        }
       >
-        {/* Dynamic sizing hugs the content, so the sheet is only as tall as it
-            needs to be and the Edit button lands just above the home indicator
-            rather than floating with dead space beneath it. */}
-        <BottomSheetView style={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
-          {sub && view && (
-            <>
-              {/* Header — logo, name, status line */}
-              <View style={styles.header}>
-                <SubscriptionLogo name={sub.name} category={sub.category} size={44} />
-                <View style={styles.headerText}>
-                  <AppText variant="title" numberOfLines={1} style={styles.name}>
-                    {sub.name}
-                  </AppText>
-                  <AppText variant="footnote" numberOfLines={1} style={styles.status}>
-                    {statusLine}
-                  </AppText>
-                </View>
+        {sub && view && (
+          <>
+            {/* Header — logo, name, status line */}
+            <View style={styles.header}>
+              <SubscriptionLogo name={sub.name} category={sub.category} size={44} />
+              <View style={styles.headerText}>
+                <AppText variant="title" numberOfLines={1} style={styles.name}>
+                  {sub.name}
+                </AppText>
+                <AppText variant="footnote" numberOfLines={1} style={styles.status}>
+                  {statusLine}
+                </AppText>
               </View>
+            </View>
 
-              {/* Detail rows — label / value pairs on hairline rules */}
-              <View style={styles.rows}>
-                <DetailRow label="Cost" value={view.price} sub={view.cycle} mono />
-                {view.monthly && <DetailRow label="Per month" value={view.monthly} mono />}
-                <DetailRow label="Next renewal" value={view.renewalDate} sub={view.renewalRelative} />
-                <DetailRow label="Category" value={view.category} />
-                {view.notes && <DetailRow label="Notes" value={view.notes} stacked />}
-              </View>
-
-              <Button
-                title="Edit subscription"
-                onPress={() => onEdit(sub)}
-                style={styles.editButton}
-                accessibilityLabel={`Edit ${sub.name}`}
-              />
-            </>
-          )}
-        </BottomSheetView>
-      </BottomSheetModal>
+            {/* Detail rows — label / value pairs on hairline rules. The gap
+                below them is FormSheet's, above the Edit action. */}
+            <View>
+              <DetailRow label="Cost" value={view.price} sub={view.cycle} mono />
+              {view.monthly && <DetailRow label="Per month" value={view.monthly} mono />}
+              <DetailRow label="Next renewal" value={view.renewalDate} sub={view.renewalRelative} />
+              <DetailRow label="Category" value={view.category} />
+              {view.notes && <DetailRow label="Notes" value={view.notes} stacked />}
+            </View>
+          </>
+        )}
+      </FormSheet>
     );
   },
 );
@@ -197,14 +175,11 @@ function DetailRow({
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 22, paddingBottom: 40 },
-
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   headerText: { flex: 1, minWidth: 0 },
   name: { color: colors.foreground },
   status: { color: colors.softMuted, marginTop: 2 },
 
-  rows: { marginBottom: 24 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -222,8 +197,4 @@ const styles = StyleSheet.create({
   rowValueMono: { fontSize: 15 },
   rowValueTextStacked: { textAlign: 'left' },
   rowSub: { color: colors.softMuted, marginTop: 2 },
-
-  // Sits just below the rows; dynamic sizing + the sheet's safe-area padding
-  // carry it down near the home indicator.
-  editButton: { marginTop: 28 },
 });

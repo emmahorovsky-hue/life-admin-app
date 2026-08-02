@@ -8,14 +8,16 @@
 // `Card`, `Button`, `Input`, `Switch` and `quiet.row` have nothing moving
 // behind them: glass there refracts Snow, returns Snow, and costs the hairline
 // that currently defines the shape. `AppDialog` is the one place mobile and web
-// are deliberately identical, `ExtractionLoadingOverlay` *is* the receipt motif
-// glass would dissolve, and `SubscriptionFormSheet` is live text entry, the
-// canonical Liquid Glass legibility failure. None of them should use this.
+// are deliberately identical, and `ExtractionLoadingOverlay` *is* the receipt
+// motif glass would dissolve. Neither should use this.
 //
-// For settings overlays that last rule is no longer applied by hand: `FormSheet`
-// expresses it as `textEntry`, which drops glass and restores the matching
-// scrim in one prop (LIF-239). Reach for that rather than a bare
-// `backgroundComponent` when adding a sheet.
+// Sheets all should, without exception. Text-entry sheets were once excluded —
+// live text over refraction is the canonical Liquid Glass legibility failure —
+// and `FormSheet` expressed that as a `textEntry` prop (LIF-239). The exclusion
+// was dropped on purpose: it meant adjacent rows on one settings screen opened
+// visibly different sheets. Every sheet is glass now, so if input contrast is a
+// problem, tune `role="sheet"`'s tint below and all twelve move together; do
+// not re-add a per-sheet opt-out.
 //
 // Everything routes through this one wrapper so no call site re-implements the
 // availability check or forgets a fallback. The fallbacks are the app's current

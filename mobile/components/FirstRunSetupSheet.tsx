@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BottomSheetModal,
@@ -25,9 +25,10 @@ import { subscriptionApi } from '../lib/subscriptions';
 import { getApiErrorMessage } from '../lib/utils';
 import { SetupState, SetupStep } from '../lib/onboarding';
 import { SubscriptionLogo } from './SubscriptionLogo';
-import { AppText, Button } from './ui';
+import { AppText, Button, GlassSheetBackground } from './ui';
 import { colors, fonts, textStyles } from '../lib/theme';
-import { ROW_PAD_V, SHEET_BACKGROUND, SHEET_HANDLE, quiet } from '../lib/quiet';
+import { ROW_PAD_V, SHEET_BACKDROP_OPACITY, SHEET_HANDLE, quiet } from '../lib/quiet';
+import { useSheetBackHandler } from '../lib/useSheetBackHandler';
 
 export interface FirstRunSetupSheetHandle {
   /** Open the sheet at the step/picks the persisted state remembers. */
@@ -113,6 +114,18 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
     const [defaultRenewal, setDefaultRenewal] = useState(defaultRenewalDate);
     // Android only — the row whose date picker is open (see the date control).
     const [datePickerFor, setDatePickerFor] = useState<string | null>(null);
+    // Drives the Android back handler only — this sheet cannot use FormSheet's
+    // chrome, so it wires back up by hand. See useSheetBackHandler.
+    const [presented, setPresented] = useState(false);
+
+    // Back is a dismissal like any other, so it goes through the sheet rather
+    // than short-circuiting to `reportSkip` — `handleDismiss` below is what
+    // decides whether leaving counts as a skip, and it must stay the only place
+    // that decides it.
+    useSheetBackHandler(
+      presented,
+      useCallback(() => sheetRef.current?.dismiss(), []),
+    );
 
     // Names already created server-side. A partial failure leaves the user on
     // step 2 to retry, and without this the successful rows would be created a
@@ -142,6 +155,7 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
         // yesterday's default.
         setDefaultRenewal(defaultRenewalDate());
         reported.current = false;
+        setPresented(true);
         sheetRef.current?.present();
       },
       dismiss: () => sheetRef.current?.dismiss(),
@@ -194,6 +208,7 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
     // from step 3 reports nothing: `onFiled` already marked the flow finished
     // as that step opened, and calling it a skip would re-offer a done flow.
     const handleDismiss = useCallback(() => {
+      setPresented(false);
       if (step === 3) reported.current = true;
       else reportSkip();
     }, [step, reportSkip]);
@@ -279,7 +294,14 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+        <BottomSheetBackdrop
+          {...props}
+          appearsOnIndex={0}
+          disappearsOnIndex={-1}
+          // The 0.2 glass scrim, matching FormSheet — every sheet in the app
+          // is glass now, text entry included.
+          opacity={SHEET_BACKDROP_OPACITY}
+        />
       ),
       [],
     );
@@ -294,7 +316,7 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
         keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
-        backgroundStyle={SHEET_BACKGROUND}
+        backgroundComponent={GlassSheetBackground}
         handleIndicatorStyle={SHEET_HANDLE}
       >
         <BottomSheetView style={[styles.container, { height: contentHeight }]}>
@@ -304,8 +326,10 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
             <AppText style={quiet.eyebrow}>
               Step {step} of 3 · {STEP_LABELS[step - 1]}
             </AppText>
+            {/* Brand period, matching every FormSheet title. */}
             <AppText variant="title" style={styles.title}>
               {STEP_TITLES[step - 1]}
+              <Text style={styles.titleAccent}>.</Text>
             </AppText>
           </View>
 
@@ -589,6 +613,7 @@ const styles = StyleSheet.create({
 
   head: { paddingHorizontal: SHEET_PAD, paddingTop: 4, gap: 6 },
   title: { color: colors.foreground },
+  titleAccent: { color: colors.brandOrange },
   lede: {
     paddingHorizontal: SHEET_PAD,
     paddingTop: 10,
