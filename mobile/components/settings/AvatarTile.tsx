@@ -1,21 +1,13 @@
 import { useCallback, useRef, useState } from 'react';
 import { Image, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import {
-  BottomSheetBackdrop,
-  BottomSheetBackdropProps,
-  BottomSheetModal,
-  BottomSheetView,
-} from '@gorhom/bottom-sheet';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { getInitials, radius, spacing } from '@life-admin/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { avatarAssetError, deleteAvatar, uploadAvatar, useAvatarSource } from '../../lib/account';
 import { getApiErrorMessage } from '../../lib/utils';
-import { AppText, useToast } from '../ui';
+import { AppText, FormSheet, useToast, type FormSheetHandle } from '../ui';
 import { colors, fonts } from '../../lib/theme';
-import { SHEET_BACKGROUND, SHEET_HANDLE } from '../../lib/quiet';
 
 // Pixel twins of the web tile's md/lg variants (client AvatarTile.tsx).
 const sizes = {
@@ -43,8 +35,7 @@ interface AvatarTileProps {
 export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
   const { user, updateUser } = useAuth();
   const toast = useToast();
-  const insets = useSafeAreaInsets();
-  const sheetRef = useRef<BottomSheetModal>(null);
+  const sheetRef = useRef<FormSheetHandle>(null);
   const [busy, setBusy] = useState(false);
   const [imgError, setImgError] = useState(false);
   const s = sizes[size];
@@ -54,7 +45,7 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
   const source = useAvatarSource(version);
 
   const pickAndUpload = useCallback(async () => {
-    sheetRef.current?.dismiss();
+    sheetRef.current?.close();
     let result: ImagePicker.ImagePickerResult;
     try {
       result = await ImagePicker.launchImageLibraryAsync({
@@ -90,7 +81,7 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
   }, [toast, updateUser]);
 
   const handleRemove = useCallback(async () => {
-    sheetRef.current?.dismiss();
+    sheetRef.current?.close();
     setBusy(true);
     try {
       const res = await deleteAvatar();
@@ -106,16 +97,9 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
 
   const handleBadgePress = () => {
     // Pristine tile → straight to the picker; own photo → the edit menu.
-    if (showImage) sheetRef.current?.present();
+    if (showImage) sheetRef.current?.open();
     else void pickAndUpload();
   };
-
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
-    ),
-    [],
-  );
 
   return (
     <View style={[styles.wrap, style]}>
@@ -149,36 +133,26 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
         />
       </Pressable>
 
-      <BottomSheetModal
-        ref={sheetRef}
-        backdropComponent={renderBackdrop}
-        backgroundStyle={SHEET_BACKGROUND}
-        handleIndicatorStyle={SHEET_HANDLE}
-      >
-        <BottomSheetView
-          accessibilityLabel="Photo options"
-          style={[styles.sheetContent, { paddingBottom: insets.bottom + spacing.lg }]}
+      <FormSheet ref={sheetRef} accessibilityLabel="Photo options" contentStyle={styles.sheetContent}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={() => void pickAndUpload()}
+          style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
         >
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={() => void pickAndUpload()}
-            style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
-          >
-            <Ionicons name="cloud-upload-outline" size={20} color={colors.mutedForeground} />
-            <AppText variant="headline" weight={600} style={styles.menuLabel}>Upload new photo</AppText>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={() => void handleRemove()}
-            style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
-          >
-            <Ionicons name="trash-outline" size={20} color={colors.destructive} />
-            <AppText variant="headline" weight={600} style={[styles.menuLabel, styles.menuLabelDestructive]}>Remove photo</AppText>
-          </Pressable>
-        </BottomSheetView>
-      </BottomSheetModal>
+          <Ionicons name="cloud-upload-outline" size={20} color={colors.mutedForeground} />
+          <AppText variant="headline" weight={600} style={styles.menuLabel}>Upload new photo</AppText>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={() => void handleRemove()}
+          style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
+        >
+          <Ionicons name="trash-outline" size={20} color={colors.destructive} />
+          <AppText variant="headline" weight={600} style={[styles.menuLabel, styles.menuLabelDestructive]}>Remove photo</AppText>
+        </Pressable>
+      </FormSheet>
     </View>
   );
 }
