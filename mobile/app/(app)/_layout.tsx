@@ -33,7 +33,15 @@ export default function AppLayout() {
   // redirect — the lock screen (rendered from the root layout) is already
   // covering this, and bouncing to the carousel would only have to bounce back
   // the moment unlock resolves. LIF-222.
-  if (locked) return null;
+  //
+  // Only when there is no user, though. A re-lock keeps `user`, and returning
+  // null then would unmount the whole tab tree — every screen's state gone,
+  // every list refetched on unlock, a half-filled subscription form lost
+  // because someone read a text message for a minute. The lock screen already
+  // covers what is behind it, so there is nothing to hide by unmounting, and
+  // lib/api.ts refuses authenticated calls while locked so nothing behind it
+  // can talk to the server either.
+  if (locked && !user) return null;
   if (!user) return <Redirect href="/(auth)/onboarding" />;
 
   return (

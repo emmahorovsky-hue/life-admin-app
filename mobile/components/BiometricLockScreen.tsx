@@ -58,9 +58,19 @@ export function BiometricLockScreen() {
   // iOS suspends the biometric prompt when the app leaves the foreground; if the
   // user switches away mid-prompt and returns, there is nothing on screen. Retry
   // on the way back so they are not left staring at a dead lock screen.
+  //
+  // Only from 'background', never from 'inactive'. Presenting the biometric
+  // prompt itself resigns active, so retrying on any transition to 'active'
+  // would re-prompt the instant the user cancels — and since cancelling is how
+  // you get *to* the "Sign out" button, that is a loop with no way out of the
+  // app. `busy` alone does not cover it: whether it has been cleared by the
+  // time the 'active' event lands is a race.
+  const appState = useRef(AppState.currentState);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && !busy) void attempt();
+      const previous = appState.current;
+      appState.current = state;
+      if (state === 'active' && previous === 'background' && !busy) void attempt();
     });
     return () => sub.remove();
   }, [attempt, busy]);
