@@ -12,6 +12,11 @@
 // glass would dissolve, and `SubscriptionFormSheet` is live text entry, the
 // canonical Liquid Glass legibility failure. None of them should use this.
 //
+// For settings overlays that last rule is no longer applied by hand: `FormSheet`
+// expresses it as `textEntry`, which drops glass and restores the matching
+// scrim in one prop (LIF-239). Reach for that rather than a bare
+// `backgroundComponent` when adding a sheet.
+//
 // Everything routes through this one wrapper so no call site re-implements the
 // availability check or forgets a fallback. The fallbacks are the app's current
 // design unchanged, which is what makes Android a genuine no-op and each stage
