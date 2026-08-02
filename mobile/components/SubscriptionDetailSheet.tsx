@@ -19,9 +19,9 @@ import {
   relativeDaysSigned,
 } from '@life-admin/shared';
 import { SubscriptionLogo } from './SubscriptionLogo';
-import { AppText, Button } from './ui';
+import { AppText, Button, GlassSheetBackground } from './ui';
 import { colors } from '../lib/theme';
-import { SHEET_BACKGROUND, SHEET_HANDLE } from '../lib/quiet';
+import { SHEET_BACKDROP_OPACITY, SHEET_HANDLE } from '../lib/quiet';
 
 export interface SubscriptionDetailSheetHandle {
   /** Open the read-only detail sheet for a subscription. */
@@ -63,7 +63,12 @@ export const SubscriptionDetailSheet = forwardRef<SubscriptionDetailSheetHandle,
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+        <BottomSheetBackdrop
+          {...props}
+          appearsOnIndex={0}
+          disappearsOnIndex={-1}
+          opacity={SHEET_BACKDROP_OPACITY}
+        />
       ),
       [],
     );
@@ -103,7 +108,7 @@ export const SubscriptionDetailSheet = forwardRef<SubscriptionDetailSheetHandle,
         enableDynamicSizing
         backdropComponent={renderBackdrop}
         onDismiss={onDismiss}
-        backgroundStyle={SHEET_BACKGROUND}
+        backgroundComponent={GlassSheetBackground}
         handleIndicatorStyle={SHEET_HANDLE}
       >
         {/* Dynamic sizing hugs the content, so the sheet is only as tall as it

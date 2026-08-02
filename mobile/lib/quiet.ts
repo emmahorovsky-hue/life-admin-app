@@ -48,6 +48,17 @@ export const SHEET_BACKGROUND = {
  *  be allocated as. */
 export const SHEET_HANDLE = { backgroundColor: colors.border } as const;
 
+/** Scrim behind a *glass* sheet (LIF-223).
+ *
+ *  Deliberately far below gorhom's 0.5 default, and not a free knob: glass
+ *  refracts whatever is behind it, so at 0.5 the sheet refracts black and
+ *  returns opaque grey — worse text contrast than the flat sheet it replaced,
+ *  and no visible material either. The trade-off bought here is that modals
+ *  feel lighter and less isolating; it was reviewed and accepted. It lives in
+ *  a different callback from the background, so it is easy to drop by accident
+ *  — if you are removing glass from a sheet, restore its backdrop too. */
+export const SHEET_BACKDROP_OPACITY = 0.2;
+
 export const quiet = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
 

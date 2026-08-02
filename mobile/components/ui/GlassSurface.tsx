@@ -124,6 +124,37 @@ export interface GlassSurfaceProps extends Omit<ViewProps, 'style' | 'role'> {
   isInteractive?: boolean;
 }
 
+/**
+ * `backgroundComponent` for a glass bottom sheet.
+ *
+ * Module-level so the three sheets share one component identity rather than
+ * remounting the background on every render. Pair it with
+ * `SHEET_BACKDROP_OPACITY` — at gorhom's default 0.5 the glass refracts black
+ * and returns opaque grey mush, which is worse contrast than no glass at all.
+ */
+export function GlassSheetBackground({
+  pointerEvents,
+  style,
+}: {
+  pointerEvents?: ViewProps['pointerEvents'];
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <GlassSurface
+      role="sheet"
+      // Both forwarded deliberately: the container passes pointerEvents="none"
+      // (the background absolutely fills the sheet and must not intercept
+      // touches) and gorhom's own default background carries these a11y props,
+      // so replacing it without them silently drops them.
+      pointerEvents={pointerEvents}
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityLabel="Bottom Sheet"
+      style={style}
+    />
+  );
+}
+
 export function GlassSurface({
   role = 'floating',
   style,
