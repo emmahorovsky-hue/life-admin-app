@@ -25,14 +25,36 @@ const GLYPH_TOP = 321 * PX; //  91.8 — cap top
 const GLYPH_BASELINE = 465 * PX; // 133.1 — "P" baseline
 const GLYPH_DESCENT = 506 * PX; // 144.8 — bottom of the y/p descenders
 
+// What sits under the band, in layout order. Hoisted out of the StyleSheet
+// because BAND_TOP is derived from them (below) — leaving them inline would let
+// the two drift apart silently, which is the whole failure mode here.
+const RULE_GAP = 28;
+const TAG_GAP = 24;
+const TAG_LINE = 14;
+const BELOW_BAND = RULE_GAP + StyleSheet.hairlineWidth + TAG_GAP + TAG_LINE;
+
 // Show only the wordmark band, not the full 293×293 square: the PNG's opaque
 // Snow fill matches colors.background exactly (both #FBFBF9), so within the band
 // it composites seamlessly, but the full image would otherwise paint its Snow
-// over the rule and tagline below. A little air above the cap and below the
-// descenders, sized to land close to the old 60/1.033 line box so the rule sits
-// where it did before.
-const BAND_TOP = GLYPH_TOP - 8;
+// over the rule and tagline below.
+//
+// BAND_TOP is *solved for*, not chosen. The native frame centres the whole
+// 293pt image on the screen; this component centres a column of
+// band + rule + tagline. Those two put the glyphs in the same place only when
+//
+//     BAND_HEIGHT/2 + BAND_TOP = IMAGE_W/2
+//
+// i.e. the air above the band makes up for everything the column carries below
+// it. Rearranged, that is the line below. Picking the top air by eye instead —
+// which is what "a little air, sized to the old 60/1.033 line box" did — matched
+// this to the *previous JS layout* rather than to the static frame it has to
+// hand over from, and left the wordmark landing ~3pt high (the vertical twin of
+// the LIF-221 sideways jump).
+//
+// Works out to ~13.9pt of air above the cap, so the band still clears GLYPH_TOP
+// and nothing is clipped.
 const BAND_BOTTOM = GLYPH_DESCENT + 4;
+const BAND_TOP = IMAGE_W - BAND_BOTTOM - BELOW_BAND;
 const BAND_HEIGHT = BAND_BOTTOM - BAND_TOP;
 
 /**
@@ -152,7 +174,10 @@ const styles = StyleSheet.create({
     height: IMAGE_W,
   },
   stamp: { position: 'absolute' },
-  rule: { width: 104, height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginTop: 28 },
+  // `marginTop`/`lineHeight` below come from the BELOW_BAND constants: they are
+  // what BAND_TOP is solved against, so changing one here without the other
+  // moves the handover.
+  rule: { width: 104, height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginTop: RULE_GAP },
   // `monoLabel` is exactly this — 11/1.4 tracked uppercase mono — so take the
   // role rather than restating it (LIF-210). `lineHeight` is pinned because the
   // centred column's height sets how far above centre the wordmark sits, and
@@ -161,9 +186,10 @@ const styles = StyleSheet.create({
   // `paddingHorizontal` is the fix for the clipped trailing "D": iOS omits the
   // last glyph's trailing letterSpacing advance from the Text's measured width,
   // so it paints past the view bounds and is cut. Padding both sides keeps it
-  // centred while giving that last glyph room.
+  // centred while giving that last glyph room — and being horizontal, it stays
+  // out of the column height BAND_TOP is solved against.
   tagline: {
-    ...textStyles.monoLabel, lineHeight: 14, color: colors.softMuted, marginTop: 24,
+    ...textStyles.monoLabel, lineHeight: TAG_LINE, color: colors.softMuted, marginTop: TAG_GAP,
     paddingHorizontal: 4, textAlign: 'center',
   },
 });
