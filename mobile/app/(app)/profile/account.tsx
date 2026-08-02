@@ -6,21 +6,32 @@ import { hairline, radius, spacing } from '@life-admin/shared';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AvatarTile } from '../../../components/settings/AvatarTile';
 import { SettingsDetailHeader } from '../../../components/settings/SettingsDetailHeader';
-import { EditNameDialog } from '../../../components/settings/EditNameDialog';
-import { ChangeEmailDialog } from '../../../components/settings/ChangeEmailDialog';
-import { ChangePasswordDialog } from '../../../components/settings/ChangePasswordDialog';
+import { EditNameSheet } from '../../../components/settings/EditNameSheet';
+import { ChangeEmailSheet } from '../../../components/settings/ChangeEmailSheet';
+import { ChangePasswordSheet } from '../../../components/settings/ChangePasswordSheet';
 import {
   DefaultCurrencySheet,
   DefaultCurrencySheetHandle,
 } from '../../../components/settings/DefaultCurrencySheet';
-import { AppText, Button, Card, Switch, useToast } from '../../../components/ui';
+import {
+  AppText,
+  Button,
+  Card,
+  Switch,
+  useToast,
+  type OpenableSheetHandle,
+} from '../../../components/ui';
 import { colors } from '../../../lib/theme';
 import { SCREEN_PAD } from '../../../lib/quiet';
 import { useTabBarInset } from '../../../lib/useTabBarInset';
-import { biometricPref, confirm, getLabel, isAvailable, type BiometricLabel } from '../../../lib/biometrics';
+import {
+  biometricPref,
+  getLabel,
+  isAvailable,
+  setQuickUnlock,
+  type BiometricLabel,
+} from '../../../lib/biometrics';
 import { tokenStorage } from '../../../lib/storage';
-
-type AccountModal = null | 'name' | 'email' | 'password';
 
 /**
  * Dotted row separator — same iOS quirk as Perforation: borderStyle only
@@ -81,19 +92,21 @@ function useBiometricUnlock(userId: string | undefined) {
     if (!userId) return;
     setSaving(true);
     try {
-      // Confirm before turning it on, never after: the user should find out it
-      // works now, not at next launch when it is the only way in.
-      if (next && !(await confirm(`Confirm it's you to unlock Paypr with ${label}.`))) return;
-
-      if (!(await tokenStorage.setProtected(next))) {
+      // Shared with the post-sign-in offer (lib/biometrics.ts) so the gated
+      // token and the stored preference can never be written by one path and
+      // not the other. The confirm-before-enabling prompt lives in there too.
+      const result = await setQuickUnlock(userId, next, label);
+      if (result === 'cancelled') return;
+      if (result === 'no-session') {
         toast.error('Could not update the setting — please sign in again.');
         return;
       }
-      await biometricPref.set(userId, next);
+      if (result === 'error') {
+        toast.error('Could not update the setting. Please try again.');
+        return;
+      }
       setEnabled(next);
       toast.success(next ? `${label} unlock is on.` : `${label} unlock is off.`);
-    } catch {
-      toast.error('Could not update the setting. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -105,7 +118,9 @@ function useBiometricUnlock(userId: string | undefined) {
 export default function AccountScreen() {
   const { user } = useAuth();
   const tabBarInset = useTabBarInset();
-  const [modal, setModal] = useState<AccountModal>(null);
+  const nameSheetRef = useRef<OpenableSheetHandle>(null);
+  const emailSheetRef = useRef<OpenableSheetHandle>(null);
+  const passwordSheetRef = useRef<OpenableSheetHandle>(null);
   const currencySheetRef = useRef<DefaultCurrencySheetHandle>(null);
   const biometric = useBiometricUnlock(user?.id);
 
@@ -140,7 +155,12 @@ export default function AccountScreen() {
                 {displayName}
               </AppText>
             </View>
-            <Button title="Edit" variant="outline" size="sm" onPress={() => setModal('name')} />
+            <Button
+              title="Edit"
+              variant="outline"
+              size="sm"
+              onPress={() => nameSheetRef.current?.open()}
+            />
           </View>
 
           <DottedRule />
@@ -157,7 +177,12 @@ export default function AccountScreen() {
                 </View>
               )}
             </View>
-            <Button title="Change" variant="outline" size="sm" onPress={() => setModal('email')} />
+            <Button
+              title="Change"
+              variant="outline"
+              size="sm"
+              onPress={() => emailSheetRef.current?.open()}
+            />
           </View>
 
           <DottedRule />
@@ -170,7 +195,7 @@ export default function AccountScreen() {
               title="Change password"
               variant="outline"
               size="sm"
-              onPress={() => setModal('password')}
+              onPress={() => passwordSheetRef.current?.open()}
             />
           </View>
 
@@ -217,11 +242,11 @@ export default function AccountScreen() {
         </Card>
       </ScrollView>
 
-      {/* Mounted only while open so each open starts with fresh form state. */}
-      {modal === 'name' && <EditNameDialog visible onClose={() => setModal(null)} />}
-      {modal === 'email' && <ChangeEmailDialog visible onClose={() => setModal(null)} />}
-      {modal === 'password' && <ChangePasswordDialog visible onClose={() => setModal(null)} />}
-
+      {/* Ref-driven and always mounted. Each sheet seeds its own form state in
+          open(), which is what the conditional mounting used to give for free. */}
+      <EditNameSheet ref={nameSheetRef} />
+      <ChangeEmailSheet ref={emailSheetRef} />
+      <ChangePasswordSheet ref={passwordSheetRef} />
       <DefaultCurrencySheet ref={currencySheetRef} />
     </View>
   );

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import axios from 'axios';
 import { User, AuthResponse } from '@life-admin/shared';
@@ -75,10 +75,17 @@ async function restoreBiometricGate(userId: string): Promise<void> {
   }
 }
 
+/** How long a single unlock may last, however the app is used in between. */
+const ABSOLUTE_LOCK_AFTER_MS = 12 * 60 * 60 * 1000;
+/** Coarse on purpose — this is a ceiling, not a stopwatch. */
+const ABSOLUTE_LOCK_CHECK_MS = 60 * 1000;
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(false);
+  /** When the gate was last opened; null while locked or ungated. */
+  const unlockedAt = useRef<number | null>(null);
 
   // Once user turns null the (app) layout guard redirects to login, so callers
   // never navigate themselves.
@@ -160,6 +167,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
     async function restoreSession() {
       try {
+        // Before anything reads the token: rewrite a pre-upgrade plain copy into
+        // the device-only Keychain class. Cheap, idempotent, and it has to happen
+        // here because every other path either prompts or assumes a session.
+        await tokenStorage.migrateAccessibility();
+
         // Ask storage whether the token is gated *before* trying to read it —
         // the read is the thing that prompts. When it is, stop here and let the
         // lock screen drive: no biometric prompt fires behind the splash, and
@@ -201,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // the lock screen is the better affordance, and nothing has been lost.
     if (result === 'transient') return false;
 
+    unlockedAt.current = Date.now();
     setLocked(false);
     return true;
   }, [fetchSession]);
@@ -217,8 +230,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // round-trip the covered screen would flash through. The gate is what
     // withholds access; the token cache is what withholds the session.
     tokenStorage.lock();
+    unlockedAt.current = null;
     setLocked(true);
   }, []);
+
+  /**
+   * Absolute ceiling on how long one unlock stays good (LIF-222 follow-up).
+   *
+   * The 60s background rule in app/_layout.tsx only fires on the way back from
+   * elsewhere, so an app that is never backgrounded — left open on a desk, or
+   * foregrounded again every 59 seconds — stayed unlocked indefinitely. This is
+   * the backstop for that: a wall-clock cap since the last successful unlock,
+   * checked on a timer because no AppState event will arrive to prompt it.
+   *
+   * Long by design. It is not an idle timeout — it exists so an unlock cannot
+   * last forever, not to interrupt someone mid-use.
+   */
+  useEffect(() => {
+    if (locked || !user) return;
+
+    const id = setInterval(() => {
+      // Checked per tick rather than up front: switching the feature on from
+      // Account does not change `locked` or `user`, so an effect that decided
+      // this once would never arm the cap for the session that just enabled it.
+      if (!tokenStorage.isProtectedNow()) return;
+      if (unlockedAt.current === null) {
+        // Gate armed while the app was already open — start its clock now.
+        unlockedAt.current = Date.now();
+        return;
+      }
+      if (Date.now() - unlockedAt.current >= ABSOLUTE_LOCK_AFTER_MS) relock();
+    }, ABSOLUTE_LOCK_CHECK_MS);
+    return () => clearInterval(id);
+  }, [locked, user, relock]);
 
   // Register the device for push notifications once a session exists (login,
   // register or restore) — the endpoint needs the Bearer token, so this must

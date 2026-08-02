@@ -36,6 +36,7 @@ import {
   FirstRunSetupSheet,
   FirstRunSetupSheetHandle,
 } from '../../components/FirstRunSetupSheet';
+import { BiometricOptInSheet } from '../../components/BiometricOptInSheet';
 import {
   SetupStep,
   shouldShowResumeRow,
@@ -422,6 +423,13 @@ export default function DashboardScreen() {
     </Animated.ScrollView>
     <SubscriptionSheets ref={sheetRef} onSaved={load} />
     <FirstRunSetupSheet ref={setupRef} onSkip={skipSetup} onFiled={finishSetup} />
+    {/* Offered from here rather than a layout so it can wait for the same two
+        signals the setup sheet reads — otherwise both would present at once on
+        a fresh account. Deliberately not `!setupOffered.current`: that is a ref,
+        so it would not re-render this. */}
+    <BiometricOptInSheet
+      canOffer={!loading && !!summary && !!setup && !shouldShowSetup(setup, hasSubscriptions)}
+    />
     </>
   );
 }

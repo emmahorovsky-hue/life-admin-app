@@ -1,25 +1,42 @@
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { spacing } from '@life-admin/shared';
 import { useAuth } from '../../contexts/AuthContext';
-import { AppDialog, AppText, Button, FieldLabel, Input, useToast } from '../ui';
+import {
+  AppText,
+  Button,
+  FieldLabel,
+  FormSheet,
+  SheetInput,
+  useToast,
+  type FormSheetHandle,
+  type OpenableSheetHandle,
+} from '../ui';
 import { initiateEmailChange } from '../../lib/profile';
 import { getApiErrorMessage } from '../../lib/utils';
 import { colors, fontMono } from '../../lib/theme';
 
-interface ChangeEmailDialogProps {
-  visible: boolean;
-  onClose: () => void;
-}
-
-/** RN port of web's ChangeEmailDialog (client/src/components/settings/). */
-export function ChangeEmailDialog({ visible, onClose }: ChangeEmailDialogProps) {
+/** RN port of web's ChangeEmailDialog (client/src/components/settings/), as a sheet. */
+export const ChangeEmailSheet = forwardRef<OpenableSheetHandle>(function ChangeEmailSheet(
+  _props,
+  ref,
+) {
+  const sheet = useRef<FormSheetHandle>(null);
   const { user } = useAuth();
   const toast = useToast();
-  // Mounted only while open (see AccountScreen), so state starts fresh per open.
   const [newEmail, setNewEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Always mounted, so state is seeded here rather than by a remount per open.
+  useImperativeHandle(ref, () => ({
+    open: () => {
+      setNewEmail('');
+      setError('');
+      setLoading(false);
+      sheet.current?.open();
+    },
+  }));
 
   const handleSubmit = async () => {
     if (!newEmail.trim()) {
@@ -30,8 +47,9 @@ export function ChangeEmailDialog({ visible, onClose }: ChangeEmailDialogProps) 
     setLoading(true);
     try {
       await initiateEmailChange({ email: newEmail.trim() });
+      // Dismiss before the toast — the toast host renders beneath the sheet portal.
+      sheet.current?.close();
       toast.success('Confirmation email sent — check your inbox.');
-      onClose();
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to send confirmation email. Please try again.'));
     } finally {
@@ -40,14 +58,23 @@ export function ChangeEmailDialog({ visible, onClose }: ChangeEmailDialogProps) 
   };
 
   return (
-    <AppDialog
-      visible={visible}
-      onClose={onClose}
+    <FormSheet
+      ref={sheet}
       title="Change email"
+      textEntry
       footer={
         <>
-          <Button title="Cancel" variant="outline" disabled={loading} onPress={onClose} />
-          <Button title="Send confirmation" loading={loading} onPress={handleSubmit} />
+          <Button
+            title="Cancel"
+            variant="outline"
+            disabled={loading}
+            onPress={() => sheet.current?.close()}
+          />
+          <Button
+            title="Send confirmation"
+            loading={loading}
+            onPress={() => void handleSubmit()}
+          />
         </>
       }
     >
@@ -56,7 +83,7 @@ export function ChangeEmailDialog({ visible, onClose }: ChangeEmailDialogProps) 
       </AppText>
       <View style={styles.field}>
         <FieldLabel>New email address</FieldLabel>
-        <Input
+        <SheetInput
           placeholder="Enter new email"
           value={newEmail}
           onChangeText={setNewEmail}
@@ -66,14 +93,14 @@ export function ChangeEmailDialog({ visible, onClose }: ChangeEmailDialogProps) 
           editable={!loading}
         />
         <AppText variant="caption" style={styles.hint}>
-          A confirmation link will be sent to the new address. Your email won't change until you
+          A confirmation link will be sent to the new address. Your email won&apos;t change until you
           open it.
         </AppText>
       </View>
       {error ? <AppText variant="footnote" style={styles.error}>{error}</AppText> : null}
-    </AppDialog>
+    </FormSheet>
   );
-}
+});
 
 const styles = StyleSheet.create({
   current: { color: colors.mutedForeground },

@@ -28,11 +28,16 @@ export const ROW_PAD_V = 15;
 export const ROW_LOGO = 36;
 
 // ── Bottom sheets ────────────────────────────────────────────────────────────
-// The six BottomSheetModals used to disagree: four took `colors.background`,
-// two took `colors.card` and pinned `borderRadius: radius.base` (2), so the app
+// The BottomSheetModals used to disagree: four took `colors.background`, two
+// took `colors.card` and pinned `borderRadius: radius.base` (2), so the app
 // shipped two different sheet corners — 15pt on four, near-square on two. The
 // colour difference was invisible on Snow-vs-white, but the corner was not.
 // Unified on gorhom's 15pt default (LIF-223); glass needs one seam, not two.
+//
+// Every settings overlay now takes these through `ui/FormSheet` rather than
+// reading them directly (LIF-239) — that is what stops the pairing below coming
+// apart again. The three subscription sheets still set them by hand, because
+// they need snap points a content-sized sheet cannot express.
 
 /** Corner radius for every bottom sheet. Matches @gorhom/bottom-sheet's own
  *  default, so the four sheets that never overrode it are unchanged. */
