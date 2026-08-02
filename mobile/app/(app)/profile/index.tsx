@@ -1,4 +1,4 @@
-import { ComponentProps } from 'react';
+import { ComponentProps, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useMinimizeOnScroll } from 'expo-glass-tabs';
@@ -8,7 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { radius } from '@life-admin/shared';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AvatarTile } from '../../../components/settings/AvatarTile';
-import { AppText, Card, ScreenTitle } from '../../../components/ui';
+import { SignOutSheet } from '../../../components/settings/SignOutSheet';
+import { AppText, Card, ScreenTitle, type OpenableSheetHandle } from '../../../components/ui';
 import { colors } from '../../../lib/theme';
 import { SCREEN_PAD } from '../../../lib/quiet';
 
@@ -47,7 +48,8 @@ export default function SettingsIndexScreen() {
   const router = useRouter();
   const onScroll = useMinimizeOnScroll();
   const tabBarInset = useTabBarInset();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const signOutRef = useRef<OpenableSheetHandle>(null);
   const displayName = [user?.name, user?.surname].filter(Boolean).join(' ') || user?.email;
 
   return (
@@ -94,14 +96,18 @@ export default function SettingsIndexScreen() {
         ))}
       </Card>
 
-      {/* Sign out — moved from the old flat profile form */}
+      {/* Sign out — moved from the old flat profile form. Confirms first
+          (LIF-239): revocation is account-wide, so this ends every session. */}
       <Pressable
         accessibilityRole="button"
-        onPress={logout}
+        onPress={() => signOutRef.current?.open()}
         style={({ pressed }) => [styles.signOut, pressed && styles.rowPressed]}
       >
         <AppText variant="body" weight={600} style={styles.signOutText}>Sign out</AppText>
       </Pressable>
+
+      {/* Renders through gorhom's portal, so it costs no layout here. */}
+      <SignOutSheet ref={signOutRef} />
     </Animated.ScrollView>
   );
 }
