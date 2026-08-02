@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BottomSheetModal,
@@ -103,6 +103,7 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
   function FirstRunSetupSheet({ onSkip, onFiled }, ref) {
     const sheetRef = useRef<BottomSheetModal>(null);
     const insets = useSafeAreaInsets();
+    const { height: windowHeight } = useWindowDimensions();
     const [step, setStep] = useState<SetupStep>(1);
     const [picks, setPicks] = useState<string[]>([]);
     const [edits, setEdits] = useState<Record<string, RowEdit>>({});
@@ -266,7 +267,15 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
     // `enableDynamicSizing`: the pick list has its own scroll, and measuring a
     // fixed-height scroll container to size the sheet around it is the one case
     // dynamic sizing cannot do.
-    const snapPoints = useMemo(() => (step === 3 ? ['46%'] : ['88%']), [step]);
+    const snapFraction = step === 3 ? 0.46 : 0.88;
+    const snapPoints = useMemo(() => [`${snapFraction * 100}%`], [snapFraction]);
+    // BottomSheetView sizes to its content, not to the snap point, so `flex: 1`
+    // inside it resolves against the (tall, 17-row) content rather than the
+    // sheet — the list never gets a bounded height to scroll within and the
+    // footer is pushed below the sheet edge, out of reach. Bind the content to
+    // the snap height (less the drag handle) so the list takes the leftover
+    // space and scrolls, and the footer stays pinned and tappable.
+    const contentHeight = snapFraction * windowHeight - HANDLE_HEIGHT;
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
@@ -288,7 +297,7 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={{ backgroundColor: colors.border }}
       >
-        <BottomSheetView style={styles.container}>
+        <BottomSheetView style={[styles.container, { height: contentHeight }]}>
           {/* Step counter as an eyebrow — the web strip of bordered pills is
               exactly the ornament the card-free redesign dropped. */}
           <View style={styles.head}>
@@ -568,12 +577,16 @@ function CheckRow({
 }
 
 const SHEET_PAD = 22;
+// @gorhom's default drag-handle area, subtracted from the snap height to get the
+// content height (see `contentHeight`).
+const HANDLE_HEIGHT = 24;
 
 const styles = StyleSheet.create({
   sheetBackground: { backgroundColor: colors.background },
-  // flex:1 against the snap point rather than hugging content, so the list in
-  // the middle can take the leftover height and scroll inside it.
-  container: { flex: 1 },
+  // Height is set inline to the snap height (BottomSheetView won't stretch to
+  // the snap point on its own), so the list in the middle can take the leftover
+  // height and scroll inside it while the footer stays pinned.
+  container: {},
 
   head: { paddingHorizontal: SHEET_PAD, paddingTop: 4, gap: 6 },
   title: { color: colors.foreground },
