@@ -1,19 +1,19 @@
-import { useState } from 'react';
+import { useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { hairline, spacing } from '@life-admin/shared';
-import { DeleteAccountDialog } from '../../../components/settings/DeleteAccountDialog';
+import { DeleteAccountSheet } from '../../../components/settings/DeleteAccountSheet';
 import { SettingsDetailHeader } from '../../../components/settings/SettingsDetailHeader';
-import { AppText, Button, Card } from '../../../components/ui';
+import { AppText, Button, Card, type OpenableSheetHandle } from '../../../components/ui';
 import { colors } from '../../../lib/theme';
 import { SCREEN_PAD } from '../../../lib/quiet';
 
 /**
  * Data & privacy screen — port of web's PrivacyPanel (LIF-188 → LIF-203):
  * the destructive delete-account flow behind an orange danger card. The
- * deletion itself is only reachable through the dialog's double confirm.
+ * deletion itself is only reachable through the sheet's double confirm.
  */
 export default function PrivacyScreen() {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const deleteSheetRef = useRef<OpenableSheetHandle>(null);
 
   return (
     <View style={styles.screen}>
@@ -28,13 +28,13 @@ export default function PrivacyScreen() {
             title="Delete"
             variant="destructive"
             size="sm"
-            onPress={() => setDialogOpen(true)}
+            onPress={() => deleteSheetRef.current?.open()}
           />
         </View>
       </Card>
 
-      {/* Mounted only while open so the form state resets between opens (web parity). */}
-      {dialogOpen && <DeleteAccountDialog visible onClose={() => setDialogOpen(false)} />}
+      {/* Always mounted; the sheet clears its own fields in open() and onDismiss. */}
+      <DeleteAccountSheet ref={deleteSheetRef} />
     </View>
   );
 }
