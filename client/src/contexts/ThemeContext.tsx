@@ -1,8 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { THEMES, type Theme } from '@life-admin/shared';
 import { useAuth } from './AuthContext';
 import { updateProfile } from '@/lib/api';
+import { isLightOnlyPath } from '@/lib/themeRoutes';
 
 // Read by the FOUC guard in index.html before React mounts — keep in sync.
 export const THEME_STORAGE_KEY = 'paypr-theme';
@@ -23,8 +25,8 @@ function prefersDark(): boolean {
     : false;
 }
 
-function applyThemeClass(theme: Theme) {
-  const dark = theme === 'dark' || (theme === 'system' && prefersDark());
+function applyThemeClass(theme: Theme, lightOnly: boolean) {
+  const dark = !lightOnly && (theme === 'dark' || (theme === 'system' && prefersDark()));
   document.documentElement.classList.toggle('dark', dark);
 }
 
@@ -43,27 +45,33 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user, updateUser } = useAuth();
+  const { pathname } = useLocation();
   const [localTheme, setLocalTheme] = useState<Theme>(readStoredTheme);
 
   const serverTheme =
     user && (THEMES as readonly string[]).includes(user.theme) ? (user.theme as Theme) : null;
   const theme = serverTheme ?? localTheme;
 
+  // Marketing and pre-login routes are light-only. This suppresses the class
+  // without touching `theme`, so the preference survives the round trip through
+  // /login and Settings → Appearance still reports what the user actually chose.
+  const lightOnly = isLightOnlyPath(pathname);
+
   // Sync the external systems — the <html> class, the cached copy the FOUC
   // guard reads, and (while on `system`) the OS scheme listener.
   useEffect(() => {
-    applyThemeClass(theme);
+    applyThemeClass(theme, lightOnly);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
       // Best-effort cache; theme still applies for this session.
     }
-    if (theme !== 'system' || typeof window.matchMedia !== 'function') return;
+    if (theme !== 'system' || lightOnly || typeof window.matchMedia !== 'function') return;
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => applyThemeClass('system');
+    const onChange = () => applyThemeClass('system', false);
     mql.addEventListener('change', onChange);
     return () => mql.removeEventListener('change', onChange);
-  }, [theme]);
+  }, [theme, lightOnly]);
 
   const setTheme = useCallback(
     (next: Theme) => {

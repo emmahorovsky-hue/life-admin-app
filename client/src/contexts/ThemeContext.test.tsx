@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import type { User } from '@life-admin/shared';
 import { ThemeProvider, useTheme, THEME_STORAGE_KEY } from './ThemeContext';
 import { useAuth } from './AuthContext';
@@ -37,6 +38,18 @@ function Probe() {
   );
 }
 
+// The provider reads the route (marketing/pre-login paths are light-only), so
+// every render needs a router. Defaults to an in-app path.
+function renderThemed(path = '/dashboard') {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>
+    </MemoryRouter>
+  );
+}
+
 let matchMediaListeners: Array<(e: { matches: boolean }) => void>;
 function stubMatchMedia(prefersDark: boolean) {
   matchMediaListeners = [];
@@ -67,11 +80,7 @@ describe('ThemeContext', () => {
 
   it('applies the dark class and caches when the server theme is dark', () => {
     setAuth({ theme: 'dark' });
-    render(
-      <ThemeProvider>
-        <Probe />
-      </ThemeProvider>
-    );
+    renderThemed();
     expect(screen.getByTestId('theme')).toHaveTextContent('dark');
     expect(document.documentElement.classList.contains('dark')).toBe(true);
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
@@ -80,11 +89,7 @@ describe('ThemeContext', () => {
   it('resolves system to a dark OS scheme and subscribes to changes', () => {
     stubMatchMedia(true);
     setAuth({ theme: 'system' });
-    render(
-      <ThemeProvider>
-        <Probe />
-      </ThemeProvider>
-    );
+    renderThemed();
     expect(document.documentElement.classList.contains('dark')).toBe(true);
     // On `system`, the provider registers an OS-scheme listener so live changes apply.
     expect(matchMediaListeners.length).toBeGreaterThan(0);
@@ -93,11 +98,7 @@ describe('ThemeContext', () => {
   it('resolves system to a light OS scheme as not-dark', () => {
     stubMatchMedia(false);
     setAuth({ theme: 'system' });
-    render(
-      <ThemeProvider>
-        <Probe />
-      </ThemeProvider>
-    );
+    renderThemed();
     expect(document.documentElement.classList.contains('dark')).toBe(false);
   });
 
@@ -108,11 +109,7 @@ describe('ThemeContext', () => {
       data: { user: { theme: 'dark' } },
     } as Awaited<ReturnType<typeof updateProfile>>);
 
-    render(
-      <ThemeProvider>
-        <Probe />
-      </ThemeProvider>
-    );
+    renderThemed();
     await user.click(screen.getByText('go dark'));
 
     // Optimistic write, then the confirmed server user.
@@ -123,12 +120,45 @@ describe('ThemeContext', () => {
   it('falls back to the cached theme when logged out', () => {
     localStorage.setItem(THEME_STORAGE_KEY, 'dark');
     setAuth(null);
-    render(
-      <ThemeProvider>
-        <Probe />
-      </ThemeProvider>
-    );
+    renderThemed();
     expect(screen.getByTestId('theme')).toHaveTextContent('dark');
     expect(mockedUpdateProfile).not.toHaveBeenCalled();
+  });
+
+  describe('light-only routes', () => {
+    it.each(['/', '/login', '/register', '/terms', '/verify-email/success'])(
+      'suppresses the dark class on %s',
+      (path) => {
+        setAuth({ theme: 'dark' });
+        renderThemed(path);
+        expect(document.documentElement.classList.contains('dark')).toBe(false);
+      }
+    );
+
+    it('suppresses dark on a light-only route even when the OS prefers dark', () => {
+      stubMatchMedia(true);
+      setAuth({ theme: 'system' });
+      renderThemed('/login');
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
+      // No point listening for OS changes while the route can't go dark.
+      expect(matchMediaListeners).toHaveLength(0);
+    });
+
+    it('keeps the preference intact so app routes pick it back up', () => {
+      setAuth({ theme: 'dark' });
+      const { unmount } = renderThemed('/login');
+      expect(screen.getByTestId('theme')).toHaveTextContent('dark');
+      expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
+      unmount();
+
+      renderThemed('/dashboard');
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+    });
+
+    it('keeps in-app /settings/privacy themed despite the public /privacy prefix', () => {
+      setAuth({ theme: 'dark' });
+      renderThemed('/settings/privacy');
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+    });
   });
 });
