@@ -26,16 +26,17 @@ import {
   categories,
   currencies,
   currencySymbol,
+  filterSuggestions,
   formatCurrency,
   parseRenewalDate,
   radius,
   relativeDaysSigned,
   getSubscriptionStatus,
+  ServiceSuggestion,
 } from '@life-admin/shared';
 import { subscriptionApi } from '../lib/subscriptions';
 import { candidateToFormPrefill } from '../lib/receiptScan';
 import { categoryIconFor } from '../lib/subscriptionLogo';
-import { filterSuggestions, ServiceSuggestion } from '../lib/suggestions';
 import { getApiErrorMessage } from '../lib/utils';
 import { SubscriptionLogo } from './SubscriptionLogo';
 import { AppText, Button, FieldLabel } from './ui';

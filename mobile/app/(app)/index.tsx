@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -32,6 +32,16 @@ import {
   SubscriptionSheets,
   SubscriptionSheetsHandle,
 } from '../../components/SubscriptionSheets';
+import {
+  FirstRunSetupSheet,
+  FirstRunSetupSheetHandle,
+} from '../../components/FirstRunSetupSheet';
+import {
+  SetupStep,
+  shouldShowResumeRow,
+  shouldShowSetup,
+  useSetupState,
+} from '../../lib/onboarding';
 import { AppText, Button } from '../../components/ui';
 import { Sparkline } from '../../components/Sparkline';
 import { useAuth } from '../../contexts/AuthContext';
@@ -105,9 +115,16 @@ export default function DashboardScreen() {
   const tabBarInset = useTabBarInset();
   const { width } = useWindowDimensions();
   const sheetRef = useRef<SubscriptionSheetsHandle>(null);
+  const setupRef = useRef<FirstRunSetupSheetHandle>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // Whether the account holds any subscription at all — the first-run gate.
+  // Deliberately the row count rather than `summary.activeSubscriptions`, which
+  // excludes cancelled and ended rows: someone who cancelled everything still
+  // has a file and must not be re-offered setup (web shipped this wrong and
+  // corrected it in aa96da0).
+  const [hasSubscriptions, setHasSubscriptions] = useState(false);
   // Dominant currency leads every per-currency list; the per-id map attributes
   // each renewal to its own subscription's currency.
   const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
@@ -116,6 +133,9 @@ export default function DashboardScreen() {
   // map is built from — the dashboard's upcomingRenewals payload is trimmed, so
   // tapping a row needs the whole record to open the detail/edit sheets.
   const [subsById, setSubsById] = useState<Map<string, Subscription>>(new Map());
+  // First-run setup (LIF-224). `setup` is null until the persisted state reads
+  // back; nothing below decides anything on it before then.
+  const { state: setup, updateState: updateSetup } = useSetupState();
 
   const load = useCallback(async () => {
     try {
@@ -124,6 +144,7 @@ export default function DashboardScreen() {
         subscriptionApi.getAll(),
       ]);
       setSummary(summaryData);
+      setHasSubscriptions(allSubs.length > 0);
       const primary = dominantCurrency(allSubs.map((sub) => sub.currency));
       setDisplayCurrency(primary);
       setCurrencyById(new Map(allSubs.map((sub) => [sub.id, sub.currency])));
@@ -146,6 +167,53 @@ export default function DashboardScreen() {
     await load();
     setRefreshing(false);
   }, [load]);
+
+  // Offer setup once per mount, after both halves of the gate have resolved.
+  // Whether it stays open is the sheet's business from here: unlike web — where
+  // the wizard's visibility is derived from the status and had to be pinned
+  // open while filing flipped it to `done` — an imperative sheet simply stays
+  // presented until something dismisses it.
+  const setupOffered = useRef(false);
+  useEffect(() => {
+    if (loading || !summary || !setup || setupOffered.current) return;
+    if (!shouldShowSetup(setup, hasSubscriptions)) return;
+    setupOffered.current = true;
+    setupRef.current?.present(setup);
+  }, [loading, summary, setup, hasSubscriptions]);
+
+  const resumeSetup = useCallback(() => {
+    if (!setup) return;
+    // Claim the one offer this mount gets before flipping the status back to
+    // pending, or the effect above would present a second time on top of this.
+    setupOffered.current = true;
+    const next = { ...setup, status: 'pending' as const };
+    updateSetup(next);
+    setupRef.current?.present(next);
+  }, [setup, updateSetup]);
+
+  // Refetch on the way out: a skip that follows a partial failure leaves rows
+  // behind, and without this the dashboard shows zeroed figures and the resume
+  // row until something else reloads it.
+  const skipSetup = useCallback(
+    (step: SetupStep, picks: string[], created: string[]) => {
+      updateSetup({ status: 'skipped', step, picks, created });
+      load();
+    },
+    [updateSetup, load],
+  );
+
+  // Fires as the confirmation step opens, not when the sheet closes, so the
+  // dashboard behind it is already populated by the time the user is handed
+  // back to it.
+  const finishSetup = useCallback(() => {
+    updateSetup({
+      status: 'done',
+      step: 3,
+      picks: setup?.picks ?? [],
+      created: setup?.created ?? [],
+    });
+    load();
+  }, [updateSetup, setup, load]);
 
   // Open the detail sheet for a tapped renewal. The full record is usually
   // already in subsById (loaded alongside the summary); fetch by id only as a
@@ -233,6 +301,31 @@ export default function DashboardScreen() {
         <AppText style={quiet.headerMeta}>{currentMonth}</AppText>
       </View>
 
+      {/* 1b — Resume first-run setup, once it has been skipped (LIF-224).
+          Web renders a PaperSheet strip; this screen is card-free, so it is a
+          plain row borrowing the due-dot vocabulary — the one thing on the
+          dashboard that means "this wants your attention". Below the title
+          rather than above it, so the screen still opens on its own heading.
+          Not dismissible, and it costs nothing: everything under it works, and
+          it disappears on its own the moment a first subscription exists. */}
+      {setup && shouldShowResumeRow(setup, hasSubscriptions) && (
+        <Pressable
+          style={[quiet.row, styles.resumeRow]}
+          accessibilityRole="button"
+          accessibilityLabel={`Finish setting up your file, step ${setup.step} of 3`}
+          onPress={resumeSetup}
+        >
+          <View style={quiet.dueDot} />
+          <View style={quiet.rowBody}>
+            <AppText style={quiet.rowName}>Finish setting up your file</AppText>
+            <AppText style={quiet.rowMeta}>
+              Step {setup.step} of 3 · about a minute
+            </AppText>
+          </View>
+          <AppText style={styles.resumeAction}>Resume</AppText>
+        </Pressable>
+      )}
+
       {/* 2 — Hero spend figure */}
       <View>
         <AppText style={[quiet.eyebrow, styles.eyebrowSpacing]}>Spent this month</AppText>
@@ -266,8 +359,10 @@ export default function DashboardScreen() {
         {shownRenewals.length === 0 ? (
           // With nothing tracked at all this is the whole screen's empty state,
           // so it carries the add CTA the card-free redesign otherwise drops —
-          // the dashboard is the landing tab and had no other way in.
-          subCount === 0 ? (
+          // the dashboard is the landing tab and had no other way in. Gated on
+          // the row count, not `activeSubscriptions`: someone who cancelled
+          // everything has a file, so "Nothing tracked yet" would be a lie.
+          !hasSubscriptions ? (
             <View style={styles.emptyBlock}>
               <AppText style={styles.emptyRenewals}>
                 Nothing tracked yet. Add a subscription to see it here.
@@ -326,6 +421,7 @@ export default function DashboardScreen() {
           unused-subscription signal exists server-side — see LIF-211. */}
     </Animated.ScrollView>
     <SubscriptionSheets ref={sheetRef} onSaved={load} />
+    <FirstRunSetupSheet ref={setupRef} onSkip={skipSetup} onFiled={finishSetup} />
     </>
   );
 }
@@ -346,6 +442,11 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   mutedText: { color: colors.mutedForeground },
+
+  // Sits in the content column's own gap, so it drops the row's bottom rule —
+  // a hairline directly above the hero would read as a section divider.
+  resumeRow: { borderBottomWidth: 0, paddingVertical: 0 },
+  resumeAction: { fontFamily: fonts.sans.medium, fontSize: 13, color: colors.foreground },
 
   eyebrowSpacing: { marginBottom: 12 },
   hero: {
