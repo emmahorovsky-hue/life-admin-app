@@ -69,12 +69,16 @@ export function BiometricOptInSheet({ canOffer }: { canOffer: boolean }) {
         biometricOffer.seen(userId),
       ]);
       if (!isMounted || !can || seen) return;
-      // Mark it seen on *presentation*, not on the answer. Declining and killing
+      // Claimed before the next await, not after: two runs of this effect can
+      // both get past the guard above while the first is still awaiting, and the
+      // second would present a sheet that is already up. Nothing below re-checks
+      // it, so it has to be taken here.
+      offered.current = true;
+      // Marked seen on *presentation*, not on the answer. Declining and killing
       // the app mid-prompt are the same intent as far as the next launch is
       // concerned: do not ask again.
       await biometricOffer.markSeen(userId);
       if (!isMounted) return;
-      offered.current = true;
       setLabel(name);
       sheetRef.current?.present();
     })();

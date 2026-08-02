@@ -48,14 +48,17 @@ export function AppDialog({
   bodyStyle,
 }: AppDialogProps) {
   // A Modal presents its own view controller, so the root layout's PrivacyCover
-  // cannot draw over it — an open dialog would be photographed for the app
-  // switcher with its contents intact. Hiding it while the app is not active
-  // keeps that out of the snapshot; the dialog comes back, state and all, on
-  // return, because only `visible` changes here.
+  // cannot draw over it — an open dialog would otherwise be photographed for the
+  // app switcher with its contents intact.
+  //
+  // Covered rather than hidden: flipping `visible` would unmount the Modal's
+  // children and take their state with it, so switching away for a second while
+  // half-way through the change-password dialog would silently empty the fields.
+  // An opaque sibling hides the same pixels and keeps everything mounted.
   const appActive = useAppActive();
 
   return (
-    <Modal visible={visible && appActive} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -84,12 +87,16 @@ export function AppDialog({
             </>
           ) : null}
         </View>
+        {!appActive && <View style={styles.snapshotCover} pointerEvents="none" />}
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  // Opaque, and the last child so it covers the card and the backdrop alike.
+  // Only ever mounted while the app is leaving the foreground.
+  snapshotCover: { ...StyleSheet.absoluteFill, backgroundColor: colors.background },
   overlay: {
     flex: 1,
     alignItems: 'center',
