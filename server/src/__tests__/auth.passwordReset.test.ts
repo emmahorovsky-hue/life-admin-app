@@ -101,6 +101,28 @@ describe('Auth Password Reset Endpoints', () => {
       expect(sendPasswordResetEmail).toHaveBeenCalledTimes(1);
     });
 
+    // LIF-244: the emailed link used to switch to `lifeadmin://` whenever the
+    // request carried `X-Platform: mobile`, which no mail client can open —
+    // locking out every mobile user who forgot their password. The URL shape
+    // was untested, which is why it shipped. Pin both paths to the web link.
+    it.each([
+      ['a web request', undefined],
+      ['a request from the mobile app', 'mobile'],
+    ])('emails an http(s) web link for %s', async (_label, platform) => {
+      const user = await createUser();
+
+      const req = request(app).post('/api/auth/forgot-password');
+      if (platform) req.set('X-Platform', platform);
+      await req.send({ email: user.email });
+      await new Promise((r) => setTimeout(r, 100)); // fire-and-forget; let it flush
+
+      expect(sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+      const { resetUrl } = sendPasswordResetEmail.mock.calls[0][0];
+      expect(resetUrl).toMatch(/^https?:\/\//);
+      expect(resetUrl).not.toContain('lifeadmin://');
+      expect(resetUrl).toContain('/reset-password?token=');
+    });
+
     it('invalidates previously-issued unused tokens when a new one is requested', async () => {
       const user = await createUser();
       await seedResetToken(user.id); // pre-existing unused token

@@ -11,6 +11,7 @@ import { initiateEmailChange, consumeEmailChangeToken } from '../services/emailC
 import { registerDeviceToken } from '../services/deviceTokenService';
 import { reportServerError } from '../utils/reportError';
 import { logSecurityEvent } from '../utils/securityLog';
+import { clientUrl, mobileUrl } from '../utils/urls';
 import { PUBLIC_USER_SELECT, toPublicUser } from '../constants/user';
 
 // The frontend (Vercel) and backend (Railway) are served from different sites
@@ -296,10 +297,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 export const verifyEmail = async (req: AuthRequest, res: Response): Promise<void> => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   const isMobile = req.query.platform === 'mobile';
-  // Normalize so redirects survive env vars configured with or without trailing slashes
-  const webUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
-  const mobileUrl = (process.env.MOBILE_URL || 'lifeadmin://').replace(/([^/])$/, '$1/');
-  const url = (path: string) => isMobile ? `${mobileUrl}${path}` : `${webUrl}/${path}`;
+  const url = (path: string) => isMobile ? `${mobileUrl()}${path}` : `${clientUrl()}/${path}`;
   try {
     const { token } = req.query;
 
@@ -348,8 +346,8 @@ export const forgotPassword = async (req: AuthRequest, res: Response): Promise<v
 
     logSecurityEvent('auth.password_reset.requested', req, { userId: user.id, email: user.email });
 
-    const platform = req.headers['x-platform'] as string | undefined;
-    issuePasswordResetToken(user.id, user.email, platform).catch((err) => {
+    // No platform hint: the reset link is always the web one (LIF-244).
+    issuePasswordResetToken(user.id, user.email).catch((err) => {
       reportServerError('Failed to send password reset email', err);
     });
 
@@ -584,10 +582,7 @@ export const verifyEmailChange = async (req: AuthRequest, res: Response): Promis
   // Prevent token leaking via Referer on every outcome
   res.setHeader('Referrer-Policy', 'no-referrer');
   const isMobile = req.query.platform === 'mobile';
-  // Normalize so redirects survive env vars configured with or without trailing slashes
-  const webUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
-  const mobileUrl = (process.env.MOBILE_URL || 'lifeadmin://').replace(/([^/])$/, '$1/');
-  const url = (path: string) => isMobile ? `${mobileUrl}${path}` : `${webUrl}/${path}`;
+  const url = (path: string) => isMobile ? `${mobileUrl()}${path}` : `${clientUrl()}/${path}`;
   // The confirmation lands on the profile/settings screen. Web moved to
   // /settings/account (LIF-181); the Expo app still routes to `profile`.
   const dest = (query: string) => url(isMobile ? `profile${query}` : `settings/account${query}`);

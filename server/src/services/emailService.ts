@@ -1,9 +1,8 @@
 import { Resend } from 'resend';
+import { clientUrl } from '../utils/urls';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM = process.env.EMAIL_FROM ?? 'noreply@paypr.live';
-
-const CLIENT_URL = process.env.CLIENT_URL ?? 'https://paypr.live';
 
 // The URLs in these emails carry raw single-use tokens, so they must never
 // reach production logs — only echo them to stdout in local dev (LIF-148).
@@ -35,7 +34,7 @@ export function buildEmailHtml({ heading, bodyHtml, ctaText, ctaUrl, footerNote,
       <body style="margin: 0; padding: 32px 16px; background: #FBFBF9; font-family: 'Archivo', system-ui, sans-serif; color: #161616;">
         <div style="max-width: 560px; margin: 0 auto; background: #FBFBF9; border: 1px solid #CBC7C1; border-radius: 2px; overflow: hidden;">
           <div style="padding: 20px 32px; border-bottom: 1px dashed #CBC7C1;">
-            <img src="${CLIENT_URL}/paypr-wordmark.png" alt="Paypr" width="89" height="28" style="display: block; height: 28px; width: auto; border: 0;" />
+            <img src="${clientUrl()}/paypr-wordmark.png" alt="Paypr" width="89" height="28" style="display: block; height: 28px; width: auto; border: 0;" />
           </div>
           ${illustration}
           <div style="padding: 32px 32px 24px;">
@@ -66,7 +65,7 @@ export async function sendVerificationEmail({ to, verifyUrl, expiresInHours }: {
     ctaText: 'Verify email',
     ctaUrl: verifyUrl,
     footerNote: "If you didn't sign up for Paypr, you can safely ignore this email.",
-    illustrationUrl: `${CLIENT_URL}/email-welcome.png`,
+    illustrationUrl: `${clientUrl()}/email-welcome.png`,
   });
   const text = `Welcome! Click this link to verify your email: ${verifyUrl}\nLink expires in ${expiresInHours} hours.\nIf you didn't sign up, ignore this email.`;
 
@@ -100,7 +99,7 @@ export async function sendDeletionWarningEmail({ to, deleteInHours, loginUrl }: 
 
 export async function sendAccountDeletedEmail({ to }: { to: string }) {
   if (!resend) {
-    logEmailNotSent('account-deleted email', to, 'Site URL', CLIENT_URL);
+    logEmailNotSent('account-deleted email', to, 'Site URL', clientUrl());
     return { id: 'mock-email-id' };
   }
   const subject = 'Your Paypr account has been deleted';
@@ -111,10 +110,10 @@ export async function sendAccountDeletedEmail({ to }: { to: string }) {
       <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5;">Thanks for giving Paypr a try. If you change your mind, you're always welcome to create a new account.</p>
     `,
     ctaText: 'Back to Paypr',
-    ctaUrl: CLIENT_URL,
+    ctaUrl: clientUrl(),
     footerNote: "If you didn't request this deletion, please contact us immediately by replying to this email.",
   });
-  const text = `Your Paypr account and all of its data have been permanently deleted, as you requested.\nThanks for giving Paypr a try — you're always welcome to create a new account: ${CLIENT_URL}\nIf you didn't request this deletion, reply to this email immediately.`;
+  const text = `Your Paypr account and all of its data have been permanently deleted, as you requested.\nThanks for giving Paypr a try — you're always welcome to create a new account: ${clientUrl()}\nIf you didn't request this deletion, reply to this email immediately.`;
 
   const res = await resend!.emails.send({ from: FROM, to, subject, html, text });
   if (res.error) throw new Error(`${res.error.name}: ${res.error.message}`);
@@ -152,7 +151,7 @@ export async function sendEmailChangedNoticeEmail({ to, newEmail }: { to: string
     heading: 'Your email address was changed',
     bodyHtml: `<p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5;">The login email for your Paypr account was just changed to <strong>${newEmail}</strong>. If this was you, no action is needed.</p>`,
     ctaText: 'Go to Paypr',
-    ctaUrl: `${CLIENT_URL}/login`,
+    ctaUrl: `${clientUrl()}/login`,
     footerNote: "If you didn't make this change, your account may be compromised — contact support immediately.",
   });
   const text = `The login email for your Paypr account was changed to ${newEmail}.\nIf this wasn't you, your account may be compromised — contact support immediately.`;
@@ -192,7 +191,7 @@ function daysUntilLabel(days: number): string {
 // One email per user per run covering every subscription due for a reminder,
 // instead of a separate email per subscription.
 export async function sendRenewalReminderDigest({ to, items }: { to: string; items: DigestItem[] }) {
-  const manageUrl = `${CLIENT_URL}/subscriptions`;
+  const manageUrl = `${clientUrl()}/subscriptions`;
   const formatDate = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   const formatCost = (item: DigestItem) => `${item.currency} ${item.cost.toFixed(2)}`;
 
@@ -224,13 +223,13 @@ export async function sendRenewalReminderDigest({ to, items }: { to: string; ite
     `,
     ctaText: 'Manage subscriptions',
     ctaUrl: manageUrl,
-    footerNote: `You're getting these because renewal reminders are on. You can turn them off or mute individual subscriptions in your <a href="${CLIENT_URL}/profile" style="color: #7F7B73;">profile settings</a>.`,
+    footerNote: `You're getting these because renewal reminders are on. You can turn them off or mute individual subscriptions in your <a href="${clientUrl()}/profile" style="color: #7F7B73;">profile settings</a>.`,
   });
   const text = [
     'Upcoming subscription renewals:',
     ...items.map((item) => `- ${item.name}: ${formatCost(item)} (${item.billingCycle}), renews ${daysUntilLabel(item.daysUntil)} on ${formatDate(item.renewalDate)}`),
     `Manage your subscriptions: ${manageUrl}`,
-    `Turn reminders off in your profile settings: ${CLIENT_URL}/profile`,
+    `Turn reminders off in your profile settings: ${clientUrl()}/profile`,
   ].join('\n');
 
   const res = await resend!.emails.send({ from: FROM, to, subject, html, text });
@@ -250,7 +249,7 @@ export async function sendPasswordResetEmail({ to, resetUrl, expiresInHours }: {
     ctaText: 'Reset password',
     ctaUrl: resetUrl,
     footerNote: "If you didn't request a password reset, you can safely ignore this email. Your password will not change.",
-    illustrationUrl: `${CLIENT_URL}/email-password-reset.png`,
+    illustrationUrl: `${clientUrl()}/email-password-reset.png`,
   });
   const text = `Reset your Paypr password by clicking this link: ${resetUrl}\nThe link expires in ${expiresInHours} hour.\nIf you didn't request this, ignore this email.`;
 
