@@ -5,7 +5,13 @@ import { MemoryRouter } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import { dashboardApi, type DashboardSummary } from '@/lib/dashboard';
 import { subscriptionApi, type Subscription } from '@/lib/subscriptions';
-import { ONBOARDING_STORAGE_KEY, readOnboardingState } from '@/lib/onboarding';
+import {
+  ONBOARDING_STORAGE_KEY,
+  onboardingStorageKey,
+  readOnboardingState,
+} from '@/lib/onboarding';
+
+const USER_ID = 'u1';
 
 vi.mock('@/lib/dashboard', () => ({ dashboardApi: { getSummary: vi.fn() } }));
 vi.mock('@/lib/subscriptions', async (importOriginal) => {
@@ -13,7 +19,7 @@ vi.mock('@/lib/subscriptions', async (importOriginal) => {
   return { ...actual, subscriptionApi: { getAll: vi.fn(), create: vi.fn() } };
 });
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { name: 'Sam', email: 'sam@example.com' } }),
+  useAuth: () => ({ user: { id: USER_ID, name: 'Sam', email: 'sam@example.com' } }),
 }));
 
 const mockedDashboard = vi.mocked(dashboardApi);
@@ -85,6 +91,20 @@ describe('Dashboard first-run onboarding', () => {
 
   it('does not reopen once onboarding is done', async () => {
     localStorage.setItem(
+      onboardingStorageKey(USER_ID),
+      JSON.stringify({ status: 'done', step: 3, picks: [] })
+    );
+    renderDashboard();
+
+    await screen.findByText(/welcome back, sam/i);
+    expect(wizardTitle()).not.toBeInTheDocument();
+  });
+
+  // LIF-242. The browser-wide key is what the e2e suite seeds through, and what
+  // real browsers still hold from before the flag was keyed by account, so it
+  // has to keep suppressing the wizard for the user who is already here.
+  it('honours a browser-wide state left by an earlier version', async () => {
+    localStorage.setItem(
       ONBOARDING_STORAGE_KEY,
       JSON.stringify({ status: 'done', step: 3, picks: [] })
     );
@@ -92,6 +112,10 @@ describe('Dashboard first-run onboarding', () => {
 
     await screen.findByText(/welcome back, sam/i);
     expect(wizardTitle()).not.toBeInTheDocument();
+    // Adopted, then dropped — otherwise the next account to sign up in this
+    // browser inherits it and never sees the wizard either. That was the bug.
+    expect(localStorage.getItem(ONBOARDING_STORAGE_KEY)).toBeNull();
+    expect(readOnboardingState(USER_ID).status).toBe('done');
   });
 
   it('persists a skip and leaves the dashboard usable behind the resume card', async () => {
@@ -102,7 +126,7 @@ describe('Dashboard first-run onboarding', () => {
     await user.click(screen.getByRole('button', { name: /skip setup/i }));
 
     await waitFor(() => expect(wizardTitle()).not.toBeInTheDocument());
-    expect(readOnboardingState()).toEqual({
+    expect(readOnboardingState(USER_ID)).toEqual({
       status: 'skipped',
       step: 1,
       picks: ['Netflix'],
@@ -116,7 +140,7 @@ describe('Dashboard first-run onboarding', () => {
 
   it('shows the resume card, not the wizard, after a reload', async () => {
     localStorage.setItem(
-      ONBOARDING_STORAGE_KEY,
+      onboardingStorageKey(USER_ID),
       JSON.stringify({ status: 'skipped', step: 2, picks: ['Netflix'] })
     );
     renderDashboard();
@@ -129,7 +153,7 @@ describe('Dashboard first-run onboarding', () => {
   it('reopens the wizard at the remembered step from the resume card', async () => {
     const user = userEvent.setup();
     localStorage.setItem(
-      ONBOARDING_STORAGE_KEY,
+      onboardingStorageKey(USER_ID),
       JSON.stringify({ status: 'skipped', step: 2, picks: ['Netflix'] })
     );
     renderDashboard();
@@ -144,7 +168,7 @@ describe('Dashboard first-run onboarding', () => {
     const user = userEvent.setup();
     mockedSubs.create.mockResolvedValue({ id: 's1' } as never);
     localStorage.setItem(
-      ONBOARDING_STORAGE_KEY,
+      onboardingStorageKey(USER_ID),
       JSON.stringify({ status: 'pending', step: 2, picks: ['Netflix'] })
     );
     renderDashboard();
@@ -153,7 +177,7 @@ describe('Dashboard first-run onboarding', () => {
 
     await waitFor(() => expect(mockedSubs.create).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('1 subscription filed')).toBeInTheDocument();
-    expect(readOnboardingState().status).toBe('done');
+    expect(readOnboardingState(USER_ID).status).toBe('done');
     // Initial load + the refetch that repopulates the tiles behind the modal.
     await waitFor(() => expect(mockedDashboard.getSummary).toHaveBeenCalledTimes(2));
   });
@@ -168,18 +192,18 @@ describe('Dashboard first-run onboarding', () => {
       .mockRejectedValueOnce(new Error('network down'))
       .mockResolvedValue({ id: 's2' } as never);
     localStorage.setItem(
-      ONBOARDING_STORAGE_KEY,
+      onboardingStorageKey(USER_ID),
       JSON.stringify({ status: 'pending', step: 2, picks: ['Netflix', 'Spotify'] })
     );
     renderDashboard();
 
     await user.click(await screen.findByRole('button', { name: 'File 2' }));
     await screen.findByText(/could not be saved/i);
-    expect(readOnboardingState().created).toEqual([]);
+    expect(readOnboardingState(USER_ID).created).toEqual([]);
 
     await user.click(screen.getByRole('button', { name: /skip setup/i }));
     // Netflix landed, so the skip has to remember it.
-    await waitFor(() => expect(readOnboardingState().created).toEqual(['Netflix']));
+    await waitFor(() => expect(readOnboardingState(USER_ID).created).toEqual(['Netflix']));
 
     await user.click(await screen.findByRole('button', { name: /resume setup/i }));
     await user.click(await screen.findByRole('button', { name: 'File 2' }));
@@ -195,7 +219,7 @@ describe('Dashboard first-run onboarding', () => {
     const user = userEvent.setup();
     mockedSubs.create.mockRejectedValueOnce(new Error('network down'));
     localStorage.setItem(
-      ONBOARDING_STORAGE_KEY,
+      onboardingStorageKey(USER_ID),
       JSON.stringify({ status: 'pending', step: 2, picks: ['Netflix', 'Spotify'] })
     );
     mockedSubs.create.mockReset();

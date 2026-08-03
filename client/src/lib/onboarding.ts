@@ -5,8 +5,27 @@
 // — is acceptable precisely because the account being empty is the real gate.
 // Once a subscription exists, `shouldShowWizard`/`shouldShowResumeCard` return
 // false regardless of what is stored here.
+//
+// Client-side, but **per account, not per browser** (LIF-242). Stored per
+// browser it suppressed the wizard for every account after the first one:
+// logging out does not clear localStorage, so the second sign-up read back the
+// first account's `skipped`/`done` and went straight to the resume card. Keying
+// by user is also why logout still leaves the value alone — signing back in as
+// the same user should respect the choice they made.
 
+/**
+ * The pre-LIF-242 browser-wide key. Still read once per account and then
+ * removed, so a user already on this browser keeps whatever they chose rather
+ * than being re-interrupted by the upgrade. Also the seam the e2e suite seeds
+ * through (`client/e2e/auth.spec.ts`) — it has no user id at
+ * `addInitScript` time, so a browser-wide "done" is the only thing it can write.
+ */
 export const ONBOARDING_STORAGE_KEY = 'paypr.onboarding.v1';
+
+/** Per-account key. `undefined` while auth is still resolving — see the reads below. */
+export function onboardingStorageKey(userId: string): string {
+  return `${ONBOARDING_STORAGE_KEY}:${userId}`;
+}
 
 export type OnboardingStatus = 'pending' | 'skipped' | 'done';
 export type OnboardingStep = 1 | 2 | 3;
@@ -44,40 +63,65 @@ function stringsOnly(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 }
 
+/** Anything malformed reads as the pending default rather than throwing: a
+ *  half-written or hand-edited value must not be able to break the dashboard. */
+function parseOnboardingState(raw: string | null): OnboardingState | null {
+  if (!raw) return null;
+
+  const parsed: unknown = JSON.parse(raw);
+  if (typeof parsed !== 'object' || parsed === null) return DEFAULT_ONBOARDING_STATE;
+
+  const { status, step, picks, created } = parsed as Partial<OnboardingState>;
+  return {
+    status: STATUSES.includes(status as OnboardingStatus)
+      ? (status as OnboardingStatus)
+      : DEFAULT_ONBOARDING_STATE.status,
+    step: isStep(step) ? step : DEFAULT_ONBOARDING_STATE.step,
+    picks: stringsOnly(picks),
+    // Absent in states written before `created` existed — an empty list is
+    // the right reading of those: nothing is known to have been created.
+    created: stringsOnly(created),
+  };
+}
+
 /**
- * Read persisted state, falling back to a pending default. Anything unreadable
- * or malformed degrades to the default rather than throwing: localStorage
- * access itself throws in Safari private mode, and a half-written or
- * hand-edited value must not be able to break the dashboard.
+ * Read this user's persisted state, falling back to a pending default.
+ * localStorage access itself throws in Safari private mode, so an unreadable
+ * store degrades to the default rather than taking the dashboard with it.
+ *
+ * Absent a per-user value, the browser-wide key written before LIF-242 is
+ * adopted once and removed. Deleting it is what makes the next account in this
+ * browser start clean; leaving it would reproduce the bug for every account
+ * after this one.
+ *
+ * `userId` is undefined only if this is somehow reached before auth resolves,
+ * which `<ProtectedRoute>` already prevents for the dashboard. The default it
+ * returns is `pending`, so the fallback errs towards offering the wizard rather
+ * than silently swallowing it — the failure this whole change is about.
  */
-export function readOnboardingState(): OnboardingState {
+export function readOnboardingState(userId: string | undefined): OnboardingState {
+  if (!userId) return DEFAULT_ONBOARDING_STATE;
+
   try {
-    const raw = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (!raw) return DEFAULT_ONBOARDING_STATE;
+    const mine = parseOnboardingState(window.localStorage.getItem(onboardingStorageKey(userId)));
+    if (mine) return mine;
 
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return DEFAULT_ONBOARDING_STATE;
+    const legacy = parseOnboardingState(window.localStorage.getItem(ONBOARDING_STORAGE_KEY));
+    if (!legacy) return DEFAULT_ONBOARDING_STATE;
 
-    const { status, step, picks, created } = parsed as Partial<OnboardingState>;
-    return {
-      status: STATUSES.includes(status as OnboardingStatus)
-        ? (status as OnboardingStatus)
-        : DEFAULT_ONBOARDING_STATE.status,
-      step: isStep(step) ? step : DEFAULT_ONBOARDING_STATE.step,
-      picks: stringsOnly(picks),
-      // Absent in states written before `created` existed — an empty list is
-      // the right reading of those: nothing is known to have been created.
-      created: stringsOnly(created),
-    };
+    writeOnboardingState(userId, legacy);
+    window.localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    return legacy;
   } catch {
     return DEFAULT_ONBOARDING_STATE;
   }
 }
 
 /** Persist state. A write failure (private mode, quota) is not worth surfacing. */
-export function writeOnboardingState(state: OnboardingState): void {
+export function writeOnboardingState(userId: string | undefined, state: OnboardingState): void {
+  if (!userId) return;
   try {
-    window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(onboardingStorageKey(userId), JSON.stringify(state));
   } catch {
     /* no-op — the flow still works for this session, it just won't be remembered */
   }

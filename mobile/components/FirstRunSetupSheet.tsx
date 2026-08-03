@@ -301,6 +301,14 @@ export const FirstRunSetupSheet = forwardRef<FirstRunSetupSheetHandle, Props>(
           // The 0.2 glass scrim, matching FormSheet — every sheet in the app
           // is glass now, text entry included.
           opacity={SHEET_BACKDROP_OPACITY}
+          // The one sheet in the app that does *not* close on an outside tap
+          // (LIF-242). Everywhere else the user opened the sheet and a tap
+          // outside plainly means "never mind"; this one opens itself, a second
+          // after signing up, and gets swatted by reflex. That reflex used to
+          // be permanent — leaving is a skip (see handleDismiss), and a skip
+          // demotes the whole flow to the resume row for good. Skip setup and
+          // the drag-down gesture both still end it, deliberately.
+          pressBehavior="none"
         />
       ),
       [],
