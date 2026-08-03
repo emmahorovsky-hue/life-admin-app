@@ -121,7 +121,7 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `DATABASE_URL`  | Prisma (required, server fails to start without it)                  |
 | `JWT_SECRET`    | Token signing (required)                                             |
 | `API_URL`       | Included in verification email links (e.g. `http://localhost:3001`)  |
-| `CLIENT_URL`    | CORS allowlist, and the base of every link in outgoing email (default `https://paypr.live`) |
+| `CLIENT_URL`    | Two consumers with two different defaults: the CORS allowlist in `index.ts` (default `http://localhost:5173`), and the base of every link in outgoing email via `utils/urls.ts` (default `https://paypr.live`). Unset in production means emails point at `paypr.live` while CORS allowlists a dev port — set it explicitly |
 | `RESEND_API_KEY`| Email sending via Resend SDK                                         |
 | `ANTHROPIC_API_KEY` | Receipt/invoice AI extraction (optional; feature degrades gracefully without it) |
 | `AI_MODEL`      | Claude model id for extraction (optional, defaults to `claude-haiku-4-5`; recommended in production: `claude-sonnet-5` for amount accuracy — see `server/docs/API.md`) |
