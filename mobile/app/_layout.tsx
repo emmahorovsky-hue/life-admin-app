@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useNavigationContainerRef, useRouter } from 'expo-router';
+import * as Sentry from '@sentry/react-native';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -22,9 +23,14 @@ import { BrandSplash } from '../components/BrandSplash';
 import { BiometricLockScreen } from '../components/BiometricLockScreen';
 import { PrivacyCover } from '../components/PrivacyCover';
 import { useAppActive } from '../lib/useAppActive';
+import { initSentry, navigationIntegration } from '../lib/sentry';
 import { colors } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync();
+
+// Module scope, above every component, so an error thrown while the tree is
+// first rendering is still reported. A no-op without a DSN.
+initSentry();
 
 /**
  * How long the app may sit in the background before biometric quick-unlock
@@ -202,7 +208,15 @@ function PrivacyCoverGate() {
   return active || !hasBeenActive.current ? null : <PrivacyCover />;
 }
 
-export default function RootLayout() {
+function RootLayout() {
+  // expo-router owns the navigation container, so the integration can only be
+  // registered once the ref is populated — hence here rather than in
+  // lib/sentry.ts alongside the rest of the setup.
+  const navigationRef = useNavigationContainerRef();
+  useEffect(() => {
+    if (navigationRef) navigationIntegration.registerNavigationContainer(navigationRef);
+  }, [navigationRef]);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
@@ -227,3 +241,8 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+// `Sentry.wrap` is what turns an unhandled render error into a reported crash
+// rather than a white screen, and it has to sit on the exported root — wrapping
+// anything lower would leave the tree above it unmonitored.
+export default Sentry.wrap(RootLayout);

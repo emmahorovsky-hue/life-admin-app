@@ -150,6 +150,7 @@ Part 6.
 |-----------------|----------------------------------------------------------------------|
 | `API_URL`       | Baked into the binary as `extra.apiUrl`; `lib/api.ts` falls back to localhost only under `__DEV__`, and a production build without it throws during config |
 | `LOGO_DEV_TOKEN`| Brand logos on subscription rows via logo.dev, as `extra.logoDevToken` (read by `lib/subscriptionLogo.ts`). Same publishable token as the web `VITE_LOGO_DEV_TOKEN`. Optional; rows fall back to category icons without it. Not committed — the repo is public |
+| `SENTRY_DSN`    | Crash/error reporting, as `extra.sentryDsn` (read by `lib/sentry.ts`). Optional — no DSN means Sentry never initialises — but a **production** build without it warns, since an unreported release hides its own failures. Not committed, same reason as the logo.dev token. Source-map upload additionally needs `SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_AUTH_TOKEN` on the build; without them reporting still works but traces stay minified. See DEPLOYMENT.md 6.3 |
 
 ### Database schema highlights
 
