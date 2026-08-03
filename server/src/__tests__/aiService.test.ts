@@ -208,7 +208,9 @@ describe('aiService', () => {
         notes: null,
         isSubscription: true, // defaults true unless explicitly false
         confidence: 'low',
-        uncertainFields: ['cost'],
+        // LIF-241: an unmappable category is flagged for review rather than
+        // silently clamped, the same way a null cost already was.
+        uncertainFields: ['cost', 'category'],
       });
     });
 

@@ -20,6 +20,38 @@ export function getSubscriptionStatus(
   return parseRenewalDate(sub.nextRenewalDate) >= start ? 'cancelling' : 'ended';
 }
 
+/** Sentinel category-filter value meaning "no category constraint". */
+export const ALL_CATEGORIES = 'all';
+
+/**
+ * The subscriptions-list filter predicate: case-insensitive substring on the name, plus
+ * an exact category-id match unless the filter is `ALL_CATEGORIES`.
+ *
+ * Web and mobile each had their own character-identical copy of this (LIF-241). Two
+ * copies of one behaviour with no test between them is how the two lists drift, and
+ * mobile has no test runner, so its copy could not be covered at all — here it can.
+ *
+ * `categoryFilter` is deliberately *not* run through `normaliseCategory`: it always comes
+ * from a `cat.id` in the picker, never from user text, so tolerance would add risk for no
+ * benefit. `searchTerm` is deliberately not trimmed — matching the behaviour this
+ * replaces, so the extraction changes nothing.
+ */
+export function matchesSubscriptionFilter({
+  subscription,
+  searchTerm,
+  categoryFilter,
+}: {
+  subscription: Pick<Subscription, 'name' | 'category'>;
+  searchTerm: string;
+  /** A CategoryId, or `ALL_CATEGORIES`. */
+  categoryFilter: string;
+}): boolean {
+  const matchesSearch = subscription.name.toLowerCase().includes(searchTerm.toLowerCase());
+  const matchesCategory =
+    categoryFilter === ALL_CATEGORIES || subscription.category === categoryFilter;
+  return matchesSearch && matchesCategory;
+}
+
 export function normalizeToMonthlyCost(cost: number, billingCycle: string): number {
   switch (billingCycle) {
     case 'monthly': return cost;

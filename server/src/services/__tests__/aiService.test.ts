@@ -24,9 +24,39 @@ describe('aiService.normalizeCandidate', () => {
     expect(normalizeCandidate(fullValidInput)).toEqual(fullValidInput);
   });
 
-  it('clamps an unknown category to "other"', () => {
+  it('clamps an unknown category to "other" and flags it for review', () => {
     const result = normalizeCandidate({ ...fullValidInput, category: 'crypto' });
     expect(result.category).toBe('other');
+    // LIF-241: the clamp used to be silent, so a discarded category reached the
+    // database unnoticed and the subscription vanished from that category's filter.
+    expect(result.uncertainFields).toContain('category');
+  });
+
+  // LIF-241: "Cloud Storage" is the display name of the `cloud` id, and the one
+  // category whose name differs materially from its id — so it was the value most
+  // likely to come back from the model in a form the old exact-match check rejected.
+  it.each(['Cloud Storage', 'cloud storage', 'CLOUD', ' cloud ', 'cloud-storage', 'cloud_storage'])(
+    'resolves %p to the "cloud" id without flagging it',
+    (category) => {
+      const result = normalizeCandidate({ ...fullValidInput, category });
+      expect(result.category).toBe('cloud');
+      expect(result.uncertainFields).not.toContain('category');
+    }
+  );
+
+  it('does not flag a category the model legitimately reported as "other"', () => {
+    const result = normalizeCandidate({ ...fullValidInput, category: 'Other' });
+    expect(result.category).toBe('other');
+    expect(result.uncertainFields).not.toContain('category');
+  });
+
+  it('does not double-flag a category the model already marked uncertain', () => {
+    const result = normalizeCandidate({
+      ...fullValidInput,
+      category: 'crypto',
+      uncertainFields: ['category'],
+    });
+    expect(result.uncertainFields).toEqual(['category']);
   });
 
   it('clamps an unknown billing cycle to "monthly"', () => {
@@ -87,8 +117,9 @@ describe('aiService.normalizeCandidate', () => {
       isSubscription: true,
       confidence: 'low',
       // LIF-76: a null cost is always surfaced for review, even when the model
-      // (or, here, an empty input) didn't flag it.
-      uncertainFields: ['cost'],
+      // (or, here, an empty input) didn't flag it. LIF-241 does the same for a
+      // category we couldn't map — here there was no category at all, so we guessed.
+      uncertainFields: ['cost', 'category'],
     });
   });
 });

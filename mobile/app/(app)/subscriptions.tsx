@@ -18,8 +18,10 @@ import {
   categories,
   formatCurrency,
   getSubscriptionStatus,
+  matchesSubscriptionFilter,
   normalizeToMonthlyCost,
   radius,
+  ALL_CATEGORIES,
 } from '@life-admin/shared';
 import { subscriptionApi } from '../../lib/subscriptions';
 import { getApiErrorMessage } from '../../lib/utils';
@@ -47,7 +49,7 @@ export default function SubscriptionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState(ALL_CATEGORIES);
   const sheetRef = useRef<SubscriptionSheetsHandle>(null);
   const chooserRef = useRef<ReceiptScanChooserHandle>(null);
 
@@ -104,11 +106,10 @@ export default function SubscriptionsScreen() {
     ]);
   };
 
-  const filtered = subscriptions.filter((sub) => {
-    const matchesSearch = sub.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || sub.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  // Predicate shared with web (see @life-admin/shared).
+  const filtered = subscriptions.filter((sub) =>
+    matchesSubscriptionFilter({ subscription: sub, searchTerm, categoryFilter })
+  );
 
   const renderItem = ({ item: sub }: { item: Subscription }) => {
     const status = getSubscriptionStatus(sub);
@@ -208,7 +209,7 @@ export default function SubscriptionsScreen() {
         showsHorizontalScrollIndicator={false}
         style={styles.chips}
         contentContainerStyle={styles.chipsContent}
-        data={[{ id: 'all', name: 'All' }, ...categories]}
+        data={[{ id: ALL_CATEGORIES, name: 'All' }, ...categories]}
         keyExtractor={(c) => c.id}
         renderItem={({ item: cat }) => {
           const active = categoryFilter === cat.id;
@@ -243,7 +244,7 @@ export default function SubscriptionsScreen() {
           contentContainerStyle={[styles.listContent, { paddingBottom: tabBarInset }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
-            searchTerm || categoryFilter !== 'all' ? (
+            searchTerm || categoryFilter !== ALL_CATEGORIES ? (
               <EmptyState
                 iconName="search-outline"
                 iconVariant="muted"
@@ -256,7 +257,7 @@ export default function SubscriptionsScreen() {
                     variant="outline"
                     onPress={() => {
                       setSearchTerm('');
-                      setCategoryFilter('all');
+                      setCategoryFilter(ALL_CATEGORIES);
                     }}
                   />
                 }

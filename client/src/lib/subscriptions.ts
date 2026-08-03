@@ -15,6 +15,8 @@ export {
   billingCycles,
   currencies,
   getSubscriptionStatus,
+  matchesSubscriptionFilter,
+  ALL_CATEGORIES,
 } from '@life-admin/shared';
 
 import type {
