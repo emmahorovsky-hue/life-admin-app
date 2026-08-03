@@ -22,7 +22,7 @@ function guardLightOnlyPaths(): string[] {
 
 describe('themeRoutes', () => {
   describe('isLightOnlyPath', () => {
-    it.each(['/', '/login', '/terms', '/verify-email/success'])('matches %s', (path) => {
+    it.each(['/', '/login', '/terms', '/support', '/verify-email/success'])('matches %s', (path) => {
       expect(isLightOnlyPath(path)).toBe(true);
     });
 
