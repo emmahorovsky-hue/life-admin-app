@@ -6,6 +6,8 @@ import {
   SubscriptionCandidate,
   categories,
   getSubscriptionStatus,
+  matchesSubscriptionFilter,
+  ALL_CATEGORIES,
 } from '@/lib/subscriptions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +32,7 @@ export default function Subscriptions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState(ALL_CATEGORIES);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -117,12 +119,10 @@ export default function Subscriptions() {
     setEditDialogOpen(true);
   };
 
-  // Filter subscriptions
-  const filteredSubscriptions = subscriptions.filter((sub) => {
-    const matchesSearch = sub.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || sub.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  // Filter subscriptions — predicate shared with mobile (see @life-admin/shared).
+  const filteredSubscriptions = subscriptions.filter((sub) =>
+    matchesSubscriptionFilter({ subscription: sub, searchTerm, categoryFilter })
+  );
 
   // Sort by soonest renewal first — the whole grid reads as a "what's due next" file.
   const today = new Date();
@@ -130,7 +130,7 @@ export default function Subscriptions() {
     (a, b) => parseRenewalDate(a.nextRenewalDate).getTime() - parseRenewalDate(b.nextRenewalDate).getTime()
   );
 
-  const isFiltered = searchTerm !== '' || categoryFilter !== 'all';
+  const isFiltered = searchTerm !== '' || categoryFilter !== ALL_CATEGORIES;
 
   return (
     <div className="space-y-6">
@@ -153,7 +153,7 @@ export default function Subscriptions() {
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="w-36"
           >
-            <option value="all">All Categories</option>
+            <option value={ALL_CATEGORIES}>All Categories</option>
             {categories.map((cat) => (
               <option key={cat.id} value={cat.id}>
                 {cat.name}
@@ -227,7 +227,7 @@ export default function Subscriptions() {
                 variant="outline"
                 onClick={() => {
                   setSearchTerm('');
-                  setCategoryFilter('all');
+                  setCategoryFilter(ALL_CATEGORIES);
                 }}
               >
                 Clear filters
