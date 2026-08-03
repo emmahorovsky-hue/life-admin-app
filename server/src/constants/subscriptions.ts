@@ -4,7 +4,13 @@
 // the other (LIF-158). They are re-exported from here rather than imported
 // directly at each call site, so the existing importers (route validators,
 // aiService, tests) keep working unchanged.
-export { CATEGORY_IDS, CATEGORIES, BILLING_CYCLES, currencies } from '@life-admin/shared';
+export {
+  CATEGORY_IDS,
+  CATEGORIES,
+  BILLING_CYCLES,
+  currencies,
+  normaliseCategory,
+} from '@life-admin/shared';
 export type { CategoryId, BillingCycle } from '@life-admin/shared';
 
 
