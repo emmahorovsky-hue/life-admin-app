@@ -70,7 +70,17 @@ export default {
     userInterfaceStyle: 'light',
     ios: {
       bundleIdentifier: 'com.paypr.live',
-      supportsTablet: true,
+      // iPhone only. This was the Expo template's default, and shipping it
+      // would have committed the App Store listing to iPad: a second set of
+      // screenshots, and a reviewer running the app on a 13" screen. Nothing
+      // here is designed for that — the tab bar floats (LIF-214), every modal
+      // surface is a bottom sheet, and the dashboard hero is a fixed 54pt on a
+      // single content column. It would be reviewed as a stretched phone app,
+      // because that is what it is.
+      //
+      // Reversible whenever an iPad layout actually exists: flip this back and
+      // add the iPad screenshots. Native config, so it needs a new build.
+      supportsTablet: false,
       infoPlist: {
         // Paypr uses only standard TLS/HTTPS and Keychain (expo-secure-store),
         // which are exempt from US export encryption rules. Declaring this here
