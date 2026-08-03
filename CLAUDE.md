@@ -164,3 +164,22 @@ Part 6.
 Branch format: `{type}/{issue-number}-{description}` (e.g. `feature/LIF-42-email-reminders`)
 
 Commit format: `{type}({scope}): {subject}` — present tense, imperative, `Closes #N` footer.
+
+## UI & animation skills
+
+`.claude/skills/` holds eight skills from [emilkowalski/skills](https://github.com/emilkowalski/skills), committed so every contributor gets the same set. Install or update them with `npx skills@latest add emilkowalski/skills --skill '*' --copy`; `skills-lock.json` pins the content hashes.
+
+**Read `emil-design-eng` and `apple-design` before writing or changing UI in `client/` or `mobile/`** — any new component, restyle, transition, gesture, or sheet. Skills are loaded on demand rather than at startup, so this instruction is what actually pulls them in; without it they fire only when a task obviously looks like animation work, and most UI tweaks don't.
+
+The rest are on demand, not automatic:
+
+| Skill | Use it when |
+|---|---|
+| `review-animations` | Judging animations in a diff against a fixed standard |
+| `improve-animations` | Auditing existing motion across the app, producing a plan |
+| `find-animation-opportunities` | Looking for places that should animate and don't |
+| `animation-vocabulary` | Naming a motion effect you can only describe |
+| `pick-ui-library` | Choosing a library instead of hand-rolling one |
+| `prototype` | Building several versions of a UI to compare |
+
+`pick-ui-library` and `prototype` never self-trigger — ask for them by name.
