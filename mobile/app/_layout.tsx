@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useNavigationContainerRef, useRouter } from 'expo-router';
+import * as Sentry from '@sentry/react-native';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -22,9 +23,14 @@ import { BrandSplash } from '../components/BrandSplash';
 import { BiometricLockScreen } from '../components/BiometricLockScreen';
 import { PrivacyCover } from '../components/PrivacyCover';
 import { useAppActive } from '../lib/useAppActive';
+import { initSentry, navigationIntegration } from '../lib/sentry';
 import { colors } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync();
+
+// Module scope, above every component, so an error thrown while the tree is
+// first rendering is still reported. A no-op without a DSN.
+initSentry();
 
 /**
  * How long the app may sit in the background before biometric quick-unlock
@@ -74,6 +80,17 @@ function RootLayoutNav() {
   // get onboarding, which is its own brand moment.
   const handleSplashDone = useCallback(() => setSplashDone(true), []);
   const showBrandSplash = (!splashDone || loading) && (loading || !!user);
+
+  // The splash gets one chance per launch, and being skipped counts as taking
+  // it. Skipping is what the logged-out branch of `showBrandSplash` does — but
+  // it unmounts BrandSplash before the animation can call `handleSplashDone`,
+  // so `splashDone` stayed false. The moment signing up flipped `user` truthy,
+  // `!splashDone` was still true and the splash it had just skipped played
+  // *over* the dashboard — on top of the first-run setup sheet's moment, which
+  // is portalled above it. Latch it here instead.
+  useEffect(() => {
+    if (ready && !user) setSplashDone(true);
+  }, [ready, user]);
 
   // Re-lock only counts real backgrounding, and only past the grace period.
   // 'inactive' is excluded on purpose: iOS reports it for the app switcher,
@@ -174,12 +191,32 @@ function BiometricLockGate() {
  *
  * Uses `useAppActive` rather than its own AppState listener: the hook already
  * answers exactly this question, on exactly this threshold.
+ *
+ * Held back until the app has been active once. iOS reports 'inactive' for the
+ * whole cold-launch window, so without this the cover — zIndex 300 — went up
+ * over `BrandSplash` (100) at launch and the splash was never seen. Nothing is
+ * given away by waiting: there is only the splash behind it until the app comes
+ * up, and the OS is not photographing an app it has not finished launching.
+ *
+ * A latched ref rather than state, because the cover has to be up *before* the
+ * snapshot is taken and a state update would cost a frame.
  */
 function PrivacyCoverGate() {
-  return useAppActive() ? null : <PrivacyCover />;
+  const active = useAppActive();
+  const hasBeenActive = useRef(false);
+  if (active) hasBeenActive.current = true;
+  return active || !hasBeenActive.current ? null : <PrivacyCover />;
 }
 
-export default function RootLayout() {
+function RootLayout() {
+  // expo-router owns the navigation container, so the integration can only be
+  // registered once the ref is populated — hence here rather than in
+  // lib/sentry.ts alongside the rest of the setup.
+  const navigationRef = useNavigationContainerRef();
+  useEffect(() => {
+    if (navigationRef) navigationIntegration.registerNavigationContainer(navigationRef);
+  }, [navigationRef]);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
@@ -204,3 +241,8 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+// `Sentry.wrap` is what turns an unhandled render error into a reported crash
+// rather than a white screen, and it has to sit on the exported root — wrapping
+// anything lower would leave the tree above it unmonitored.
+export default Sentry.wrap(RootLayout);
