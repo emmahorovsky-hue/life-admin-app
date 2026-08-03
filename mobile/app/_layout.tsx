@@ -75,6 +75,17 @@ function RootLayoutNav() {
   const handleSplashDone = useCallback(() => setSplashDone(true), []);
   const showBrandSplash = (!splashDone || loading) && (loading || !!user);
 
+  // The splash gets one chance per launch, and being skipped counts as taking
+  // it. Skipping is what the logged-out branch of `showBrandSplash` does — but
+  // it unmounts BrandSplash before the animation can call `handleSplashDone`,
+  // so `splashDone` stayed false. The moment signing up flipped `user` truthy,
+  // `!splashDone` was still true and the splash it had just skipped played
+  // *over* the dashboard — on top of the first-run setup sheet's moment, which
+  // is portalled above it. Latch it here instead.
+  useEffect(() => {
+    if (ready && !user) setSplashDone(true);
+  }, [ready, user]);
+
   // Re-lock only counts real backgrounding, and only past the grace period.
   // 'inactive' is excluded on purpose: iOS reports it for the app switcher,
   // Control Centre and incoming calls, none of which are leaving the app, and
