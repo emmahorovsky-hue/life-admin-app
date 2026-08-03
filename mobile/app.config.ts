@@ -37,6 +37,27 @@ function resolveLogoDevToken(): string | undefined {
   return token;
 }
 
+// Crash reporting DSN, read by lib/sentry.ts. Optional in the same sense as
+// LOGO_DEV_TOKEN — no DSN means Sentry never initialises and the app is
+// otherwise unaffected — so an unset value must not fail the build. But an
+// unreported release is exactly the failure that hides itself, so a production
+// build without it says so in the build log.
+//
+// A Sentry DSN is publishable by design (it ships in every client bundle), yet
+// like the logo.dev token it stays out of eas.json because this repo is public.
+function resolveSentryDsn(): string | undefined {
+  const dsn = process.env.SENTRY_DSN;
+
+  if (!dsn && process.env.EAS_BUILD_PROFILE === 'production') {
+    console.warn(
+      '[app.config] SENTRY_DSN is not set — this production build will report no ' +
+        'crashes or errors. Set it as an EAS environment variable; see DEPLOYMENT.md 6.3.',
+    );
+  }
+
+  return dsn;
+}
+
 export default {
   expo: {
     name: 'Paypr',
@@ -49,7 +70,17 @@ export default {
     userInterfaceStyle: 'light',
     ios: {
       bundleIdentifier: 'com.paypr.live',
-      supportsTablet: true,
+      // iPhone only. This was the Expo template's default, and shipping it
+      // would have committed the App Store listing to iPad: a second set of
+      // screenshots, and a reviewer running the app on a 13" screen. Nothing
+      // here is designed for that — the tab bar floats (LIF-214), every modal
+      // surface is a bottom sheet, and the dashboard hero is a fixed 54pt on a
+      // single content column. It would be reviewed as a stretched phone app,
+      // because that is what it is.
+      //
+      // Reversible whenever an iPad layout actually exists: flip this back and
+      // add the iPad screenshots. Native config, so it needs a new build.
+      supportsTablet: false,
       infoPlist: {
         // Paypr uses only standard TLS/HTTPS and Keychain (expo-secure-store),
         // which are exempt from US export encryption rules. Declaring this here
@@ -119,6 +150,14 @@ export default {
         faceIDPermission: 'Paypr uses Face ID so you can unlock your subscriptions without typing your password.',
       }],
       '@react-native-community/datetimepicker',
+      // Adds the native Sentry SDK and the build phase that uploads source maps
+      // and debug symbols. Without it a JS stack trace arrives as minified
+      // bundle offsets, which is technically a crash report and practically
+      // unreadable. The upload itself needs SENTRY_ORG / SENTRY_PROJECT /
+      // SENTRY_AUTH_TOKEN on the build — absent those it skips the upload with
+      // a warning rather than failing the build, so reporting still works and
+      // only symbolication is lost. See DEPLOYMENT.md 6.3.
+      '@sentry/react-native',
     ],
     extra: {
       eas: {
@@ -126,6 +165,7 @@ export default {
       },
       apiUrl: resolveApiUrl(),
       logoDevToken: resolveLogoDevToken(),
+      sentryDsn: resolveSentryDsn(),
     },
   },
 };
