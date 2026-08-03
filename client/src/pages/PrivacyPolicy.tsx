@@ -248,6 +248,7 @@ export default function PrivacyPolicy() {
           <span>© {new Date().getFullYear()} {APP_NAME}</span>
           <div className="flex gap-4">
             <Link to="/terms" onClick={() => window.scrollTo(0, 0)} className="hover:text-foreground transition-colors">Terms of Service</Link>
+            <Link to="/support" onClick={() => window.scrollTo(0, 0)} className="hover:text-foreground transition-colors">Support</Link>
             <Link to="/" onClick={() => window.scrollTo(0, 0)} className="hover:text-foreground transition-colors">Home</Link>
           </div>
         </div>
