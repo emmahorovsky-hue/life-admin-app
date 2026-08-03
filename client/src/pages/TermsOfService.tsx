@@ -189,6 +189,7 @@ export default function TermsOfService() {
           <span>© {new Date().getFullYear()} {APP_NAME}</span>
           <div className="flex gap-4">
             <Link to="/privacy" onClick={() => window.scrollTo(0, 0)} className="hover:text-foreground transition-colors">Privacy Policy</Link>
+            <Link to="/support" onClick={() => window.scrollTo(0, 0)} className="hover:text-foreground transition-colors">Support</Link>
             <Link to="/" onClick={() => window.scrollTo(0, 0)} className="hover:text-foreground transition-colors">Home</Link>
           </div>
         </div>
