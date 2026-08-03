@@ -7,10 +7,20 @@ import { Input } from '@/components/ui/input';
 import { PaperSheet } from '@/components/PaperSheet';
 import { PayprMark } from '@/components/PayprMark';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
-import { SUBSCRIPTION_SUGGESTIONS } from '@life-admin/shared';
+import { Switch } from '@/components/ui/switch';
+import { SUBSCRIPTION_SUGGESTIONS, currencies, suggestionCost } from '@life-admin/shared';
+import { useAuth } from '@/contexts/AuthContext';
 import { subscriptionApi } from '@/lib/subscriptions';
-import { formatCurrency, DEFAULT_CURRENCY } from '@/lib/currency';
+import { updateProfile } from '@/lib/api';
+import {
+  formatCurrency,
+  currencyForLocale,
+  currencySymbol,
+  supportedCurrency,
+  DEFAULT_CURRENCY,
+} from '@/lib/currency';
 import { getApiErrorMessage, cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import type { OnboardingStep } from '@/lib/onboarding';
 
 interface FirstRunWizardProps {
@@ -41,6 +51,25 @@ interface FirstRunWizardProps {
 interface RowEdit {
   cost: string;
   renewalDate: string;
+}
+
+/**
+ * What currency to open in.
+ *
+ * A stored preference that isn't the schema default was set deliberately —
+ * Settings › Appearance is the only thing that writes one — so it outranks the
+ * browser's locale. Otherwise the locale prefills, and DEFAULT_CURRENCY is the
+ * floor for a locale naming no region this app has a currency for.
+ *
+ * Only ever a prefill: the control below is visible and changeable before a row
+ * is filed, because this flow decides the currency of every subscription the
+ * account starts with and the dashboard reads its display currency back off
+ * that data. Mirrors mobile's setup screen (mobile/app/setup.tsx).
+ */
+function initialCurrency(preferred: string | undefined): string {
+  const stored = supportedCurrency(preferred);
+  if (stored && stored !== DEFAULT_CURRENCY) return stored;
+  return currencyForLocale(navigator.language) ?? DEFAULT_CURRENCY;
 }
 
 const STEP_META = [
@@ -88,12 +117,18 @@ export function FirstRunWizard({
   onFiled,
   onComplete,
 }: FirstRunWizardProps) {
+  const { user, updateUser } = useAuth();
   const [step, setStep] = useState<OnboardingStep>(initialStep);
   const [picks, setPicks] = useState<string[]>(initialPicks);
   const [edits, setEdits] = useState<Record<string, RowEdit>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [filedCount, setFiledCount] = useState(0);
+  const [savingReminders, setSavingReminders] = useState(false);
+  // Computed once per mount, like `defaultRenewal` below: the wizard is short
+  // and re-deriving it under the user mid-flow would move prices they are
+  // reading. See `initialCurrency` for why the browser's locale only prefills.
+  const [currency, setCurrency] = useState(() => initialCurrency(user?.defaultCurrency));
 
   // Names already created server-side. A partial failure leaves the user on
   // step 2 to retry, and without this the successful rows would be created a
@@ -110,11 +145,14 @@ export function FirstRunWizard({
     [picks]
   );
 
+  // Untouched rows are priced from the catalog *at the current currency*, so
+  // switching currency reprices them with no reset — `edits` only ever holds
+  // what the user typed, and their own numbers are left exactly as typed.
   const rowFor = (name: string): RowEdit => {
     const suggestion = SUBSCRIPTION_SUGGESTIONS.find((s) => s.name === name);
     return (
       edits[name] ?? {
-        cost: String(suggestion?.cost ?? 0),
+        cost: String(suggestion ? suggestionCost(suggestion, currency) : 0),
         renewalDate: defaultRenewal,
       }
     );
@@ -154,7 +192,7 @@ export function FirstRunWizard({
         return subscriptionApi.create({
           name: s.name,
           cost: Number.isFinite(cost) ? cost : 0,
-          currency: DEFAULT_CURRENCY,
+          currency,
           billingCycle: s.cycle,
           renewalDate: row.renewalDate,
           category: s.category,
@@ -182,10 +220,50 @@ export function FirstRunWizard({
       return;
     }
 
+    // Filing is the act that makes the currency the account's, not the flow's:
+    // every row just created is denominated in it, so the add dialog and the
+    // phone should default to it too. Best-effort — the rows already carry the
+    // right currency, and a failed preference write is not worth a stumble at
+    // the end of a first run. Skipped when it already matches.
+    if (currency !== user?.defaultCurrency) {
+      updateProfile({ defaultCurrency: currency })
+        .then((response) => updateUser(response.data.user))
+        .catch(() => {
+          // Ignored on purpose — see above.
+        });
+    }
+
     const count = createdNames.current.size;
     setFiledCount(count);
     setStep(3);
     onFiled(count);
+  };
+
+  /**
+   * Renewal reminders, on the screen that has just given the user something to
+   * be reminded about — the moment the setting means anything. It is the same
+   * account-wide flag Settings › Notifications toggles, read and written the
+   * same way, so the two can never disagree. Mirrors mobile's setup step 3.
+   *
+   * It reads on because the server defaults it on. Shown anyway rather than
+   * hidden: a reminder the user did not ask for arriving in their inbox in a
+   * month's time is worse than a switch they glanced at and left alone.
+   *
+   * The switch follows the server, not the click — it only moves once the write
+   * lands, so a failure needs no rollback.
+   */
+  const remindersOn = user?.reminderEmailsEnabled ?? true;
+
+  const toggleReminders = async (next: boolean) => {
+    setSavingReminders(true);
+    try {
+      const response = await updateProfile({ reminderEmailsEnabled: next });
+      updateUser(response.data.user);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not change reminders. Try again in Settings.'));
+    } finally {
+      setSavingReminders(false);
+    }
   };
 
   const skipNow = () => onSkip(step, picks, [...createdNames.current]);
@@ -285,7 +363,7 @@ export function FirstRunWizard({
                 </span>
                 <span aria-hidden="true" className="leader-dots mb-0.5 flex-1" />
                 <span className="font-mono text-sm font-bold">
-                  {formatCurrency(monthlyTotal, DEFAULT_CURRENCY)}
+                  {formatCurrency(monthlyTotal, currency)}
                 </span>
               </div>
             )}
@@ -309,9 +387,28 @@ export function FirstRunWizard({
 
       {step === 1 && (
         <>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Tick every service you're subscribed to. Prices are the standard plan — you can
-            correct them in the next step.
+          <p className="mb-4 flex flex-wrap items-center gap-x-1.5 gap-y-2 text-sm text-muted-foreground">
+            <span>Tick every service you're subscribed to. Standard-plan prices in</span>
+            {/* The currency the account is about to be denominated in, in the
+                sentence that quotes the prices rather than tucked into settings
+                — this is the only moment it is cheap to change. A native select
+                so the keyboard and screen-reader behaviour come for free. */}
+            <span className="relative inline-flex items-center">
+              <select
+                aria-label="Currency for these prices"
+                value={currency}
+                disabled={submitting}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="h-7 rounded-[2px] border border-border bg-background px-2 py-0 font-mono text-xs font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {currencies.map((code) => (
+                  <option key={code} value={code}>
+                    {code} {currencySymbol(code)}
+                  </option>
+                ))}
+              </select>
+            </span>
+            <span>— you can correct them in the next step.</span>
           </p>
           <div className="grid grid-cols-2 gap-2 md:max-h-[300px] md:overflow-y-auto max-md:grid-cols-1">
             {SUBSCRIPTION_SUGGESTIONS.map((s) => {
@@ -335,7 +432,7 @@ export function FirstRunWizard({
                   <span className="min-w-0">
                     <span className="block truncate text-[13.5px] font-bold leading-tight">{s.name}</span>
                     <span className="block font-mono text-xs text-muted-foreground">
-                      {formatCurrency(s.cost, DEFAULT_CURRENCY)}/mo
+                      {formatCurrency(suggestionCost(s, currency), currency)}/mo
                     </span>
                   </span>
                   {isOn && (
@@ -412,7 +509,7 @@ export function FirstRunWizard({
                   Monthly total
                 </span>
                 <span className="font-mono text-2xl font-bold">
-                  {formatCurrency(monthlyTotal, DEFAULT_CURRENCY)}
+                  {formatCurrency(monthlyTotal, currency)}
                 </span>
               </div>
             </PaperSheet>
@@ -438,8 +535,36 @@ export function FirstRunWizard({
             {filedCount} {filedCount === 1 ? 'subscription' : 'subscriptions'} filed
           </h3>
           <p className="max-w-[38ch] text-sm text-muted-foreground">
-            We'll flag every renewal seven days out. Add the rest whenever — Subscriptions › Add.
+            Add the rest whenever — Subscriptions › Add.
           </p>
+
+          {/* Left-aligned inside a centred column: a switch and its label are a
+              control, not a sentence, and centring them makes the label read as
+              part of the confirmation copy above. */}
+          <div className="mt-2 w-full max-w-[42ch] border-t border-border pt-5 text-left">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <label htmlFor="setup-renewal-reminders" className="text-sm font-bold">
+                  Renewal reminders
+                </label>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  An email before each subscription renews.
+                </p>
+              </div>
+              <Switch
+                id="setup-renewal-reminders"
+                checked={remindersOn}
+                onCheckedChange={toggleReminders}
+                disabled={savingReminders}
+              />
+            </div>
+            {/* The timing is the server's, not a preference — saying so here
+                stops the flow promising a schedule it does not control. */}
+            <p className="mt-3 text-sm text-muted-foreground">
+              Timing follows each billing cycle — a day before a weekly renewal, two weeks before
+              an annual one. Change this any time in Settings › Notifications.
+            </p>
+          </div>
         </div>
       )}
     </AppDialog>

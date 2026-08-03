@@ -5,6 +5,13 @@ import { MemoryRouter } from 'react-router-dom';
 import Subscriptions from './Subscriptions';
 import { subscriptionApi, type Subscription } from '@/lib/subscriptions';
 
+// AddSubscriptionDialog opens a blank form in the account's own currency, so it
+// reads the auth context.
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'u1', defaultCurrency: 'SGD' }, updateUser: vi.fn() }),
+}));
+
+
 vi.mock('@/lib/subscriptions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/subscriptions')>();
   return {

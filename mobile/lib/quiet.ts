@@ -34,11 +34,11 @@ export const ROW_LOGO = 36;
 // colour difference was invisible on Snow-vs-white, but the corner was not.
 // Unified on gorhom's 15pt default (LIF-223); glass needs one seam, not two.
 //
-// Ten of the twelve overlays now take these through `ui/FormSheet` rather than
-// reading them directly (LIF-239). Only SubscriptionFormSheet and
-// FirstRunSetupSheet still set them by hand, because they need snap points a
-// content-sized sheet cannot express; both match FormSheet deliberately —
-// glass background, the 0.2 scrim, and `useSheetBackHandler`.
+// Ten of the eleven overlays now take these through `ui/FormSheet` rather than
+// reading them directly (LIF-239). Only SubscriptionFormSheet still sets them by
+// hand, because it needs snap points a content-sized sheet cannot express; it
+// matches FormSheet deliberately — glass background, the 0.2 scrim, and
+// `useSheetBackHandler`.
 //
 // There is no longer a flat sheet. Text-entry sheets used to drop glass for a
 // flat surface and a 0.5 scrim; that split was removed on purpose, so `glass +

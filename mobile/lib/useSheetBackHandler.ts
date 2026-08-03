@@ -8,10 +8,12 @@ import { BackHandler, Platform } from 'react-native';
  * this back sails past the open sheet and pops the screen *underneath* it — the
  * sheet is left floating over the wrong screen, or torn down mid-request.
  *
- * `ui/FormSheet` calls this for every sheet that renders through it. The two
- * snap-point sheets that cannot (SubscriptionFormSheet, FirstRunSetupSheet)
- * call it directly, which is the whole reason this is a hook and not private to
- * FormSheet: it is the one piece of sheet behaviour those two must not skip.
+ * `ui/FormSheet` calls this for every sheet that renders through it. The one
+ * snap-point sheet that cannot (SubscriptionFormSheet) calls it directly, which
+ * is the whole reason this is a hook and not private to FormSheet: it is the one
+ * piece of sheet behaviour no sheet may skip. First-run setup (`app/setup.tsx`)
+ * borrows it for the same reason in reverse — it is a screen, so back has to be
+ * caught before the router pops it, and on step 2 back means the step before.
  *
  * `onBack` always swallows the event while `presented`. A sheet that wants back
  * to do nothing (mid-operation, say) passes a no-op rather than opting out —

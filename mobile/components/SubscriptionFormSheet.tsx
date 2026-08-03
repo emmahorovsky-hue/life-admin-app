@@ -27,6 +27,7 @@ import {
   currencies,
   currencySymbol,
   filterSuggestions,
+  suggestionCost,
   formatCurrency,
   parseRenewalDate,
   radius,
@@ -34,17 +35,27 @@ import {
   getSubscriptionStatus,
   ServiceSuggestion,
 } from '@life-admin/shared';
+import { useAuth } from '../contexts/AuthContext';
 import { subscriptionApi } from '../lib/subscriptions';
 import { candidateToFormPrefill } from '../lib/receiptScan';
 import { categoryIconFor } from '../lib/subscriptionLogo';
 import { getApiErrorMessage } from '../lib/utils';
 import { SubscriptionLogo } from './SubscriptionLogo';
-import { AppText, Button, FieldLabel, GlassSheetBackground } from './ui';
+import {
+  AppText,
+  Button,
+  Dropdown,
+  FieldLabel,
+  GlassSheetBackground,
+  SheetAmountInput,
+} from './ui';
 import { colors, fonts, textStyles } from '../lib/theme';
 import { SHEET_BACKDROP_OPACITY, SHEET_HANDLE } from '../lib/quiet';
 import { useSheetBackHandler } from '../lib/useSheetBackHandler';
 
 // Segmented billing control — 4 canonical cycles. Legacy 'annual' maps to 'yearly'.
+const CURRENCY_OPTIONS = currencies.map((code) => ({ value: code, meta: currencySymbol(code) }));
+
 const CYCLE_SEGMENTS = [
   { id: 'weekly', label: 'Weekly' },
   { id: 'monthly', label: 'Monthly' },
@@ -78,8 +89,16 @@ interface Props {
 export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Props>(
   function SubscriptionFormSheet({ onSaved }, ref) {
     const sheetRef = useRef<BottomSheetModal>(null);
+    const { user } = useAuth();
+    // A blank form opens in the account's own currency — whatever first-run
+    // setup (or Account › Default currency) settled on. `blankValues` is read at
+    // open time rather than mount, so a change mid-session is picked up.
+    const blankValues = useCallback(
+      () => defaultSubscriptionFormValues(user?.defaultCurrency),
+      [user?.defaultCurrency],
+    );
     const [editing, setEditing] = useState<Subscription | null>(null);
-    const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues());
+    const [values, setValues] = useState<SubscriptionFormValues>(blankValues);
     // Cost is kept as raw text so partial input ("12.") doesn't fight the keyboard.
     const [costText, setCostText] = useState('');
     const [error, setError] = useState('');
@@ -130,7 +149,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           });
           setCostText(parseFloat(subscription.cost).toString());
         } else {
-          setValues(defaultSubscriptionFormValues());
+          setValues(blankValues());
           setCostText('');
         }
         setUncertainFields([]);
@@ -144,7 +163,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
       openWithCandidate: (candidate) => {
         setEditing(null);
         const prefill = candidateToFormPrefill(candidate);
-        setValues({ ...defaultSubscriptionFormValues(), ...prefill.values });
+        setValues({ ...blankValues(), ...prefill.values });
         setCostText(prefill.costText);
         setUncertainFields(prefill.uncertainFields);
         setError('');
@@ -159,15 +178,13 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
     const patch = (next: Partial<SubscriptionFormValues>) =>
       setValues((prev) => ({ ...prev, ...next }));
 
+    // The list price in the currency the form is *currently* set to — the row
+    // the user tapped quoted that number, so filling in a different one (the US
+    // price under a £ sign) would contradict what they just read.
     const applySuggestion = (s: ServiceSuggestion) => {
-      setValues((prev) => ({
-        ...prev,
-        name: s.name,
-        category: s.category,
-        cost: s.cost,
-        billingCycle: s.cycle,
-      }));
-      setCostText(s.cost.toString());
+      const cost = suggestionCost(s, values.currency);
+      setValues((prev) => ({ ...prev, name: s.name, category: s.category, cost, billingCycle: s.cycle }));
+      setCostText(cost.toString());
       setSuggestionsOpen(false);
     };
 
@@ -341,7 +358,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
                       <Ionicons name={categoryIconFor(s.category)} size={15} color={colors.foreground} />
                     </View>
                     <AppText variant="body" weight={500} style={styles.suggestionName}>{s.name}</AppText>
-                    <AppText variant="monoMeta" style={styles.suggestionCost}>{formatCurrency(s.cost, values.currency)}</AppText>
+                    <AppText variant="monoMeta" style={styles.suggestionCost}>{formatCurrency(suggestionCost(s, values.currency), values.currency)}</AppText>
                   </Pressable>
                 ))}
               </View>
@@ -352,67 +369,34 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           <View style={styles.fieldRow}>
             <View style={{ flex: 1 }}>
               <FieldLabel style={styles.fieldLabel}>COST</FieldLabel>
-              <View style={styles.costBox}>
-                <AppText variant="monoStatSm" style={styles.costSymbol}>{currencySymbol(values.currency)}</AppText>
-                <BottomSheetTextInput
-                  style={[textStyles.monoStatSm, styles.costInput]}
-                  value={costText}
-                  editable={!loading}
-                  keyboardType="decimal-pad"
-                  placeholder="0.00"
-                  placeholderTextColor={colors.faint}
-                  onChangeText={setCostText}
-                />
-              </View>
+              <SheetAmountInput
+                currency={values.currency}
+                value={costText}
+                editable={!loading}
+                onChangeText={setCostText}
+                accessibilityLabel={`Cost in ${values.currency}`}
+              />
             </View>
             <View style={styles.currencyField}>
               <FieldLabel style={styles.fieldLabel}>CURRENCY</FieldLabel>
-              <View style={styles.currencyAnchor}>
-                <Pressable
-                  disabled={loading}
-                  onPress={() => {
-                    selectHaptic();
-                    setSuggestionsOpen(false);
-                    setCurrencyOpen((v) => !v);
-                  }}
-                  style={styles.currencyTrigger}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: currencyOpen }}
-                >
-                  <AppText variant="monoData" style={styles.currencyTriggerText}>{values.currency}</AppText>
-                  <Ionicons
-                    name={currencyOpen ? 'chevron-up' : 'chevron-down'}
-                    size={14}
-                    color={colors.mutedForeground}
-                  />
-                </Pressable>
-                {/* Floats over the fields below (absolute) so opening it never reflows the form. */}
-                {currencyOpen && (
-                  <View style={styles.currencyMenu}>
-                    {currencies.map((code) => {
-                      const active = values.currency === code;
-                      return (
-                        <Pressable
-                          key={code}
-                          disabled={loading}
-                          onPress={() => {
-                            selectHaptic();
-                            patch({ currency: code });
-                            setCurrencyOpen(false);
-                          }}
-                          style={[styles.currencyOption, active && styles.currencyOptionActive]}
-                        >
-                          <AppText variant="monoData" style={styles.currencyOptionCode}>{code}</AppText>
-                          <AppText variant="monoMeta" muted style={styles.currencyOptionSymbol}>
-                            {currencySymbol(code)}
-                          </AppText>
-                          {active && <Ionicons name="checkmark" size={16} color={colors.brandOrange} />}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
+              {/* Floats over the fields below so opening it never reflows the form. */}
+              <Dropdown
+                value={values.currency}
+                options={CURRENCY_OPTIONS}
+                open={currencyOpen}
+                disabled={loading}
+                accessibilityLabel={`Currency, ${values.currency}`}
+                onToggle={() => {
+                  selectHaptic();
+                  setSuggestionsOpen(false);
+                  setCurrencyOpen((v) => !v);
+                }}
+                onSelect={(code) => {
+                  selectHaptic();
+                  patch({ currency: code });
+                  setCurrencyOpen(false);
+                }}
+              />
             </View>
           </View>
 
@@ -639,19 +623,6 @@ const styles = StyleSheet.create({
   suggestionName: { flex: 1, color: colors.foreground },
   suggestionCost: { color: colors.mutedForeground },
 
-  costBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 52,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.base,
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
-  },
-  // Cost is the sheet's headline figure — the monoStatSm role (22/700 mono).
-  costSymbol: { color: colors.mutedForeground, marginRight: 4 },
-  costInput: { flex: 1, color: colors.foreground },
 
   segmentRow: {
     flexDirection: 'row',
@@ -664,50 +635,9 @@ const styles = StyleSheet.create({
   cycleSegment: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' },
   segmentActive: { backgroundColor: colors.foreground },
 
-  // Currency dropdown — trigger matches the cost box height; the menu floats
-  // over the fields below as an absolute overlay so it never reflows the form.
+  // Currency dropdown — the trigger matches the cost box height (ui/Dropdown's
+  // `field` size); zIndex keeps its menu over the fields below.
   currencyField: { width: 120, zIndex: 20 },
-  currencyAnchor: { position: 'relative', zIndex: 20 },
-  currencyTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 52,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.base,
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
-  },
-  currencyTriggerText: { color: colors.foreground },
-  currencyMenu: {
-    position: 'absolute',
-    top: 56, // trigger height (52) + 4 gap
-    right: 0,
-    width: 120,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.base,
-    backgroundColor: colors.card,
-    overflow: 'hidden',
-    zIndex: 30,
-    // Float above the form: shadow (iOS) + elevation (Android).
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
-  currencyOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    height: 40,
-    paddingHorizontal: 12,
-  },
-  currencyOptionActive: { backgroundColor: 'rgba(229,61,0,0.08)' },
-  currencyOptionCode: { flex: 1, color: colors.foreground },
-  currencyOptionSymbol: { color: colors.mutedForeground },
   segmentText: { color: colors.foreground },
   segmentTextActive: { color: colors.background, fontFamily: fonts.sans.semibold },
 

@@ -1,3 +1,5 @@
+import { DEFAULT_CURRENCY } from '../utils/currency';
+
 export interface Subscription {
   id: string;
   userId: string;
@@ -56,10 +58,21 @@ export interface SubscriptionFormValues {
   notes: string;
 }
 
-export const defaultSubscriptionFormValues = (): SubscriptionFormValues => ({
+/**
+ * Blank form state for the add dialog.
+ *
+ * `currency` is a parameter because the account's own default is the only
+ * sensible answer — a user who filed everything in GBP during first-run setup
+ * should not have the next subscription open in SGD. Callers pass
+ * `user.defaultCurrency`; the fallback is only for the callers that have no user
+ * in hand.
+ */
+export const defaultSubscriptionFormValues = (
+  currency: string = DEFAULT_CURRENCY
+): SubscriptionFormValues => ({
   name: '',
   cost: 0,
-  currency: 'SGD',
+  currency,
   billingCycle: 'monthly',
   renewalDate: new Date().toISOString().split('T')[0],
   category: 'streaming',

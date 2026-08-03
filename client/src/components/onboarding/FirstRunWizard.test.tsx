@@ -1,15 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FirstRunWizard } from './FirstRunWizard';
 import { subscriptionApi } from '@/lib/subscriptions';
+import { updateProfile } from '@/lib/api';
+import type { User } from '@/lib/api';
 
 vi.mock('@/lib/subscriptions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/subscriptions')>();
   return { ...actual, subscriptionApi: { create: vi.fn() } };
 });
 
+vi.mock('@/lib/api', () => ({ updateProfile: vi.fn() }));
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+
+// The wizard reads the account's stored preference and writes the chosen
+// currency back to it, so the tests supply a user rather than an AuthProvider.
+const updateUser = vi.fn();
+let mockUser: Partial<User> = { id: 'u1', defaultCurrency: 'SGD' };
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: mockUser, updateUser }),
+}));
+
 const mockedApi = vi.mocked(subscriptionApi);
+const mockedUpdateProfile = vi.mocked(updateProfile);
 
 function renderWizard(overrides: Partial<React.ComponentProps<typeof FirstRunWizard>> = {}) {
   const props = {
@@ -29,7 +43,13 @@ function renderWizard(overrides: Partial<React.ComponentProps<typeof FirstRunWiz
 const pick = (name: string) => screen.getByRole('button', { name: new RegExp(name, 'i') });
 
 describe('FirstRunWizard', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 'u1', defaultCurrency: 'SGD' };
+    mockedUpdateProfile.mockResolvedValue({
+      data: { user: { id: 'u1', defaultCurrency: 'GBP' } },
+    } as never);
+  });
 
   it('opens on step 1 with the service chips unselected', () => {
     renderWizard();
@@ -254,5 +274,164 @@ describe('FirstRunWizard', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(/your edits are kept/i);
     expect(alert).toHaveTextContent(/validation failed/i);
+  });
+
+  // Renewal reminders live on the filed step: the moment the setting first
+  // means something. Same account-wide flag as Settings › Notifications.
+  describe('renewal reminders', () => {
+    const reminderSwitch = () => screen.getByRole('switch', { name: /renewal reminders/i });
+
+    const fileOne = async (user: ReturnType<typeof userEvent.setup>) => {
+      mockedApi.create.mockResolvedValue({ id: 's1' } as never);
+      await user.click(screen.getByRole('button', { name: 'File 1' }));
+      expect(await screen.findByText('1 subscription filed')).toBeInTheDocument();
+    };
+
+    it('offers the toggle on, matching the server default', async () => {
+      const user = userEvent.setup();
+      renderWizard({ initialStep: 2, initialPicks: ['Netflix'] });
+
+      await fileOne(user);
+
+      expect(reminderSwitch()).toBeChecked();
+    });
+
+    it('reflects an account that has already turned reminders off', async () => {
+      const user = userEvent.setup();
+      mockUser = { id: 'u1', defaultCurrency: 'USD', reminderEmailsEnabled: false };
+      renderWizard({ initialStep: 2, initialPicks: ['Netflix'] });
+
+      await fileOne(user);
+
+      expect(reminderSwitch()).not.toBeChecked();
+    });
+
+    it('writes the change through the profile endpoint', async () => {
+      const user = userEvent.setup();
+      mockedUpdateProfile.mockResolvedValue({
+        data: { user: { id: 'u1', reminderEmailsEnabled: false } },
+      } as never);
+      renderWizard({ initialStep: 2, initialPicks: ['Netflix'] });
+
+      await fileOne(user);
+      await user.click(reminderSwitch());
+
+      await waitFor(() =>
+        expect(mockedUpdateProfile).toHaveBeenCalledWith({ reminderEmailsEnabled: false })
+      );
+      expect(updateUser).toHaveBeenCalledWith(
+        expect.objectContaining({ reminderEmailsEnabled: false })
+      );
+    });
+
+    // The switch follows the server, not the click, so a failed write leaves it
+    // where it was rather than lying about the account's state.
+    it('leaves the switch alone when the write fails', async () => {
+      const user = userEvent.setup();
+      mockedUpdateProfile.mockRejectedValue(new Error('network down'));
+      renderWizard({ initialStep: 2, initialPicks: ['Netflix'] });
+
+      await fileOne(user);
+      await user.click(reminderSwitch());
+
+      await waitFor(() => expect(mockedUpdateProfile).toHaveBeenCalled());
+      expect(reminderSwitch()).toBeChecked();
+    });
+  });
+
+  // The flow denominates every subscription the account starts with, and the
+  // dashboard reads its display currency back off that data — so what this
+  // control says has to be what gets filed.
+  describe('currency', () => {
+    const currencyPicker = () => screen.getByLabelText('Currency for these prices');
+
+    it('prefills from the browser locale when the account is still on the default', () => {
+      renderWizard();
+      // jsdom reports en-US.
+      expect(currencyPicker()).toHaveValue('USD');
+      expect(within(pick('Netflix')).getByText('$15.99/mo')).toBeInTheDocument();
+    });
+
+    it('prefers a default currency the user has deliberately set', () => {
+      mockUser = { id: 'u1', defaultCurrency: 'EUR' };
+      renderWizard();
+      expect(currencyPicker()).toHaveValue('EUR');
+      expect(within(pick('Netflix')).getByText('€13.99/mo')).toBeInTheDocument();
+    });
+
+    it('reprices the catalog when the currency changes', async () => {
+      const user = userEvent.setup();
+      renderWizard();
+
+      await user.selectOptions(currencyPicker(), 'GBP');
+
+      expect(within(pick('Netflix')).getByText('£12.99/mo')).toBeInTheDocument();
+      await user.click(pick('Netflix'));
+      await user.click(screen.getByRole('button', { name: /next — check amounts/i }));
+      expect(screen.getByLabelText('Netflix monthly cost')).toHaveValue(12.99);
+    });
+
+    it('leaves an amount the user typed alone when the currency changes', async () => {
+      const user = userEvent.setup();
+      renderWizard({ initialStep: 2, initialPicks: ['Netflix', 'Spotify'] });
+
+      await user.clear(screen.getByLabelText('Netflix monthly cost'));
+      await user.type(screen.getByLabelText('Netflix monthly cost'), '18.50');
+      await user.click(screen.getByRole('button', { name: 'Back' }));
+      await user.selectOptions(currencyPicker(), 'GBP');
+      await user.click(screen.getByRole('button', { name: /next — check amounts/i }));
+
+      expect(screen.getByLabelText('Netflix monthly cost')).toHaveValue(18.5);
+      // Untouched, so it follows the currency.
+      expect(screen.getByLabelText('Spotify monthly cost')).toHaveValue(12.99);
+    });
+
+    it('files in the chosen currency and makes it the account default', async () => {
+      const user = userEvent.setup();
+      mockedApi.create.mockResolvedValue({ id: 's1' } as never);
+      renderWizard();
+
+      await user.selectOptions(currencyPicker(), 'GBP');
+      await user.click(pick('Netflix'));
+      await user.click(screen.getByRole('button', { name: /next — check amounts/i }));
+      await user.click(screen.getByRole('button', { name: 'File 1' }));
+
+      await waitFor(() => expect(mockedApi.create).toHaveBeenCalledTimes(1));
+      expect(mockedApi.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Netflix', cost: 12.99, currency: 'GBP' })
+      );
+      await waitFor(() =>
+        expect(mockedUpdateProfile).toHaveBeenCalledWith({ defaultCurrency: 'GBP' })
+      );
+      expect(updateUser).toHaveBeenCalledWith(
+        expect.objectContaining({ defaultCurrency: 'GBP' })
+      );
+    });
+
+    it('does not write the preference when it already matches', async () => {
+      const user = userEvent.setup();
+      mockUser = { id: 'u1', defaultCurrency: 'USD' };
+      mockedApi.create.mockResolvedValue({ id: 's1' } as never);
+      renderWizard({ initialStep: 2, initialPicks: ['Netflix'] });
+
+      await user.click(screen.getByRole('button', { name: 'File 1' }));
+
+      await waitFor(() => expect(mockedApi.create).toHaveBeenCalledTimes(1));
+      expect(mockedUpdateProfile).not.toHaveBeenCalled();
+    });
+
+    // The rows are already filed and correctly denominated by then; a failed
+    // preference write must not turn that into an error at the end of a first run.
+    it('still finishes when the preference write fails', async () => {
+      const user = userEvent.setup();
+      mockedApi.create.mockResolvedValue({ id: 's1' } as never);
+      mockedUpdateProfile.mockRejectedValue(new Error('network down'));
+      const props = renderWizard({ initialStep: 2, initialPicks: ['Netflix'] });
+
+      await user.click(screen.getByRole('button', { name: 'File 1' }));
+
+      expect(await screen.findByText('1 subscription filed')).toBeInTheDocument();
+      expect(props.onFiled).toHaveBeenCalledWith(1);
+    });
   });
 });
