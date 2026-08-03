@@ -174,9 +174,21 @@ function BiometricLockGate() {
  *
  * Uses `useAppActive` rather than its own AppState listener: the hook already
  * answers exactly this question, on exactly this threshold.
+ *
+ * Held back until the app has been active once. iOS reports 'inactive' for the
+ * whole cold-launch window, so without this the cover — zIndex 300 — went up
+ * over `BrandSplash` (100) at launch and the splash was never seen. Nothing is
+ * given away by waiting: there is only the splash behind it until the app comes
+ * up, and the OS is not photographing an app it has not finished launching.
+ *
+ * A latched ref rather than state, because the cover has to be up *before* the
+ * snapshot is taken and a state update would cost a frame.
  */
 function PrivacyCoverGate() {
-  return useAppActive() ? null : <PrivacyCover />;
+  const active = useAppActive();
+  const hasBeenActive = useRef(false);
+  if (active) hasBeenActive.current = true;
+  return active || !hasBeenActive.current ? null : <PrivacyCover />;
 }
 
 export default function RootLayout() {
