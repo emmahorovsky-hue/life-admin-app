@@ -331,7 +331,41 @@ public**, so unlike `API_URL` it does not belong in `eas.json`:
 Use the same token as the web client's `VITE_LOGO_DEV_TOKEN` — one logo.dev
 project covers both platforms.
 
-### 6.3 Build
+### 6.3 Configure Sentry
+
+Crash and error reporting, matching the web client (`VITE_SENTRY_DSN`) and the
+API (`SENTRY_DSN` on Railway). Mobile was the one platform with no reporting:
+before this, a crash on a released build was invisible unless a user described
+it.
+
+Two separate pieces of configuration, and only the first affects whether errors
+are reported at all:
+
+1. **`SENTRY_DSN`** — set it as an [EAS environment variable](https://docs.expo.dev/eas/environment-variables/)
+   on the project, visible to the build profiles you use. Read in
+   `mobile/app.config.ts`, exposed as `extra.sentryDsn`, consumed by
+   `mobile/lib/sentry.ts`. Without it Sentry never initialises; the build still
+   succeeds, and a **production** build logs a warning saying it will report
+   nothing. Like `LOGO_DEV_TOKEN` it stays out of `eas.json` — a DSN is
+   publishable, but this repo is public.
+
+2. **`SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`** — needed only for
+   uploading source maps and debug symbols. Without them reporting still works,
+   but a JS stack trace arrives as minified bundle offsets, which is close to
+   unreadable. The `@sentry/react-native` config plugin skips the upload with a
+   warning rather than failing the build. `SENTRY_AUTH_TOKEN` is a real secret
+   — mark it as such on EAS, never commit it.
+
+Sampling and PII follow the other two platforms: 20% of traces in release, all
+of them in dev, and `sendDefaultPii: false`. Release and dist are left to the
+native SDK, which derives them from the built app (e.g.
+`com.paypr.live@1.0.0+18`) — that is what matches the build EAS uploaded, and a
+hand-set string would drift the moment `autoIncrement` moved the build number.
+
+To verify after a release: force an error in the app and confirm the event
+arrives in Sentry tagged with the right release and `environment: production`.
+
+### 6.4 Build
 
 ```bash
 cd mobile
