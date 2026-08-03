@@ -134,6 +134,9 @@ function RootLayoutNav() {
             : 'That verification link is invalid or has already been used.';
         router.replace({ pathname: '/(auth)/login', params: { notice } });
       } else if (route === 'reset-password' && parsed.queryParams?.token) {
+        // Nothing emits this link today: reset emails carry the web URL instead,
+        // because a `lifeadmin://` link isn't openable from an inbox (LIF-244).
+        // Kept, with `(auth)/reset-password`, for whenever Universal Links land.
         router.replace({
           pathname: '/(auth)/reset-password',
           params: { token: parsed.queryParams.token as string },

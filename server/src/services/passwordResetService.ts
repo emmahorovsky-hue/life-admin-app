@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import prisma from '../utils/db';
+import { clientUrl } from '../utils/urls';
 import { sendPasswordResetEmail } from './emailService';
 
 const TOKEN_BYTES = 32;
@@ -9,7 +10,7 @@ function hashToken(raw: string): string {
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
-export async function issuePasswordResetToken(userId: string, email: string, platform?: string): Promise<void> {
+export async function issuePasswordResetToken(userId: string, email: string): Promise<void> {
   await prisma.passwordResetToken.updateMany({
     where: { userId, usedAt: null },
     data: { usedAt: new Date() },
@@ -23,12 +24,13 @@ export async function issuePasswordResetToken(userId: string, email: string, pla
     data: { userId, tokenHash, expiresAt },
   });
 
-  // Normalize so links survive env vars configured with or without trailing slashes
-  const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
-  const mobileUrl = (process.env.MOBILE_URL || 'lifeadmin://').replace(/([^/])$/, '$1/');
-  const resetUrl = platform === 'mobile'
-    ? `${mobileUrl}reset-password?token=${raw}`
-    : `${clientUrl}/reset-password?token=${raw}`;
+  // Always the web link, even for resets requested in the app — deliberately no
+  // mobile branch here (LIF-244). Unlike the verify-email flow, which redirects
+  // to `lifeadmin://` server-side, this URL is only ever opened out of an inbox:
+  // mail clients won't make a custom scheme clickable, and the device reading
+  // the email isn't necessarily the one that asked for the reset. The web page
+  // takes the token fine; the app is reachable again by signing in afterwards.
+  const resetUrl = `${clientUrl()}/reset-password?token=${raw}`;
   await sendPasswordResetEmail({ to: email, resetUrl, expiresInHours: EXPIRY_HOURS });
 }
 

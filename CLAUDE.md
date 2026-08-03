@@ -121,12 +121,12 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `DATABASE_URL`  | Prisma (required, server fails to start without it)                  |
 | `JWT_SECRET`    | Token signing (required)                                             |
 | `API_URL`       | Included in verification email links (e.g. `http://localhost:3001`)  |
-| `CLIENT_URL`    | CORS allowlist                                                       |
+| `CLIENT_URL`    | CORS allowlist, and the base of every link in outgoing email (default `https://paypr.live`) |
 | `RESEND_API_KEY`| Email sending via Resend SDK                                         |
 | `ANTHROPIC_API_KEY` | Receipt/invoice AI extraction (optional; feature degrades gracefully without it) |
 | `AI_MODEL`      | Claude model id for extraction (optional, defaults to `claude-haiku-4-5`; recommended in production: `claude-sonnet-5` for amount accuracy — see `server/docs/API.md`) |
 | `EMAIL_FROM`    | From address on outgoing emails (default `noreply@paypr.live`)       |
-| `MOBILE_URL`    | Mobile deep link scheme for email redirects (default `lifeadmin://`) |
+| `MOBILE_URL`    | Deep link scheme the verify-email/email-change endpoints redirect *to* when `?platform=mobile` (default `lifeadmin://`). Never put it in an email body — mail clients can't open a custom scheme and no Universal Links are configured (LIF-244) |
 | `SENTRY_RELEASE`| Tags Sentry errors by deploy (optional; set in CI/CD)                |
 | `ENABLE_CRON`   | Set to `false` to skip scheduling background jobs (default enabled)  |
 | `CLEANUP_CRON`  | Cron schedule for unverified-account cleanup (default `0 3 * * *` UTC) |
