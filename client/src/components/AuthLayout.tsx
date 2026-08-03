@@ -33,6 +33,7 @@ export default function AuthLayout({ children, illustration = '/hero-auth.webp',
           <footer className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
             <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+            <Link to="/support" className="hover:text-foreground transition-colors">Support</Link>
           </footer>
         )}
       </div>

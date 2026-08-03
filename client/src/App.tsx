@@ -36,6 +36,7 @@ const PrivacyPanel = lazy(() => import('./pages/settings/PrivacyPanel'));
 const DesignSystem = lazy(() => import('./pages/DesignSystem'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const Support = lazy(() => import('./pages/Support'));
 
 function App() {
   return (
@@ -109,6 +110,9 @@ function App() {
               )}
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              {/* Public on purpose: the App Store Support URL points here, and
+                  anyone locked out of their account needs it most. */}
+              <Route path="/support" element={<Support />} />
               <Route path="/" element={<Landing />} />
             </Routes>
           </Suspense>
