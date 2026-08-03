@@ -1,11 +1,22 @@
 // First-run setup state (LIF-224) — the mobile half of the web wizard shipped
-// in LIF-220. Deliberately device-only: the flow is a convenience for an empty
+// in LIF-220. Deliberately client-only: the flow is a convenience for an empty
 // account, not a property of the account, so it costs no column and no
 // migration. It cannot share the web key either — `localStorage` and a keychain
 // item have nothing in common — so a user who set up on web and then installs
 // the app would be offered it again if this were the only gate. It isn't:
 // `shouldShowSetup`/`shouldShowResumeRow` also take `hasSubscriptions`, which
 // comes from the server, and that is what actually settles it. Same as web.
+//
+// Client-side, but **per account, not per device** (LIF-242). Stored per device
+// it suppressed the flow for every account after the first one on a phone: the
+// key outlives the session — nothing in `clearSession` removes it — so the
+// second sign-up read back the first account's `skipped`/`done` and went
+// straight to the resume row. Worse on iOS than it sounds, because a keychain
+// item survives deleting the app, so reinstalling to re-test did not clear it
+// either. Keying by user is what fixes it, and it is also why logout
+// deliberately leaves the value alone: signing back in as the same user should
+// still respect the choice they made. Same shape as the "already offered"
+// flag in lib/biometrics.ts, which had this right from the start.
 //
 // Not to be confused with the logged-out photo carousel (app/(auth)/onboarding.tsx),
 // which is shown on every launch and keeps no per-device flag of its own.
@@ -15,7 +26,21 @@ import * as SecureStore from 'expo-secure-store';
 
 // SecureStore rather than AsyncStorage because it's the store already in the
 // tree (tokenStorage uses it), and none of this is worth a new dependency.
-const SETUP_KEY = 'first_run_setup_v1';
+//
+// Underscore-suffixed, not colon-suffixed: SecureStore validates keys against
+// `/^[\w.-]+$/` and throws on anything else. Both accessors swallow their
+// errors, so a colon here would not crash — it would just never persist, and
+// the sheet would reopen on every launch. `biometric_offered_` next door uses
+// the same separator for the same reason.
+const SETUP_KEY_PREFIX = 'first_run_setup_v1_';
+
+/**
+ * The pre-LIF-242 device-wide key. Read once per account and then deleted, so
+ * the one user who is already on this device keeps whatever they chose instead
+ * of being re-interrupted by an upgrade. Whoever signs up next gets a clean
+ * default, which is the entire point.
+ */
+const LEGACY_SETUP_KEY = 'first_run_setup_v1';
 
 export type SetupStatus = 'pending' | 'skipped' | 'done';
 export type SetupStep = 1 | 2 | 3;
@@ -54,28 +79,46 @@ function stringsOnly(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 }
 
+/** Anything malformed reads as the pending default rather than throwing: a
+ *  half-written value must not be able to break the dashboard. */
+function parseSetupState(raw: string | null): SetupState | null {
+  if (!raw) return null;
+
+  const parsed: unknown = JSON.parse(raw);
+  if (typeof parsed !== 'object' || parsed === null) return DEFAULT_SETUP_STATE;
+
+  const { status, step, picks, created } = parsed as Partial<SetupState>;
+  return {
+    status: STATUSES.includes(status as SetupStatus)
+      ? (status as SetupStatus)
+      : DEFAULT_SETUP_STATE.status,
+    step: isStep(step) ? step : DEFAULT_SETUP_STATE.step,
+    picks: stringsOnly(picks),
+    created: stringsOnly(created),
+  };
+}
+
 /**
- * Read persisted state, falling back to a pending default. Anything unreadable
- * or malformed degrades to the default rather than throwing: a keychain read
- * can fail, and a half-written value must not be able to break the dashboard.
+ * Read this user's persisted state, falling back to a pending default. Anything
+ * unreadable degrades to the default rather than throwing — a keychain read can
+ * fail, and the dashboard behind this must still come up.
+ *
+ * Absent a per-user value, the device-wide key written before LIF-242 is
+ * adopted once and removed. Deleting it is what makes the next account on this
+ * device start clean; leaving it would reproduce the bug for every account
+ * after this one.
  */
-export async function readSetupState(): Promise<SetupState> {
+export async function readSetupState(userId: string): Promise<SetupState> {
   try {
-    const raw = await SecureStore.getItemAsync(SETUP_KEY);
-    if (!raw) return DEFAULT_SETUP_STATE;
+    const mine = parseSetupState(await SecureStore.getItemAsync(SETUP_KEY_PREFIX + userId));
+    if (mine) return mine;
 
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return DEFAULT_SETUP_STATE;
+    const legacy = parseSetupState(await SecureStore.getItemAsync(LEGACY_SETUP_KEY));
+    if (!legacy) return DEFAULT_SETUP_STATE;
 
-    const { status, step, picks, created } = parsed as Partial<SetupState>;
-    return {
-      status: STATUSES.includes(status as SetupStatus)
-        ? (status as SetupStatus)
-        : DEFAULT_SETUP_STATE.status,
-      step: isStep(step) ? step : DEFAULT_SETUP_STATE.step,
-      picks: stringsOnly(picks),
-      created: stringsOnly(created),
-    };
+    await writeSetupState(userId, legacy);
+    await SecureStore.deleteItemAsync(LEGACY_SETUP_KEY);
+    return legacy;
   } catch {
     return DEFAULT_SETUP_STATE;
   }
@@ -83,9 +126,9 @@ export async function readSetupState(): Promise<SetupState> {
 
 /** Persist state. A write failure is not worth surfacing — the flow still works
  *  for this session, it just won't be remembered. */
-export async function writeSetupState(state: SetupState): Promise<void> {
+export async function writeSetupState(userId: string, state: SetupState): Promise<void> {
   try {
-    await SecureStore.setItemAsync(SETUP_KEY, JSON.stringify(state));
+    await SecureStore.setItemAsync(SETUP_KEY_PREFIX + userId, JSON.stringify(state));
   } catch {
     /* no-op */
   }
@@ -107,30 +150,43 @@ export function shouldShowResumeRow(state: SetupState, hasSubscriptions: boolean
 }
 
 /**
- * Load the persisted state and hand back a setter that writes it through.
- * `state` is `null` until the read resolves — callers must not decide whether to
- * offer setup before then, or an account that already skipped gets the sheet
- * again on every launch.
+ * Load this user's persisted state and hand back a setter that writes it
+ * through. `state` is `null` until the read resolves — callers must not decide
+ * whether to offer setup before then, or an account that already skipped gets
+ * the sheet again on every launch.
+ *
+ * `userId` is undefined for the moment between mount and auth resolving, and
+ * `state` stays null across it for exactly the same reason: reading the wrong
+ * account's state is no better than reading none.
  */
-export function useSetupState() {
+export function useSetupState(userId: string | undefined) {
   const [state, setState] = useState<SetupState | null>(null);
 
   useEffect(() => {
+    if (!userId) {
+      // Signing out mid-session must not leave the previous account's state
+      // behind for whoever signs in next.
+      setState(null);
+      return;
+    }
     let active = true;
-    readSetupState().then((value) => {
+    readSetupState(userId).then((value) => {
       if (active) setState(value);
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [userId]);
 
   // Local state moves first so the UI never waits on the keychain; the write is
   // fire-and-forget for the same reason writeSetupState swallows failures.
-  const updateState = useCallback((next: SetupState) => {
-    setState(next);
-    void writeSetupState(next);
-  }, []);
+  const updateState = useCallback(
+    (next: SetupState) => {
+      setState(next);
+      if (userId) void writeSetupState(userId, next);
+    },
+    [userId],
+  );
 
   return { state, updateState };
 }

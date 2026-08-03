@@ -162,8 +162,12 @@ export default function Dashboard() {
   // subscription's currency (the summary payload carries only id + cost).
   const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
   const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
-  // First-run onboarding (LIF-220).
-  const [onboarding, setOnboarding] = useState<OnboardingState>(readOnboardingState);
+  // First-run onboarding (LIF-220). Keyed by account, not by browser — see the
+  // note in lib/onboarding.ts (LIF-242). Read once on mount is enough: reaching
+  // a different user means a logout, and that unmounts this page.
+  const [onboarding, setOnboarding] = useState<OnboardingState>(() =>
+    readOnboardingState(user?.id)
+  );
   // Whether the wizard is open is derived, not stored, so it can't drift from
   // the persisted status. These two flags are the only user-driven overrides:
   // `wizardClosed` after an explicit dismiss, and `filedThisSession` to hold the
@@ -204,10 +208,13 @@ export default function Dashboard() {
     }
   }, [applyDashboard]);
 
-  const updateOnboarding = useCallback((next: OnboardingState) => {
-    setOnboarding(next);
-    writeOnboardingState(next);
-  }, []);
+  const updateOnboarding = useCallback(
+    (next: OnboardingState) => {
+      setOnboarding(next);
+      writeOnboardingState(user?.id, next);
+    },
+    [user?.id]
+  );
 
   const wizardOpen =
     !wizardClosed &&

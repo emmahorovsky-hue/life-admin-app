@@ -135,8 +135,10 @@ export default function DashboardScreen() {
   // tapping a row needs the whole record to open the detail/edit sheets.
   const [subsById, setSubsById] = useState<Map<string, Subscription>>(new Map());
   // First-run setup (LIF-224). `setup` is null until the persisted state reads
-  // back; nothing below decides anything on it before then.
-  const { state: setup, updateState: updateSetup } = useSetupState();
+  // back; nothing below decides anything on it before then. Keyed by account,
+  // not by device — see the note in lib/onboarding.ts (LIF-242).
+  const { user } = useAuth();
+  const { state: setup, updateState: updateSetup } = useSetupState(user?.id);
 
   const load = useCallback(async () => {
     try {
