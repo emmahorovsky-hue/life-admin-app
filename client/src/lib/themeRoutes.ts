@@ -19,6 +19,7 @@ export const LIGHT_ONLY_PATHS = [
   '/verify-email',
   '/terms',
   '/privacy',
+  '/support',
 ] as const;
 
 /**
