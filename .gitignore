@@ -37,6 +37,13 @@ SUBAGENT_*.md
 .claude/*
 !.claude/settings.json
 !.claude/launch.json
+# Shared agent skills (npx skills add). Committed so every contributor gets the
+# same set — Claude Code reads .claude/skills, so that copy is the real one.
+!.claude/skills/
+# The same skills again, for agents that read the cross-agent directory. We are
+# Claude Code only, and a second tracked copy of identical files drifts silently
+# on update. `npx skills add` regenerates it if another agent ever needs it.
+.agents/
 
 # Temporary documentation
 docs/local/
