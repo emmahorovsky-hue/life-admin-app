@@ -34,6 +34,46 @@ export const CATEGORIES: { id: CategoryId; name: string; description: string }[]
 // Simple id+name list for form pickers — derived from CATEGORIES so they can't drift.
 export const categories = CATEGORIES.map(({ id, name }) => ({ id, name }));
 
+// Collapses the cosmetic differences between an id and the ways a category can be
+// written: case, surrounding space, and the separator ("cloud storage" / "cloud-storage"
+// / "cloud_storage" all key the same). The separator collapse is also what resolves the
+// legacy `cloud-storage` spelling documented in docs/ai-features-plan.md.
+const categoryLookupKey = (value: string): string =>
+  value.trim().toLowerCase().replace(/[\s_-]+/g, ' ');
+
+// Ids are registered first so an id always wins over a display name. Today nothing
+// collides, but a future category *named* after another's id (a "Cloud" category
+// alongside `cloud`) would otherwise silently shadow it.
+const CATEGORY_BY_LOOKUP_KEY: Record<string, CategoryId> = {};
+for (const id of CATEGORY_IDS) {
+  CATEGORY_BY_LOOKUP_KEY[categoryLookupKey(id)] = id;
+}
+for (const id of CATEGORY_IDS) {
+  const nameKey = categoryLookupKey(CATEGORY_META[id].name);
+  if (!(nameKey in CATEGORY_BY_LOOKUP_KEY)) CATEGORY_BY_LOOKUP_KEY[nameKey] = id;
+}
+
+/**
+ * Resolve arbitrary input to a CategoryId, or `null` if it isn't recognised.
+ *
+ * Accepts the id itself and the display name, in any case and with any separator —
+ * `cloud` is the one category whose name ("Cloud Storage") differs materially from its
+ * id, which made it the one most likely to arrive in a form we'd reject (LIF-241).
+ *
+ * Returns `null` rather than defaulting to `'other'` on purpose: this reports *whether*
+ * the value was recognised, and leaves what to do about a miss — fall back, flag it,
+ * reject it — to the caller. server/src/services/aiService.ts needs both facts, and a
+ * non-null return would have erased one of them.
+ *
+ * Matching is exact-on-key, never fuzzy. "cloud backup" stays `null`; guessing there
+ * would trade a silently-wrong `other` for a silently-wrong *something else*, which is
+ * harder to notice and harder to undo.
+ */
+export function normaliseCategory(input: unknown): CategoryId | null {
+  if (typeof input !== 'string') return null;
+  return CATEGORY_BY_LOOKUP_KEY[categoryLookupKey(input)] ?? null;
+}
+
 export const BILLING_CYCLES = [
   'monthly',
   'annual',
