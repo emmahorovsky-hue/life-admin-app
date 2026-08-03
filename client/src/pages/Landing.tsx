@@ -929,6 +929,9 @@ export default function Landing() {
             <Link to="/privacy" onClick={() => window.scrollTo(0, 0)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
+            <Link to="/support" onClick={() => window.scrollTo(0, 0)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Support
+            </Link>
           </div>
         </div>
       </motion.footer>
