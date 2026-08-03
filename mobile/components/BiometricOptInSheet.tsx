@@ -25,14 +25,14 @@ import { AppText, Button, FormSheet, useToast, type FormSheetHandle } from './ui
  * - **Not the logged-out carousel.** Enabling gates the *stored token*, and
  *   there is no token until the user has signed in — `setProtected` would return
  *   false and the offer would be a lie.
- * - **Not a fourth step in `FirstRunSetupSheet`.** That sheet only presents on
- *   an empty dashboard, so anyone who added a subscription first would never be
- *   offered this. A security setting must not depend on having no data.
+ * - **Not a fourth step in first-run setup** (`app/setup.tsx`). That flow only
+ *   runs on an empty dashboard, so anyone who added a subscription first would
+ *   never be offered this. A security setting must not depend on having no data.
  * - **Gated on `canOffer`** rather than presenting itself. The dashboard owns
- *   the two signals that decide whether the first-run setup sheet is going up
- *   (the persisted setup state and, authoritatively, whether the account has
- *   subscriptions), so it is the only place that can tell these two sheets not
- *   to fight for the same moment.
+ *   the two signals that decide whether first-run setup is going up (the
+ *   persisted setup state and, authoritatively, whether the account has
+ *   subscriptions), so it is the only place that can stop this sheet and that
+ *   screen fighting for the same moment.
  */
 export function BiometricOptInSheet({ canOffer }: { canOffer: boolean }) {
   const { user } = useAuth();

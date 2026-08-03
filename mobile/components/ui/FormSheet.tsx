@@ -90,13 +90,13 @@ export interface FormSheetProps {
  * adjacent rows on one Account screen open visibly different sheets, which is
  * the thing this component exists to stop. If input legibility turns out to be
  * a real problem, fix it in `GlassSurface`'s sheet tint so the answer stays one
- * decision for all twelve, rather than reintroducing a per-sheet flag.
+ * decision for all eleven, rather than reintroducing a per-sheet flag.
  *
- * Deliberately not the chrome for SubscriptionFormSheet or FirstRunSetupSheet:
- * those need fixed percentage snap points and a bounded inner scroll, which a
- * content-sized sheet cannot express. Adding `snapPoints` here to "finish the
- * job" would make this worse for the ten overlays that do fit. Those two match
- * this sheet by hand instead — see the note in quiet.ts.
+ * Deliberately not the chrome for SubscriptionFormSheet: it needs fixed
+ * percentage snap points and a bounded inner scroll, which a content-sized sheet
+ * cannot express. Adding `snapPoints` here to "finish the job" would make this
+ * worse for the ten overlays that do fit. It matches this sheet by hand instead
+ * — see the note in quiet.ts.
  */
 export const FormSheet = forwardRef<FormSheetHandle, FormSheetProps>(function FormSheet(
   { title, subtitle, children, actions, locked, onDismiss, accessibilityLabel, contentStyle },

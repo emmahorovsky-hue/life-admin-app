@@ -72,8 +72,9 @@ describe('SubscriptionModal service autocomplete', () => {
     await user.click(screen.getByRole('button', { name: /netflix/i }));
 
     expect(screen.getByLabelText('Service name')).toHaveValue('Netflix');
-    // Netflix suggestion is $15.99/mo → the cost field reflects it.
-    expect(screen.getByLabelText('Cost')).toHaveValue(15.99);
+    // The row quoted the SGD list price (the form's currency), so that is what
+    // fills in — not the US number under a different symbol.
+    expect(screen.getByLabelText('Cost')).toHaveValue(22.98);
     // Category tile switches to Streaming (active = aria-pressed).
     expect(screen.getByRole('button', { name: 'Streaming' })).toHaveAttribute(
       'aria-pressed',

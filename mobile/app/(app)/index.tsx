@@ -32,13 +32,8 @@ import {
   SubscriptionSheets,
   SubscriptionSheetsHandle,
 } from '../../components/SubscriptionSheets';
-import {
-  FirstRunSetupSheet,
-  FirstRunSetupSheetHandle,
-} from '../../components/FirstRunSetupSheet';
 import { BiometricOptInSheet } from '../../components/BiometricOptInSheet';
 import {
-  SetupStep,
   shouldShowResumeRow,
   shouldShowSetup,
   useSetupState,
@@ -116,7 +111,6 @@ export default function DashboardScreen() {
   const tabBarInset = useTabBarInset();
   const { width } = useWindowDimensions();
   const sheetRef = useRef<SubscriptionSheetsHandle>(null);
-  const setupRef = useRef<FirstRunSetupSheetHandle>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -138,7 +132,7 @@ export default function DashboardScreen() {
   // back; nothing below decides anything on it before then. Keyed by account,
   // not by device — see the note in lib/onboarding.ts (LIF-242).
   const { user } = useAuth();
-  const { state: setup, updateState: updateSetup } = useSetupState(user?.id);
+  const { state: setup, refresh: refreshSetup } = useSetupState(user?.id);
 
   const load = useCallback(async () => {
     try {
@@ -162,7 +156,11 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load]),
+      // The setup screen writes its own outcome and pops back here, so the copy
+      // held above is stale the moment it returns — re-read it or the resume row
+      // never appears after a skip.
+      void refreshSetup();
+    }, [load, refreshSetup]),
   );
 
   const onRefresh = useCallback(async () => {
@@ -172,51 +170,22 @@ export default function DashboardScreen() {
   }, [load]);
 
   // Offer setup once per mount, after both halves of the gate have resolved.
-  // Whether it stays open is the sheet's business from here: unlike web — where
-  // the wizard's visibility is derived from the status and had to be pinned
-  // open while filing flipped it to `done` — an imperative sheet simply stays
-  // presented until something dismisses it.
+  // It is a screen of its own now (app/setup.tsx), so this hands off entirely:
+  // the flow persists its own outcome and this screen re-reads it on focus.
   const setupOffered = useRef(false);
   useEffect(() => {
     if (loading || !summary || !setup || setupOffered.current) return;
     if (!shouldShowSetup(setup, hasSubscriptions)) return;
     setupOffered.current = true;
-    setupRef.current?.present(setup);
-  }, [loading, summary, setup, hasSubscriptions]);
+    router.push('/setup');
+  }, [loading, summary, setup, hasSubscriptions, router]);
 
   const resumeSetup = useCallback(() => {
-    if (!setup) return;
-    // Claim the one offer this mount gets before flipping the status back to
-    // pending, or the effect above would present a second time on top of this.
+    // Claim the one offer this mount gets, so returning here cannot bounce
+    // straight back into the flow the user has just left.
     setupOffered.current = true;
-    const next = { ...setup, status: 'pending' as const };
-    updateSetup(next);
-    setupRef.current?.present(next);
-  }, [setup, updateSetup]);
-
-  // Refetch on the way out: a skip that follows a partial failure leaves rows
-  // behind, and without this the dashboard shows zeroed figures and the resume
-  // row until something else reloads it.
-  const skipSetup = useCallback(
-    (step: SetupStep, picks: string[], created: string[]) => {
-      updateSetup({ status: 'skipped', step, picks, created });
-      load();
-    },
-    [updateSetup, load],
-  );
-
-  // Fires as the confirmation step opens, not when the sheet closes, so the
-  // dashboard behind it is already populated by the time the user is handed
-  // back to it.
-  const finishSetup = useCallback(() => {
-    updateSetup({
-      status: 'done',
-      step: 3,
-      picks: setup?.picks ?? [],
-      created: setup?.created ?? [],
-    });
-    load();
-  }, [updateSetup, setup, load]);
+    router.push('/setup');
+  }, [router]);
 
   // Open the detail sheet for a tapped renewal. The full record is usually
   // already in subsById (loaded alongside the summary); fetch by id only as a
@@ -424,11 +393,10 @@ export default function DashboardScreen() {
           unused-subscription signal exists server-side — see LIF-211. */}
     </Animated.ScrollView>
     <SubscriptionSheets ref={sheetRef} onSaved={load} />
-    <FirstRunSetupSheet ref={setupRef} onSkip={skipSetup} onFiled={finishSetup} />
     {/* Offered from here rather than a layout so it can wait for the same two
-        signals the setup sheet reads — otherwise both would present at once on
-        a fresh account. Deliberately not `!setupOffered.current`: that is a ref,
-        so it would not re-render this. */}
+        signals first-run setup reads — otherwise this would present over the
+        setup screen on a fresh account. Deliberately not `!setupOffered.current`:
+        that is a ref, so it would not re-render this. */}
     <BiometricOptInSheet
       canOffer={!loading && !!summary && !!setup && !shouldShowSetup(setup, hasSubscriptions)}
     />

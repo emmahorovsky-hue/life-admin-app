@@ -12,6 +12,12 @@ vi.mock('@/lib/subscriptions', async (importOriginal) => {
   };
 });
 
+// AddSubscriptionDialog opens a blank form in the account's own currency, so it
+// reads the auth context.
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'u1', defaultCurrency: 'SGD' }, updateUser: vi.fn() }),
+}));
+
 const mockedApi = vi.mocked(subscriptionApi);
 
 /** Render the dialog open, with a rerender helper that flips `open`. */

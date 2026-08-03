@@ -5,6 +5,7 @@ import {
   normalizeToMonthlyCost,
   currencySymbol,
   filterSuggestions,
+  suggestionCost,
   relativeDaysSigned,
   parseRenewalDate,
   ServiceSuggestion,
@@ -152,8 +153,17 @@ export default function SubscriptionModal({
   const patch = (next: Partial<SubscriptionFormValues>) => onChange({ ...values, ...next });
   const renderHint = (field: keyof SubscriptionFormValues) => hint?.(field) ?? null;
 
+  // The list price in the currency the form is *currently* set to — the row the
+  // user clicked quoted that number, so filling in a different one (the US price
+  // under a £ sign) would contradict what they just read.
   const applySuggestion = (s: ServiceSuggestion) => {
-    onChange({ ...values, name: s.name, category: s.category, cost: s.cost, billingCycle: s.cycle });
+    onChange({
+      ...values,
+      name: s.name,
+      category: s.category,
+      cost: suggestionCost(s, values.currency),
+      billingCycle: s.cycle,
+    });
     setSuggestionsOpen(false);
   };
 
@@ -269,7 +279,7 @@ export default function SubscriptionModal({
                           </span>
                           <span className="flex-1 text-sm font-medium text-foreground">{s.name}</span>
                           <span className="font-mono text-xs text-muted-foreground">
-                            {formatCurrency(s.cost, values.currency)}
+                            {formatCurrency(suggestionCost(s, values.currency), values.currency)}
                           </span>
                         </button>
                       </li>

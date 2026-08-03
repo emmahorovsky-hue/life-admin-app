@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
+import { SUBSCRIPTION_SUGGESTIONS, suggestionCost } from '@life-admin/shared';
 import {
   DEFAULT_CURRENCY,
+  currencyForLocale,
   dominantCurrency,
   formatCurrency,
   formatCurrencyTotals,
   formatCurrencyWithCode,
   sumByCurrency,
+  supportedCurrency,
 } from './currency';
 
 describe('formatCurrency', () => {
@@ -130,5 +133,80 @@ describe('formatCurrencyTotals', () => {
   it('shows a zero in the fallback currency when there is nothing to total', () => {
     expect(formatCurrencyTotals([], 'GBP')).toEqual(['£0.00']);
     expect(formatCurrencyTotals([])).toEqual([formatCurrency(0, DEFAULT_CURRENCY)]);
+  });
+});
+
+// This decides what a brand-new account is denominated in — the first-run flow
+// prefills its currency control from it — so the misses matter as much as the
+// hits: a wrong guess would be filed against every subscription the user starts
+// with, and the dashboard reads its display currency back off that data.
+describe('currencyForLocale', () => {
+  it('maps the regions this app has a currency for', () => {
+    expect(currencyForLocale('en-US')).toBe('USD');
+    expect(currencyForLocale('en-GB')).toBe('GBP');
+    expect(currencyForLocale('en-SG')).toBe('SGD');
+    expect(currencyForLocale('de-DE')).toBe('EUR');
+    expect(currencyForLocale('fr-FR')).toBe('EUR');
+  });
+
+  it('reads the region past a script subtag', () => {
+    expect(currencyForLocale('zh-Hant-SG')).toBe('SGD');
+  });
+
+  it('accepts underscore-separated and lower-case tags', () => {
+    expect(currencyForLocale('en_gb')).toBe('GBP');
+  });
+
+  it('returns null rather than guessing from language alone', () => {
+    expect(currencyForLocale('en')).toBeNull();
+    expect(currencyForLocale('de')).toBeNull();
+  });
+
+  it('returns null for a region with no supported currency', () => {
+    expect(currencyForLocale('en-AU')).toBeNull();
+    expect(currencyForLocale('ja-JP')).toBeNull();
+  });
+
+  it('returns null for junk', () => {
+    expect(currencyForLocale('')).toBeNull();
+    expect(currencyForLocale('!!')).toBeNull();
+    expect(currencyForLocale(undefined)).toBeNull();
+    expect(currencyForLocale(null)).toBeNull();
+  });
+});
+
+describe('supportedCurrency', () => {
+  it('accepts a supported code in any case', () => {
+    expect(supportedCurrency('GBP')).toBe('GBP');
+    expect(supportedCurrency('eur')).toBe('EUR');
+  });
+
+  it('rejects anything else', () => {
+    expect(supportedCurrency('JPY')).toBeNull();
+    expect(supportedCurrency('')).toBeNull();
+    expect(supportedCurrency(undefined)).toBeNull();
+  });
+});
+
+describe('suggestionCost', () => {
+  const netflix = SUBSCRIPTION_SUGGESTIONS.find((s) => s.name === 'Netflix')!;
+
+  it('returns the market list price for the currency', () => {
+    expect(suggestionCost(netflix, 'USD')).toBe(15.99);
+    expect(suggestionCost(netflix, 'GBP')).toBe(12.99);
+  });
+
+  it('falls back to USD for a currency the catalog has no price in', () => {
+    expect(suggestionCost(netflix, 'JPY')).toBe(15.99);
+  });
+
+  // A missing entry would put "$0.00/mo" in front of a new user, so the catalog
+  // has to stay complete rather than lean on that fallback.
+  it('prices every service in every supported currency', () => {
+    for (const service of SUBSCRIPTION_SUGGESTIONS) {
+      for (const code of ['USD', 'EUR', 'GBP', 'SGD']) {
+        expect(service.costs[code], `${service.name} in ${code}`).toBeGreaterThan(0);
+      }
+    }
   });
 });

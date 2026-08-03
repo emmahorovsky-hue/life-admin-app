@@ -162,6 +162,16 @@ export function shouldShowResumeRow(state: SetupState, hasSubscriptions: boolean
 export function useSetupState(userId: string | undefined) {
   const [state, setState] = useState<SetupState | null>(null);
 
+  /**
+   * Re-read from storage. The setup screen writes the outcome itself and then
+   * pops, so whoever offered it holds a stale copy until this runs — the
+   * dashboard calls it on focus, which is the moment it gets the screen back.
+   */
+  const refresh = useCallback(async () => {
+    if (!userId) return;
+    setState(await readSetupState(userId));
+  }, [userId]);
+
   useEffect(() => {
     if (!userId) {
       // Signing out mid-session must not leave the previous account's state
@@ -188,5 +198,5 @@ export function useSetupState(userId: string | undefined) {
     [userId],
   );
 
-  return { state, updateState };
+  return { state, updateState, refresh };
 }

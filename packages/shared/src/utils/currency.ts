@@ -1,3 +1,5 @@
+import { currencies } from '../constants/subscriptions';
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
   SGD: '$',
@@ -6,6 +8,53 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 export const DEFAULT_CURRENCY = 'SGD';
+
+// Region → currency, for the four currencies this app supports. Only regions
+// that map unambiguously are listed; everything else is a miss, which callers
+// read as "ask, don't guess".
+const EUROZONE = [
+  'AT', 'BE', 'HR', 'CY', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE',
+  'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PT', 'SK', 'SI', 'ES',
+];
+
+const CURRENCY_BY_REGION: Record<string, string> = {
+  US: 'USD',
+  GB: 'GBP',
+  SG: 'SGD',
+  ...Object.fromEntries(EUROZONE.map((region) => [region, 'EUR'])),
+};
+
+/** The code itself when this app supports it, otherwise null. */
+export function supportedCurrency(code?: string | null): string | null {
+  if (typeof code !== 'string') return null;
+  const upper = code.toUpperCase();
+  return currencies.includes(upper) ? upper : null;
+}
+
+/**
+ * Best supported currency for a BCP-47 locale — "en-GB" → GBP, "de-DE" → EUR.
+ *
+ * Null, not a default, when the locale carries no region ("en") or names one
+ * this app has no currency for ("en-AU"). A new user's money is the one thing
+ * that must not be quietly guessed: callers prefill a *visible* control with
+ * this and fall back to DEFAULT_CURRENCY, so a miss shows up as something to
+ * correct rather than as a wrong number nobody was asked about.
+ *
+ * Language is deliberately ignored. "en" is spoken in every market here, and
+ * inferring USD from it is exactly the silent error this exists to prevent.
+ */
+export function currencyForLocale(locale?: string | null): string | null {
+  if (typeof locale !== 'string') return null;
+  // Region is the 2-letter (or 3-digit UN M49) subtag after the language, past
+  // any script: "zh-Hant-SG" has to resolve as well as "en-SG".
+  const region = locale
+    .replace(/_/g, '-')
+    .split('-')
+    .slice(1)
+    .find((part) => /^[A-Za-z]{2}$/.test(part));
+  if (!region) return null;
+  return CURRENCY_BY_REGION[region.toUpperCase()] ?? null;
+}
 
 // An amount that carries its currency, so it can never be added to another one
 // by accident. Aggregates return a list of these, one entry per currency.

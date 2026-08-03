@@ -8,6 +8,7 @@ import {
   SubscriptionFormValues,
   defaultSubscriptionFormValues,
 } from '@/lib/subscriptions';
+import { useAuth } from '@/contexts/AuthContext';
 import { getApiErrorMessage } from '@/lib/utils';
 import { useUnmountSafeTimeout } from '@/hooks/useUnmountSafeTimeout';
 
@@ -22,10 +23,15 @@ export default function AddSubscriptionDialog({
   onOpenChange,
   onSuccess,
 }: AddSubscriptionDialogProps) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
-  const [values, setValues] = useState<SubscriptionFormValues>(defaultSubscriptionFormValues);
+  // A blank form opens in the account's own currency — whatever first-run setup
+  // (or Settings › Appearance) settled on — rather than the schema default.
+  const [values, setValues] = useState<SubscriptionFormValues>(() =>
+    defaultSubscriptionFormValues(user?.defaultCurrency)
+  );
   const scheduleTimeout = useUnmountSafeTimeout();
 
   // Every open starts from a blank form, however the last one ended — saved,
@@ -38,7 +44,7 @@ export default function AddSubscriptionDialog({
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
-      setValues(defaultSubscriptionFormValues());
+      setValues(defaultSubscriptionFormValues(user?.defaultCurrency));
       setError('');
       setSaved(false);
     }
