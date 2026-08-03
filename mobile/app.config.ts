@@ -37,6 +37,27 @@ function resolveLogoDevToken(): string | undefined {
   return token;
 }
 
+// Crash reporting DSN, read by lib/sentry.ts. Optional in the same sense as
+// LOGO_DEV_TOKEN — no DSN means Sentry never initialises and the app is
+// otherwise unaffected — so an unset value must not fail the build. But an
+// unreported release is exactly the failure that hides itself, so a production
+// build without it says so in the build log.
+//
+// A Sentry DSN is publishable by design (it ships in every client bundle), yet
+// like the logo.dev token it stays out of eas.json because this repo is public.
+function resolveSentryDsn(): string | undefined {
+  const dsn = process.env.SENTRY_DSN;
+
+  if (!dsn && process.env.EAS_BUILD_PROFILE === 'production') {
+    console.warn(
+      '[app.config] SENTRY_DSN is not set — this production build will report no ' +
+        'crashes or errors. Set it as an EAS environment variable; see DEPLOYMENT.md 6.3.',
+    );
+  }
+
+  return dsn;
+}
+
 export default {
   expo: {
     name: 'Paypr',
@@ -129,6 +150,14 @@ export default {
         faceIDPermission: 'Paypr uses Face ID so you can unlock your subscriptions without typing your password.',
       }],
       '@react-native-community/datetimepicker',
+      // Adds the native Sentry SDK and the build phase that uploads source maps
+      // and debug symbols. Without it a JS stack trace arrives as minified
+      // bundle offsets, which is technically a crash report and practically
+      // unreadable. The upload itself needs SENTRY_ORG / SENTRY_PROJECT /
+      // SENTRY_AUTH_TOKEN on the build — absent those it skips the upload with
+      // a warning rather than failing the build, so reporting still works and
+      // only symbolication is lost. See DEPLOYMENT.md 6.3.
+      '@sentry/react-native',
     ],
     extra: {
       eas: {
@@ -136,6 +165,7 @@ export default {
       },
       apiUrl: resolveApiUrl(),
       logoDevToken: resolveLogoDevToken(),
+      sentryDsn: resolveSentryDsn(),
     },
   },
 };
