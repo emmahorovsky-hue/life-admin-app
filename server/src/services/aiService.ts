@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { CATEGORY_IDS, BILLING_CYCLES } from '../constants/subscriptions';
+import { CATEGORY_IDS, BILLING_CYCLES, normaliseCategory } from '../constants/subscriptions';
 import { reportServerError } from '../utils/reportError';
 
 // Graceful skip when no key is configured — mirrors emailService's RESEND_API_KEY handling.
@@ -263,9 +263,12 @@ export async function extractSubscription(
 export function normalizeCandidate(input: unknown): SubscriptionCandidate {
   const raw = (input ?? {}) as Record<string, unknown>;
 
-  const category = VALID_CATEGORIES.includes(raw.category as never)
-    ? (raw.category as string)
-    : 'other';
+  // Tolerant of case, spacing and separator, and accepts the display name as well as the
+  // id — the model is schema-constrained to the enum but adherence isn't guaranteed, and
+  // "Cloud Storage" collapsing to `other` is what made scanned cloud subscriptions vanish
+  // from the category filter (LIF-241). A miss is kept as `null` so it can be flagged below.
+  const matchedCategory = normaliseCategory(raw.category);
+  const category: string = matchedCategory ?? 'other';
   const billingCycle = VALID_BILLING_CYCLES.includes(raw.billingCycle as never)
     ? (raw.billingCycle as string)
     : 'monthly';
@@ -289,6 +292,13 @@ export function normalizeCandidate(input: unknown): SubscriptionCandidate {
     : [];
   if (cost === null && !uncertainFields.includes('cost')) {
     uncertainFields.push('cost');
+  }
+  // Only when the value could not be mapped at all — a tolerant hit ("Cloud Storage" →
+  // `cloud`) is unambiguous, and flagging those too would put a "please confirm" note on
+  // a large share of extractions and teach users to click past it. What has to be
+  // surfaced is that we fell back to `other` and threw their value away.
+  if (matchedCategory === null && !uncertainFields.includes('category')) {
+    uncertainFields.push('category');
   }
 
   return {
