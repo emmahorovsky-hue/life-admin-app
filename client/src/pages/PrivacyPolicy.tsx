@@ -7,7 +7,7 @@ import { APP_NAME } from '@/lib/constants';
 // DPO_EMAIL: must be a monitored inbox (PDPA requires a reachable DPO contact).
 // LEGAL_ENTITY: the ACRA-registered business name, or your full legal name if
 //   operating as an individual/sole proprietor. This is the data controller.
-const EFFECTIVE_DATE = '18 July 2026';
+const EFFECTIVE_DATE = '3 August 2026';
 const DPO_EMAIL = 'paypr.live@gmail.com';
 const LEGAL_ENTITY = 'Anna Maria Blukacz';
 // -----------------------------------------------------------------------------
@@ -46,8 +46,15 @@ export default function PrivacyPolicy() {
             <ul className="list-disc pl-5 space-y-2 text-muted-foreground leading-relaxed">
               <li>
                 <strong>Account information</strong> &mdash; your email address and password (stored
-                only as a secure one-way hash), and an optional profile avatar image you choose to
-                upload.
+                only as a secure one-way hash); your name and surname, if you provide them; and an
+                optional profile avatar image you choose to upload.
+              </li>
+              <li>
+                <strong>Your settings</strong> &mdash; your display preferences and notification
+                choices, including your preferred currency, theme, and whether you want renewal
+                reminders by email or push. Your time zone is detected automatically from your
+                browser or device and stored on your account, so that reminders arrive at a sensible
+                local hour.
               </li>
               <li>
                 <strong>Subscription data you enter</strong> &mdash; the names, costs, currencies,
@@ -118,6 +125,12 @@ export default function PrivacyPolicy() {
               <li><strong>Expo</strong> &mdash; delivery of push notifications to your device.</li>
               <li><strong>Sentry</strong> &mdash; error monitoring and diagnostics.</li>
               <li>
+                <strong>logo.dev</strong> &mdash; brand logos for the services you track. Your browser
+                or device requests these images directly, so logo.dev receives your IP address and the
+                name of the brand being looked up. We never send it your account details, and the
+                feature is cosmetic &mdash; a generic category icon is shown when no logo is available.
+              </li>
+              <li>
                 <strong>Anthropic</strong> &mdash; when you upload a receipt or invoice for extraction,
                 its contents are sent to Anthropic&rsquo;s AI service to identify subscription details.
                 This content is used only to perform the extraction and is not used to train AI models.
@@ -145,6 +158,12 @@ export default function PrivacyPolicy() {
               include encrypted transport (HTTPS), one-way hashing of passwords, and access controls.
               No method of transmission or storage is completely secure, however, and we cannot guarantee
               absolute security.
+            </p>
+            <p className="text-muted-foreground leading-relaxed mt-3">
+              On mobile, you can choose to unlock {APP_NAME} with Face ID, Touch ID, or your device
+              passcode. Your biometric data is held and checked entirely by your device&rsquo;s own
+              secure hardware &mdash; {APP_NAME} never receives, stores, or transmits it, and only
+              learns whether the check succeeded.
             </p>
           </section>
 
