@@ -35,6 +35,12 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # TEMPORARY — revert before merging. This job has never once passed
+          # (152 failures, 0 successes, every run since 2026-07-15). Setup all
+          # succeeds; it dies inside Claude Code on the first turn, and the
+          # action redacts the message as "full output hidden for security".
+          # This unredacts it so the actual error can be read once.
+          show_full_output: true
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           # --comment makes the review post its findings back to the PR;
