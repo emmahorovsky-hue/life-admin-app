@@ -22,9 +22,12 @@ function buildApp(limiter: ReturnType<typeof createApiLimiter>) {
   app.use(cookieParser());
   app.use('/api', limiter);
   app.get('/api/ping', (_req, res) => res.json({ ok: true }));
-  // Stand-ins for the two halves of the real API, so scope-keying can be
-  // exercised without mounting the routers (and their DB dependencies).
+  // Stand-ins for each scope of the real API, so scope-keying can be exercised
+  // without mounting the routers (and their DB dependencies).
   app.post('/api/auth/device-token', (_req, res) => res.json({ ok: true }));
+  app.get('/api/auth/me', (_req, res) => res.json({ ok: true }));
+  app.post('/api/auth/login', (_req, res) => res.json({ ok: true }));
+  app.post('/api/auth/register', (_req, res) => res.json({ ok: true }));
   app.get('/api/subscriptions', (_req, res) => res.json({ ok: true }));
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
   return app;
@@ -149,11 +152,57 @@ describe('general API rate limiter', () => {
       await auth('/api/auth/device-token').expect(200);
       await auth('/api/auth/device-token').expect(429);
 
-      // The auth half is spent; the data half is untouched.
+      // The device scope is spent; the data half is untouched.
       await request(app)
         .get('/api/subscriptions')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
+    });
+
+    // The half of the incident the first split did not fix: device-token used to
+    // share a bucket with /auth/me and /auth/login, so the same flood emptied it
+    // in ~2.4s at the observed rate and then 429'd session restore and sign-in on
+    // every device the account was on — with no way back in from either client,
+    // since both attach the stale credential to the login request.
+    it('keeps a device-token flood from locking the user out of their session', async () => {
+      const app = buildApp(createApiLimiter({ max: 2, windowMs: 60_000, enabled: true }));
+      const token = tokenFor('nadia');
+      const bearer = `Bearer ${token}`;
+
+      for (let i = 0; i < 2; i++) {
+        await request(app).post('/api/auth/device-token').set('Authorization', bearer).expect(200);
+      }
+      await request(app).post('/api/auth/device-token').set('Authorization', bearer).expect(429);
+
+      await request(app).get('/api/auth/me').set('Authorization', bearer).expect(200);
+      await request(app).post('/api/auth/login').set('Authorization', bearer).expect(200);
+      await request(app).get('/api/subscriptions').set('Authorization', bearer).expect(200);
+    });
+
+    it('keeps session traffic and the rest of the auth surface apart', async () => {
+      const app = buildApp(createApiLimiter({ max: 1, windowMs: 60_000, enabled: true }));
+      const bearer = `Bearer ${tokenFor('omar')}`;
+
+      await request(app).post('/api/auth/register').set('Authorization', bearer).expect(200);
+      await request(app).post('/api/auth/register').set('Authorization', bearer).expect(429);
+
+      // Signing in still works even with the credential surface spent.
+      await request(app).post('/api/auth/login').set('Authorization', bearer).expect(200);
+    });
+
+    // Express matches mounts and routes case-insensitively, so /API/auth/... hits
+    // the auth router exactly like the canonical spelling. A case-sensitive scope
+    // comparison filed it under `app` and handed it the data budget — the
+    // isolation above silently off for any client that varied the case.
+    it('scopes case-variant auth paths as auth, not app', async () => {
+      const app = buildApp(createApiLimiter({ max: 2, windowMs: 60_000, enabled: true }));
+      const bearer = `Bearer ${tokenFor('petra')}`;
+
+      await request(app).post('/API/auth/device-token').set('Authorization', bearer).expect(200);
+      await request(app).post('/api/AUTH/device-token').set('Authorization', bearer).expect(200);
+
+      // Both spellings landed in the device bucket, so the data budget is intact.
+      await request(app).get('/api/subscriptions').set('Authorization', bearer).expect(200);
     });
 
     it('scopes the anonymous IP bucket the same way', async () => {
