@@ -67,6 +67,9 @@ export const subscriptionApi = {
     form.append('file', { uri: asset.uri, name: asset.name, type: asset.type } as unknown as Blob);
     const response = await api.post<ExtractionResult>('/subscriptions/extract', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      // Overrides the instance-wide 15s: this one waits on an image upload plus
+      // a Claude vision call, and legitimately outlasts every other endpoint.
+      timeout: 90_000,
     });
     return response.data;
   },

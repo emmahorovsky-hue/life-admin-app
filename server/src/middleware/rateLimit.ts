@@ -2,6 +2,8 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import type { Request } from 'express';
 import { verifyToken } from '../utils/jwt';
 import { getRequestToken } from '../utils/requestToken';
+import { logSecurityEvent } from '../utils/securityLog';
+import type { AuthRequest } from './auth';
 
 // General API rate limit (LIF-24). Auth endpoints keep their own much tighter
 // per-endpoint limiters in routes/auth.ts, and /subscriptions/extract keeps its
@@ -47,15 +49,18 @@ if (process.env.DISABLE_RATE_LIMIT === 'true') {
  * bucket: this is a traffic ceiling, not an authorization decision, and the real
  * auth middleware still rejects the request downstream.
  *
- * Keys are namespaced so a user id can never collide with an IP literal.
+ * Keys are namespaced so a user id can never collide with an IP literal, and
+ * scoped by route group so the two halves of the API cannot starve each other
+ * (see `bucketScope`).
  */
 const apiRateLimitKey = (req: Request): string => {
+  const scope = bucketScope(req);
   const token = getRequestToken(req);
 
   if (token) {
     try {
       const { userId } = verifyToken(token);
-      if (userId) return `user:${userId}`;
+      if (userId) return `user:${userId}:${scope}`;
     } catch {
       // Fall through to the IP bucket.
     }
@@ -63,6 +68,41 @@ const apiRateLimitKey = (req: Request): string => {
 
   // ipKeyGenerator normalises IPv6 to a /56 subnet; keying on a bare IPv6
   // address would let one client cycle through addresses within its own prefix.
+  return `ip:${ipKeyGenerator(req.ip ?? '')}:${scope}`;
+};
+
+/**
+ * Which half of the API a request belongs to: `auth` for /api/auth/*, `app` for
+ * everything else (subscriptions, dashboard, account).
+ *
+ * One shared bucket per user made a single misbehaving endpoint able to lock a
+ * user out of the entire product. That is not hypothetical: a mobile build
+ * looped on POST /api/auth/device-token at up to 400 requests/second, and
+ * because this limiter is mounted on all of /api *before* the routers, every
+ * one of those attempts — including the ones the tighter per-endpoint auth
+ * limiter rejected microseconds later — spent a token from the same budget the
+ * user's subscription screens draw on. They saw "Too many requests" while
+ * saving two rows.
+ *
+ * Splitting the budget does not make the ceiling looser for either half; it
+ * means a runaway auth client can only cost the user their auth calls, never
+ * their data. The scope is derived from `originalUrl` because this middleware
+ * is mounted at /api, which strips the prefix from `req.path`.
+ */
+const bucketScope = (req: Request): 'auth' | 'app' => {
+  const path = req.originalUrl.split('?')[0];
+  return path === '/api/auth' || path.startsWith('/api/auth/') ? 'auth' : 'app';
+};
+
+/**
+ * Bucket key for a limiter that runs *after* `authenticateToken`, so it can
+ * read the verified user off the request rather than re-verifying the token.
+ * Same namespacing as above, minus the route scope — per-endpoint limiters own
+ * their store, so there is nothing to collide with.
+ */
+export const authenticatedUserKey = (req: Request): string => {
+  const userId = (req as AuthRequest).user?.userId;
+  if (userId) return `user:${userId}`;
   return `ip:${ipKeyGenerator(req.ip ?? '')}`;
 };
 
@@ -72,6 +112,32 @@ export interface ApiLimiterOptions {
   /** Force the limiter on/off regardless of environment (used by tests). */
   enabled?: boolean;
 }
+
+/**
+ * One report per bucket per minute, rather than one per rejected request.
+ *
+ * A tripped limiter does not reject once, it rejects everything the client
+ * sends for the rest of the window — the incident that motivated this logging
+ * was ~5,000 rejections in 13 minutes. Logging each one buries the signal and
+ * (via Sentry) bills for the privilege. The first rejection is the news.
+ */
+const REPORT_INTERVAL_MS = 60_000;
+const lastReportedAt = new Map<string, number>();
+
+const shouldReport = (key: string, now: number): boolean => {
+  const previous = lastReportedAt.get(key);
+  if (previous !== undefined && now - previous < REPORT_INTERVAL_MS) return false;
+
+  lastReportedAt.set(key, now);
+  // Keep the map from growing without bound under a distributed burst: once it
+  // is large, drop the entries whose interval has already lapsed.
+  if (lastReportedAt.size > 1000) {
+    for (const [candidate, at] of lastReportedAt) {
+      if (now - at >= REPORT_INTERVAL_MS) lastReportedAt.delete(candidate);
+    }
+  }
+  return true;
+};
 
 export const createApiLimiter = ({
   windowMs = Number(process.env.API_RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000),
@@ -85,11 +151,28 @@ export const createApiLimiter = ({
     max,
     keyGenerator: apiRateLimitKey,
     skip: () => !enabled,
-    message: {
-      error: {
-        message: 'Too many requests, please try again later',
-        code: 'RATE_LIMIT_EXCEEDED',
-      },
+    // A handler rather than `message`, so a trip leaves a trace. This limiter
+    // used to reject silently: no log line, no Sentry (the error handler in
+    // index.ts only captures 5xx), nothing but a 429 the client had to explain
+    // to the user. The response body is unchanged — mobile surfaces it verbatim
+    // (mobile/lib/utils.ts) and both clients match on `code`.
+    handler: (req, res) => {
+      const key = apiRateLimitKey(req);
+      if (shouldReport(key, Date.now())) {
+        const [namespace, id] = key.split(':');
+        logSecurityEvent('api.rate_limit.exceeded', req, {
+          // Query strings can carry tokens — path only, per securityLog's contract.
+          route: req.originalUrl.split('?')[0],
+          reason: namespace === 'user' ? 'user_bucket' : 'ip_bucket',
+          ...(namespace === 'user' && { userId: id }),
+        });
+      }
+      res.status(429).json({
+        error: {
+          message: 'Too many requests, please try again later',
+          code: 'RATE_LIMIT_EXCEEDED',
+        },
+      });
     },
     standardHeaders: true,
     legacyHeaders: false,

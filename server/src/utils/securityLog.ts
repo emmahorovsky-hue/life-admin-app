@@ -34,6 +34,10 @@ export type SecurityEventType =
   | 'auth.email_change.completed'
   | 'auth.email_change.failed'
   | 'auth.rate_limit.exceeded'
+  // The general /api limiter, as opposed to the per-endpoint auth ones above.
+  // Distinct so a trip can be told apart at a glance: this one means a client
+  // is flooding the API, not that someone is guessing credentials.
+  | 'api.rate_limit.exceeded'
   | 'account.deleted'
   | 'account.delete_failed';
 
@@ -51,6 +55,7 @@ export interface SecurityEventDetails {
 // rate-limit trips are the attack signals this ticket is about.
 const HIGH_SIGNAL: ReadonlySet<SecurityEventType> = new Set([
   'auth.rate_limit.exceeded',
+  'api.rate_limit.exceeded',
 ]);
 
 const FAILURE_EVENTS: ReadonlySet<SecurityEventType> = new Set([
@@ -60,6 +65,7 @@ const FAILURE_EVENTS: ReadonlySet<SecurityEventType> = new Set([
   'auth.email_verification.failure',
   'auth.email_change.failed',
   'auth.rate_limit.exceeded',
+  'api.rate_limit.exceeded',
   'account.delete_failed',
 ]);
 

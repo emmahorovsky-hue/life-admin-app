@@ -6,9 +6,17 @@ import { generateToken } from '../../utils/jwt';
 
 function buildApp(limiter: ReturnType<typeof createApiLimiter>) {
   const app = express();
+  // Lets a test claim its own source IP via X-Forwarded-For. Reporting is
+  // throttled per bucket and the throttle outlives a single test, so a test
+  // that asserts on log output needs an IP bucket no other test has tripped.
+  app.set('trust proxy', 1);
   app.use(cookieParser());
   app.use('/api', limiter);
   app.get('/api/ping', (_req, res) => res.json({ ok: true }));
+  // Stand-ins for the two halves of the real API, so scope-keying can be
+  // exercised without mounting the routers (and their DB dependencies).
+  app.post('/api/auth/device-token', (_req, res) => res.json({ ok: true }));
+  app.get('/api/subscriptions', (_req, res) => res.json({ ok: true }));
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
   return app;
 }
@@ -116,6 +124,107 @@ describe('general API rate limiter', () => {
       // Frank is exhausted; anonymous traffic from the same IP is untouched.
       await request(app).get('/api/ping').set('Authorization', `Bearer ${frank}`).expect(429);
       await request(app).get('/api/ping').expect(200);
+    });
+  });
+
+  // The incident this guards against: a mobile build looped on
+  // POST /api/auth/device-token, and because one bucket covered the whole API,
+  // the user's own subscription screens started answering 429.
+  describe('route-group scoping', () => {
+    it('keeps an auth flood from draining the same user\'s app budget', async () => {
+      const app = buildApp(createApiLimiter({ max: 2, windowMs: 60_000, enabled: true }));
+      const token = tokenFor('grace');
+      const auth = (path: string) => request(app).post(path).set('Authorization', `Bearer ${token}`);
+
+      await auth('/api/auth/device-token').expect(200);
+      await auth('/api/auth/device-token').expect(200);
+      await auth('/api/auth/device-token').expect(429);
+
+      // The auth half is spent; the data half is untouched.
+      await request(app)
+        .get('/api/subscriptions')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+    });
+
+    it('scopes the anonymous IP bucket the same way', async () => {
+      const app = buildApp(createApiLimiter({ max: 1, windowMs: 60_000, enabled: true }));
+
+      await request(app).post('/api/auth/device-token').expect(200);
+      await request(app).post('/api/auth/device-token').expect(429);
+      await request(app).get('/api/subscriptions').expect(200);
+    });
+  });
+
+  describe('reporting', () => {
+    it('logs a security event naming the route and bucket, and sends Retry-After', async () => {
+      const app = buildApp(createApiLimiter({ max: 1, windowMs: 60_000, enabled: true }));
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      try {
+        const token = tokenFor('heidi');
+        await request(app).get('/api/subscriptions').set('Authorization', `Bearer ${token}`).expect(200);
+        const res = await request(app)
+          .get('/api/subscriptions')
+          .set('Authorization', `Bearer ${token}`)
+          .expect(429);
+
+        expect(res.headers['retry-after']).toBeDefined();
+
+        const entries = logSpy.mock.calls.map(([line]) => JSON.parse(line as string));
+        expect(entries).toContainEqual(
+          expect.objectContaining({
+            type: 'security_event',
+            event: 'api.rate_limit.exceeded',
+            route: '/api/subscriptions',
+            reason: 'user_bucket',
+            userId: 'heidi',
+          }),
+        );
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
+    it('reports a bucket once, not once per rejected request', async () => {
+      const app = buildApp(createApiLimiter({ max: 1, windowMs: 60_000, enabled: true }));
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      try {
+        const token = tokenFor('ivan');
+        const call = () =>
+          request(app).get('/api/subscriptions').set('Authorization', `Bearer ${token}`);
+
+        await call().expect(200);
+        for (let i = 0; i < 5; i++) await call().expect(429);
+
+        const trips = logSpy.mock.calls
+          .map(([line]) => JSON.parse(line as string))
+          .filter((entry) => entry.event === 'api.rate_limit.exceeded');
+        expect(trips).toHaveLength(1);
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
+    it('records the IP bucket for unauthenticated traffic', async () => {
+      const app = buildApp(createApiLimiter({ max: 1, windowMs: 60_000, enabled: true }));
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      try {
+        const anon = () => request(app).get('/api/ping').set('X-Forwarded-For', '203.0.113.7');
+        await anon().expect(200);
+        await anon().expect(429);
+
+        const trips = logSpy.mock.calls
+          .map(([line]) => JSON.parse(line as string))
+          .filter((entry) => entry.event === 'api.rate_limit.exceeded');
+        expect(trips).toHaveLength(1);
+        expect(trips[0].reason).toBe('ip_bucket');
+        expect(trips[0].userId).toBeUndefined();
+      } finally {
+        logSpy.mockRestore();
+      }
     });
   });
 
