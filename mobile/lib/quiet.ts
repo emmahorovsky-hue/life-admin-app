@@ -121,7 +121,12 @@ export const quiet = StyleSheet.create({
   /** The screen's one accent: something needs attention within 7 days. Square
    *  by intent (the logo's motif) — the explicit 0 is not a leftover. */
   dueDot: { width: 6, height: 6, borderRadius: 0, backgroundColor: colors.brandOrange },
-  dueSpacer: { width: 6, height: 6 },
+  /** The same square for rows that aren't due soon. It used to be an invisible
+   *  box holding the column open, which left every calm row looking like it was
+   *  missing its marker; `faint` states the slot instead — present, clearly not
+   *  the accent. Deliberately `faint` rather than `hairline`/`rowDivider`: a 6pt
+   *  mark needs more weight than a hairline to read at the same value. */
+  dueDotIdle: { width: 6, height: 6, borderRadius: 0, backgroundColor: colors.faint },
 
   /** Inline empty / muted copy. */
   emptyText: {
