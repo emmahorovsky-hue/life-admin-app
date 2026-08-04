@@ -40,7 +40,9 @@ const BUCKET_LABELS: Record<BucketId, string> = {
 
 // A row's due-soon dot fires on the same DUE_SOON_DAYS threshold that defines the
 // `thisWeek` bucket (from @life-admin/shared), so the dot and the section it sits
-// in can never disagree — every "This week" row is dotted, nothing below it is.
+// in can never disagree — every "This week" row is orange, nothing below it is.
+// Every row carries the square either way; below the threshold it is `dueDotIdle`,
+// so the column reads as one marker changing state rather than rows missing one.
 const categoryLabel = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
 
 export default function TimelineScreen() {
@@ -163,7 +165,7 @@ export default function TimelineScreen() {
             accessibilityLabel={`${sub.name}, ${amount}, ${relativeDays(days)}${dueSoon ? ', due soon' : ''}`}
             onPress={() => sheetRef.current?.openDetail(sub)}
           >
-            <View style={dueSoon ? quiet.dueDot : quiet.dueSpacer} />
+            <View style={dueSoon ? quiet.dueDot : quiet.dueDotIdle} />
             <View style={quiet.rowBody}>
               <AppText style={quiet.rowName} numberOfLines={1}>{sub.name}</AppText>
               <AppText style={quiet.rowMeta}>

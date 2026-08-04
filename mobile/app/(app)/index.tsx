@@ -367,7 +367,7 @@ export default function DashboardScreen() {
                 accessibilityLabel={`${r.name}, ${amount}, ${timing}${dueSoon ? ', due soon' : ''}`}
                 onPress={() => openRenewal(r.id)}
               >
-                <View style={dueSoon ? quiet.dueDot : quiet.dueSpacer} />
+                <View style={dueSoon ? quiet.dueDot : quiet.dueDotIdle} />
                 <View style={quiet.rowBody}>
                   <AppText style={quiet.rowName} numberOfLines={1}>{r.name}</AppText>
                   <AppText style={quiet.rowMeta}>{timing}</AppText>
