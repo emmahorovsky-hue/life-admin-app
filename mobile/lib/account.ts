@@ -58,6 +58,9 @@ export const uploadAvatar = async (asset: ImagePickerAsset) => {
     // Override the instance's application/json default. RN's networking layer
     // replaces this with the full multipart header including the boundary.
     headers: { 'Content-Type': 'multipart/form-data' },
+    // Overrides the instance-wide 15s: a full-resolution photo on a slow uplink
+    // takes longer than any JSON call ever should.
+    timeout: 60_000,
   });
 };
 

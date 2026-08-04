@@ -357,9 +357,15 @@ All errors follow this format:
 
 ## Rate Limiting
 
-Authentication endpoints are rate-limited to **5 requests per 15 minutes** per IP address:
+Credential endpoints are rate-limited to **5 requests per 15 minutes** per IP address:
 - POST /api/auth/register
 - POST /api/auth/login
+- POST /api/auth/reset-password, /change-password, /change-email
+
+On top of that, all of `/api` sits behind a general limiter of **1000 requests
+per 15 minutes**, bucketed per authenticated user (per IP when there is no valid
+token) and counted separately for `/api/auth/*` and the rest of the API. See
+`docs/API.md` for the full picture, including the upload throttles.
 
 ---
 
