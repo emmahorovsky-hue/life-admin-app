@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import multer from 'multer';
 import { AuthRequest } from './auth';
+import { retryAfterSeconds } from './rateLimit';
 
 // Matches the "JPG or PNG, up to 2 MB" copy in the Settings UI.
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -75,6 +76,12 @@ export const avatarUploadRateLimit = (
   const recent = (hits.get(userId) ?? []).filter((t) => now - t < WINDOW_MS);
 
   if (recent.length >= MAX_REQUESTS_PER_WINDOW) {
+    // `recent` is ascending (entries are pushed in time order), so the oldest
+    // hit is the first slot to fall out of the window. Clients read this to
+    // decide when to re-enable a retry — without it they can only guess, and a
+    // guess that is too short spends another request on a limiter already
+    // refusing them.
+    res.setHeader('Retry-After', retryAfterSeconds(recent[0], now, WINDOW_MS));
     res.status(429).json({
       error: {
         message: 'Too many uploads. Please wait a few minutes and try again.',

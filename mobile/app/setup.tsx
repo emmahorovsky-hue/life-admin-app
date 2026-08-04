@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -255,11 +256,39 @@ export default function SetupScreen() {
   // releases it on its own — the user should not have to guess when the wait is
   // over, and a disabled button with no end is indistinguishable from a broken
   // one.
+  //
+  // The timer alone is not enough: iOS suspends the JS thread in the
+  // background, so a setTimeout measures thread time, not wall-clock time. A
+  // wait of up to 15 minutes is long enough that backgrounding the app during
+  // it is ordinary, and the button would then stay down well past the point the
+  // server would have accepted the request. So the deadline is re-checked
+  // against the clock whenever the app comes back to the foreground, and the
+  // timer is only the path for a user who sits and waits.
   useEffect(() => {
     if (!retryAt) return;
+
+    const release = () => setRetryBlocked(false);
+    const remaining = () => Math.max(0, retryAt - Date.now());
+
+    if (remaining() === 0) {
+      release();
+      return;
+    }
+
     setRetryBlocked(true);
-    const id = setTimeout(() => setRetryBlocked(false), Math.max(0, retryAt - Date.now()));
-    return () => clearTimeout(id);
+    let id = setTimeout(release, remaining());
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      clearTimeout(id);
+      if (remaining() === 0) release();
+      else id = setTimeout(release, remaining());
+    });
+
+    return () => {
+      clearTimeout(id);
+      sub.remove();
+    };
   }, [retryAt]);
 
   const togglePick = (name: string) => {

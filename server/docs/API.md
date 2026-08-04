@@ -663,8 +663,10 @@ Get subscriptions renewing within 30 days.
 
 ## Rate Limiting
 
-Two layers apply. Every rejection carries a `Retry-After` header and the
-`RateLimit-*` standard headers.
+Two layers apply. Every rejection carries a `Retry-After` header giving the
+whole seconds to wait. The `RateLimit-*` standard headers accompany it on the
+general and per-endpoint limiters, but not on the two upload throttles below —
+those are hand-rolled sliding windows, not express-rate-limit.
 
 **General backstop** — all `/api` routes. 1000 requests per 15 minutes
 (`API_RATE_LIMIT_MAX` / `API_RATE_LIMIT_WINDOW_MS`), bucketed per authenticated
@@ -681,7 +683,9 @@ whether an address is registered.
 
 Uploads have their own per-user throttles: `POST /api/subscriptions/extract`
 allows 20 per 10 minutes, `POST /api/account/avatar` 20 per 15 minutes. Both
-respond with code `RATE_LIMITED` rather than `RATE_LIMIT_EXCEEDED`.
+respond with code `RATE_LIMITED` rather than `RATE_LIMIT_EXCEEDED`, and their
+`Retry-After` counts down to the moment the oldest request leaves the window
+rather than to the end of a fixed window.
 
 **Response (429):**
 ```json

@@ -19,10 +19,12 @@ const FALLBACK_RETRY_AFTER_MS = 30_000;
  * How long to wait before retrying a rejected request, or null if it was not a
  * rate-limit rejection.
  *
- * Every limiter on the API sends `Retry-After` (express-rate-limit, with
- * `standardHeaders: true`), so the exact figure is available rather than
- * guessed — which matters, because the general limiter's window is 15 minutes
- * and an immediate retry cannot possibly succeed.
+ * Every limiter on the API sends `Retry-After` in whole seconds — the
+ * express-rate-limit ones via `standardHeaders: true`, the two upload throttles
+ * explicitly (server/src/middleware/rateLimit.ts, `retryAfterSeconds`). So the
+ * exact figure is available rather than guessed, which matters because the
+ * general limiter's window is 15 minutes and an immediate retry cannot possibly
+ * succeed. The fallback below covers a limiter that forgets to send it.
  */
 export function getRetryAfterMs(err: unknown): number | null {
   if (!axios.isAxiosError(err) || err.response?.status !== 429) return null;
