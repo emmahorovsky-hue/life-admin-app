@@ -153,10 +153,19 @@ export default {
       // Adds the native Sentry SDK and the build phase that uploads source maps
       // and debug symbols. Without it a JS stack trace arrives as minified
       // bundle offsets, which is technically a crash report and practically
-      // unreadable. The upload itself needs SENTRY_ORG / SENTRY_PROJECT /
-      // SENTRY_AUTH_TOKEN on the build — absent those it skips the upload with
-      // a warning rather than failing the build, so reporting still works and
-      // only symbolication is lost. See DEPLOYMENT.md 6.3.
+      // unreadable.
+      //
+      // The upload needs SENTRY_ORG / SENTRY_PROJECT / SENTRY_AUTH_TOKEN on the
+      // build, and absent those it FAILS THE BUILD — it does not skip with a
+      // warning. sentry-cli runs unconditionally in the Xcode build phase and
+      // exits with "An organization ID or slug is required (provide with
+      // --org)", surfacing as an EAS XCODE_BUILD_ERROR. This is not theoretical:
+      // it broke build 19 (2026-08-04), the first build to carry this plugin.
+      //
+      // To ship without symbolication, set SENTRY_DISABLE_AUTO_UPLOAD=true as an
+      // EAS environment variable — currently set on `production` only, so a
+      // preview-profile build still needs it (or the three vars above).
+      // See DEPLOYMENT.md 6.3.
       '@sentry/react-native',
     ],
     extra: {

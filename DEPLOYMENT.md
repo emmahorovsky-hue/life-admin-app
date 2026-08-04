@@ -338,8 +338,8 @@ API (`SENTRY_DSN` on Railway). Mobile was the one platform with no reporting:
 before this, a crash on a released build was invisible unless a user described
 it.
 
-Two separate pieces of configuration, and only the first affects whether errors
-are reported at all:
+Three pieces of configuration. Only the first affects whether errors are
+reported at all — but the second decides whether the build succeeds:
 
 1. **`SENTRY_DSN`** — set it as an [EAS environment variable](https://docs.expo.dev/eas/environment-variables/)
    on the project, visible to the build profiles you use. Read in
@@ -349,12 +349,31 @@ are reported at all:
    nothing. Like `LOGO_DEV_TOKEN` it stays out of `eas.json` — a DSN is
    publishable, but this repo is public.
 
-2. **`SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`** — needed only for
-   uploading source maps and debug symbols. Without them reporting still works,
-   but a JS stack trace arrives as minified bundle offsets, which is close to
-   unreadable. The `@sentry/react-native` config plugin skips the upload with a
-   warning rather than failing the build. `SENTRY_AUTH_TOKEN` is a real secret
-   — mark it as such on EAS, never commit it.
+2. **`SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`** — needed for
+   uploading source maps and debug symbols. Without them a JS stack trace
+   arrives as minified bundle offsets, which is close to unreadable.
+
+   **These are not optional the way the DSN is: without them the iOS build
+   fails.** The `@sentry/react-native` config plugin adds an Xcode build phase
+   that runs `sentry-cli` unconditionally; with no org configured it exits with
+   `An organization ID or slug is required (provide with --org)` and EAS reports
+   `XCODE_BUILD_ERROR`. This documentation previously claimed the plugin "skips
+   the upload with a warning rather than failing the build" — it does not, and
+   that mistake cost build 19 on 2026-08-04, the first build to include the
+   plugin.
+
+   `SENTRY_AUTH_TOKEN` is a real secret — mark it as such on EAS, never commit
+   it.
+
+3. **`SENTRY_DISABLE_AUTO_UPLOAD`** — the escape hatch. Set it to `true` as an
+   EAS environment variable to skip the upload step entirely and let the build
+   through without the three variables above. Reporting still works (given a
+   DSN); only symbolication is lost. `SENTRY_ALLOW_FAILURE=true` is the softer
+   alternative — it attempts the upload and tolerates a failure.
+
+   It is currently set on the **`production`** environment only. A
+   `preview`-profile build will still fail until it is set there too, or the
+   org/project/token trio is configured.
 
 Sampling and PII follow the other two platforms: 20% of traces in release, all
 of them in dev, and `sendDefaultPii: false`. Release and dist are left to the
