@@ -50,8 +50,8 @@ if (process.env.DISABLE_RATE_LIMIT === 'true') {
  * auth middleware still rejects the request downstream.
  *
  * Keys are namespaced so a user id can never collide with an IP literal, and
- * scoped by route group so the two halves of the API cannot starve each other
- * (see `bucketScope`).
+ * scoped by route group so no part of the API can starve another (see
+ * `bucketScope`).
  */
 interface ApiBucket {
   key: string;
@@ -94,8 +94,17 @@ const apiRateLimitKey = (req: Request): string => {
 };
 
 /**
- * Which half of the API a request belongs to: `auth` for /api/auth/*, `app` for
- * everything else (subscriptions, dashboard, account).
+ * Which part of the API a request belongs to. Four buckets, deliberately a fixed
+ * enum rather than a per-path key: an unknown /api/auth/<anything> 404s but would
+ * still mint a bucket, and MemoryStore holds keys for up to two windows, so a
+ * path-derived scope is unbounded cardinality reachable by any anonymous caller.
+ *
+ * - `session` — /auth/me, /auth/login, /auth/logout. The plumbing every screen
+ *   depends on, given its own budget so it always answers (see below).
+ * - `device`  — /auth/device-token. High-frequency, non-interactive, and the one
+ *   endpoint that has actually run away. Isolated so it can only cost itself.
+ * - `auth`    — the rest of /api/auth/* (register, password, email change).
+ * - `app`     — everything else (subscriptions, dashboard, account).
  *
  * One shared bucket per user made a single misbehaving endpoint able to lock a
  * user out of the entire product. That is not hypothetical: a mobile build
@@ -106,13 +115,35 @@ const apiRateLimitKey = (req: Request): string => {
  * user's subscription screens draw on. They saw "Too many requests" while
  * saving two rows.
  *
- * Splitting the budget does not make the ceiling looser for either half; it
- * means a runaway auth client can only cost the user their auth calls, never
- * their data. The scope is derived from `originalUrl` because this middleware
- * is mounted at /api, which strips the prefix from `req.path`.
+ * Splitting /api/auth from /api fixed what they reported. It did not fix the
+ * worse half: device-token shared a bucket with /auth/me and /auth/login, so at
+ * 419 req/s the same flood emptied it in ~2.4s and then 429'd session restore
+ * and sign-in on every device the account was on, web included, for the rest of
+ * the window. Hence `session` and `device` being separate from `auth` and from
+ * each other — a runaway client can now only cost the user the endpoint it is
+ * abusing.
+ *
+ * Splitting the budget does not make the ceiling looser for any one scope. The
+ * scope is derived from `originalUrl` because this middleware is mounted at
+ * /api, which strips the prefix from `req.path`, and is lowercased because
+ * Express matches mounts and routes case-insensitively: `/API/auth/device-token`
+ * reaches the auth router just like the canonical spelling, and a case-sensitive
+ * comparison here would file it under `app` and hand it the data budget. Other
+ * spellings that would dodge the comparison (`/api/%61uth`, `/api//auth`,
+ * `/api/./auth`) 404 before reaching the router, so misfiling them is harmless.
  */
-const bucketScope = (req: Request): 'auth' | 'app' => {
-  const path = req.originalUrl.split('?')[0];
+type BucketScope = 'session' | 'device' | 'auth' | 'app';
+
+const SESSION_PATHS: ReadonlySet<string> = new Set([
+  '/api/auth/me',
+  '/api/auth/login',
+  '/api/auth/logout',
+]);
+
+const bucketScope = (req: Request): BucketScope => {
+  const path = req.originalUrl.split('?')[0].toLowerCase();
+  if (SESSION_PATHS.has(path)) return 'session';
+  if (path === '/api/auth/device-token') return 'device';
   return path === '/api/auth' || path.startsWith('/api/auth/') ? 'auth' : 'app';
 };
 

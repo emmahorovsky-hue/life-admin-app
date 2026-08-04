@@ -364,8 +364,10 @@ Credential endpoints are rate-limited to **5 requests per 15 minutes** per IP ad
 
 On top of that, all of `/api` sits behind a general limiter of **1000 requests
 per 15 minutes**, bucketed per authenticated user (per IP when there is no valid
-token) and counted separately for `/api/auth/*` and the rest of the API. See
-`docs/API.md` for the full picture, including the upload throttles.
+token) and counted separately for each of four route groups: session
+(`/auth/me`, `/auth/login`, `/auth/logout`), device (`/auth/device-token`), auth
+(the rest of `/api/auth/*`) and app (everything else). See `docs/API.md` for the
+full picture, including the upload throttles.
 
 ---
 

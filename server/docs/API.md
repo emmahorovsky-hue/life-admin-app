@@ -671,8 +671,22 @@ those are hand-rolled sliding windows, not express-rate-limit.
 **General backstop** — all `/api` routes. 1000 requests per 15 minutes
 (`API_RATE_LIMIT_MAX` / `API_RATE_LIMIT_WINDOW_MS`), bucketed per authenticated
 user, falling back to the IP only for requests without a valid token. The budget
-is split by route group — `/api/auth/*` and everything else count separately, so
-a client looping on one cannot lock the user out of the other.
+is split into four route groups, each counted separately, so a client looping on
+one endpoint cannot lock the user out of the others:
+
+| Group | Routes |
+|---|---|
+| `session` | `/auth/me`, `/auth/login`, `/auth/logout` |
+| `device` | `/auth/device-token` |
+| `auth` | the rest of `/api/auth/*` |
+| `app` | everything else (subscriptions, dashboard, account) |
+
+`session` is carved out so sign-in and session restore keep answering no matter
+what else the client is doing — a flood that empties another group must never
+leave the user unable to get back in. `device` is carved out because it is the
+one high-frequency, non-interactive endpoint, and the one that has actually run
+away. Matching is case-insensitive, since Express routes `/API/auth/…` to the
+auth router just like the canonical spelling.
 
 **Per-endpoint auth limits** — layered on top, each with its own counter:
 credential endpoints (`register`, `login`, `reset-password`, `change-password`,
