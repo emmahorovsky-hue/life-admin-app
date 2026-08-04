@@ -1,6 +1,7 @@
 import prisma from '../utils/db';
 import { sendDeletionWarningEmail } from './emailService';
 import { reportServerError } from '../utils/reportError';
+import { clientUrl } from '../utils/urls';
 
 // How long an account may stay unverified before it is deleted.
 const GRACE_PERIOD_DAYS = Number(process.env.GRACE_PERIOD_DAYS ?? 7);
@@ -12,8 +13,7 @@ const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
 function loginUrl(): string {
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-  return `${clientUrl}/login`;
+  return `${clientUrl()}/login`;
 }
 
 /**
