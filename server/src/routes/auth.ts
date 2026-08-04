@@ -17,6 +17,7 @@ import {
   registerDeviceTokenHandler,
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
+import { authenticatedUserKey } from '../middleware/rateLimit';
 import { logSecurityEvent } from '../utils/securityLog';
 import { MAX_NAME_LENGTH } from '../constants/validation';
 import { THEMES } from '@life-admin/shared';
@@ -72,14 +73,38 @@ const createAuthLimiter = (max: number) =>
     legacyHeaders: false,
   });
 
+// Same shape as createAuthLimiter, but bucketed on the authenticated user.
+// Only valid after `authenticateToken` has run on the route.
+const createAuthedUserLimiter = (max: number) =>
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max,
+    keyGenerator: authenticatedUserKey,
+    skip: () => skipAuthRateLimit,
+    handler: (req, res) => {
+      logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req) });
+      res.status(429).json({
+        error: {
+          message: 'Too many requests, please try again later',
+          code: 'RATE_LIMIT_EXCEEDED',
+        },
+      });
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
 const registerLimiter = createAuthLimiter(5);
 const loginLimiter = createAuthLimiter(5);
 const resetPasswordLimiter = createAuthLimiter(5);
 const changePasswordLimiter = createAuthLimiter(5);
 const changeEmailLimiter = createAuthLimiter(5);
-// Registered on every app launch/login (authenticated, idempotent upsert), and
-// NAT peers share the IP bucket — needs more headroom than credential endpoints.
-const deviceTokenLimiter = createAuthLimiter(30);
+// Registered on every app launch/login (authenticated, idempotent upsert).
+// Keyed on the user, not the IP: this endpoint runs behind `authenticateToken`,
+// so the account is known, and an IP bucket made carrier-NAT peers throttle each
+// other — one looping device could stop every other user on the same mobile
+// network from registering for notifications at all.
+const deviceTokenLimiter = createAuthedUserLimiter(30);
 
 // Rate limiters for resend-verification (anti-enumeration: always return 200)
 const genericResponse = {

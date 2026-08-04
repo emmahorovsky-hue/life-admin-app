@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -31,7 +32,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { subscriptionApi } from '../lib/subscriptions';
 import { updateProfile } from '../lib/profile';
 import { detectLocale } from '../lib/locale';
-import { getApiErrorMessage } from '../lib/utils';
+import { formatRetryDelay, getApiErrorMessage, getRetryAfterMs } from '../lib/utils';
 import { SetupStep, useSetupState, writeSetupState } from '../lib/onboarding';
 import { SubscriptionLogo } from '../components/SubscriptionLogo';
 import {
@@ -138,6 +139,11 @@ export default function SetupScreen() {
   const [edits, setEdits] = useState<Record<string, RowEdit>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  // Epoch ms before which filing cannot succeed, set from a 429's Retry-After.
+  // Retrying inside that window is guaranteed to fail and costs the user another
+  // request against the limit that is already refusing them.
+  const [retryAt, setRetryAt] = useState(0);
+  const [retryBlocked, setRetryBlocked] = useState(false);
   const [filedCount, setFiledCount] = useState(0);
   const [currency, setCurrency] = useState(() => initialCurrency(user?.defaultCurrency));
   const [currencyOpen, setCurrencyOpen] = useState(false);
@@ -246,6 +252,45 @@ export default function SetupScreen() {
     return !row.renewalDate || !Number.isFinite(cost) || cost < 0;
   });
 
+  // Holds the primary button down for as long as the server said to wait, then
+  // releases it on its own — the user should not have to guess when the wait is
+  // over, and a disabled button with no end is indistinguishable from a broken
+  // one.
+  //
+  // The timer alone is not enough: iOS suspends the JS thread in the
+  // background, so a setTimeout measures thread time, not wall-clock time. A
+  // wait of up to 15 minutes is long enough that backgrounding the app during
+  // it is ordinary, and the button would then stay down well past the point the
+  // server would have accepted the request. So the deadline is re-checked
+  // against the clock whenever the app comes back to the foreground, and the
+  // timer is only the path for a user who sits and waits.
+  useEffect(() => {
+    if (!retryAt) return;
+
+    const release = () => setRetryBlocked(false);
+    const remaining = () => Math.max(0, retryAt - Date.now());
+
+    if (remaining() === 0) {
+      release();
+      return;
+    }
+
+    setRetryBlocked(true);
+    let id = setTimeout(release, remaining());
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      clearTimeout(id);
+      if (remaining() === 0) release();
+      else id = setTimeout(release, remaining());
+    });
+
+    return () => {
+      clearTimeout(id);
+      sub.remove();
+    };
+  }, [retryAt]);
+
   const togglePick = (name: string) => {
     selectHaptic();
     // The currency menu floats over these rows, so a tap that lands on one is
@@ -290,13 +335,26 @@ export default function SetupScreen() {
       // that did not land. The server's own message is appended rather than
       // substituted — on its own it can be as unhelpful as "Validation failed",
       // which leaves the user unsure their edits survived.
-      const detail = getApiErrorMessage((failures[0] as PromiseRejectedResult).reason, '');
-      setError(
-        `${failures.length} of ${pending.length} could not be saved. Your edits are kept — try again.` +
-          (detail ? ` (${detail})` : ''),
-      );
+      const reason = (failures[0] as PromiseRejectedResult).reason;
+      const kept = `${failures.length} of ${pending.length} could not be saved. Your edits are kept`;
+
+      // Rate limiting is the one failure where "try again" is actively wrong
+      // advice: the window is minutes long, and each retry inside it spends
+      // another request on the limiter that is already refusing them. Say when
+      // instead, and hold the button until then.
+      const retryAfterMs = getRetryAfterMs(reason);
+      if (retryAfterMs !== null) {
+        setRetryAt(Date.now() + retryAfterMs);
+        setError(`${kept} — try again ${formatRetryDelay(retryAfterMs)}.`);
+        return;
+      }
+
+      const detail = getApiErrorMessage(reason, '');
+      setError(`${kept} — try again.` + (detail ? ` (${detail})` : ''));
       return;
     }
+
+    setRetryAt(0);
 
     // Filing is the act that makes the currency the account's, not the flow's:
     // every row just created is denominated in it, so the add form and the other
@@ -377,7 +435,8 @@ export default function SetupScreen() {
 
   const primaryLabel =
     step === 1 ? 'Next — check amounts' : step === 2 ? `File ${selected.length}` : 'Go to dashboard';
-  const primaryDisabled = submitting || (step === 2 && (selected.length === 0 || incomplete));
+  const primaryDisabled =
+    submitting || (step === 2 && (selected.length === 0 || incomplete || retryBlocked));
   const itemNoun = selected.length === 1 ? 'item' : 'items';
 
   return (

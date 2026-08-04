@@ -1,14 +1,34 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
-import { createApiLimiter, apiLimiter } from '../rateLimit';
+import {
+  createApiLimiter,
+  apiLimiter,
+  authenticatedUserKey,
+  __resetRateLimitReporting,
+} from '../rateLimit';
 import { generateToken } from '../../utils/jwt';
+import type { AuthRequest } from '../auth';
+
+// The report-dedup map is module state shared by every test in this file.
+// Clearing it between tests is what lets them assert on log output without
+// having to pick a bucket identity no earlier test happened to trip.
+beforeEach(() => __resetRateLimitReporting());
 
 function buildApp(limiter: ReturnType<typeof createApiLimiter>) {
   const app = express();
+  // Lets a test claim its own source IP via X-Forwarded-For.
+  app.set('trust proxy', 1);
   app.use(cookieParser());
   app.use('/api', limiter);
   app.get('/api/ping', (_req, res) => res.json({ ok: true }));
+  // Stand-ins for each scope of the real API, so scope-keying can be exercised
+  // without mounting the routers (and their DB dependencies).
+  app.post('/api/auth/device-token', (_req, res) => res.json({ ok: true }));
+  app.get('/api/auth/me', (_req, res) => res.json({ ok: true }));
+  app.post('/api/auth/login', (_req, res) => res.json({ ok: true }));
+  app.post('/api/auth/register', (_req, res) => res.json({ ok: true }));
+  app.get('/api/subscriptions', (_req, res) => res.json({ ok: true }));
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
   return app;
 }
@@ -119,6 +139,153 @@ describe('general API rate limiter', () => {
     });
   });
 
+  // The incident this guards against: a mobile build looped on
+  // POST /api/auth/device-token, and because one bucket covered the whole API,
+  // the user's own subscription screens started answering 429.
+  describe('route-group scoping', () => {
+    it('keeps an auth flood from draining the same user\'s app budget', async () => {
+      const app = buildApp(createApiLimiter({ max: 2, windowMs: 60_000, enabled: true }));
+      const token = tokenFor('grace');
+      const auth = (path: string) => request(app).post(path).set('Authorization', `Bearer ${token}`);
+
+      await auth('/api/auth/device-token').expect(200);
+      await auth('/api/auth/device-token').expect(200);
+      await auth('/api/auth/device-token').expect(429);
+
+      // The device scope is spent; the data half is untouched.
+      await request(app)
+        .get('/api/subscriptions')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+    });
+
+    // The half of the incident the first split did not fix: device-token used to
+    // share a bucket with /auth/me and /auth/login, so the same flood emptied it
+    // in ~2.4s at the observed rate and then 429'd session restore and sign-in on
+    // every device the account was on — with no way back in from either client,
+    // since both attach the stale credential to the login request.
+    it('keeps a device-token flood from locking the user out of their session', async () => {
+      const app = buildApp(createApiLimiter({ max: 2, windowMs: 60_000, enabled: true }));
+      const token = tokenFor('nadia');
+      const bearer = `Bearer ${token}`;
+
+      for (let i = 0; i < 2; i++) {
+        await request(app).post('/api/auth/device-token').set('Authorization', bearer).expect(200);
+      }
+      await request(app).post('/api/auth/device-token').set('Authorization', bearer).expect(429);
+
+      await request(app).get('/api/auth/me').set('Authorization', bearer).expect(200);
+      await request(app).post('/api/auth/login').set('Authorization', bearer).expect(200);
+      await request(app).get('/api/subscriptions').set('Authorization', bearer).expect(200);
+    });
+
+    it('keeps session traffic and the rest of the auth surface apart', async () => {
+      const app = buildApp(createApiLimiter({ max: 1, windowMs: 60_000, enabled: true }));
+      const bearer = `Bearer ${tokenFor('omar')}`;
+
+      await request(app).post('/api/auth/register').set('Authorization', bearer).expect(200);
+      await request(app).post('/api/auth/register').set('Authorization', bearer).expect(429);
+
+      // Signing in still works even with the credential surface spent.
+      await request(app).post('/api/auth/login').set('Authorization', bearer).expect(200);
+    });
+
+    // Express matches mounts and routes case-insensitively, so /API/auth/... hits
+    // the auth router exactly like the canonical spelling. A case-sensitive scope
+    // comparison filed it under `app` and handed it the data budget — the
+    // isolation above silently off for any client that varied the case.
+    it('scopes case-variant auth paths as auth, not app', async () => {
+      const app = buildApp(createApiLimiter({ max: 2, windowMs: 60_000, enabled: true }));
+      const bearer = `Bearer ${tokenFor('petra')}`;
+
+      await request(app).post('/API/auth/device-token').set('Authorization', bearer).expect(200);
+      await request(app).post('/api/AUTH/device-token').set('Authorization', bearer).expect(200);
+
+      // Both spellings landed in the device bucket, so the data budget is intact.
+      await request(app).get('/api/subscriptions').set('Authorization', bearer).expect(200);
+    });
+
+    it('scopes the anonymous IP bucket the same way', async () => {
+      const app = buildApp(createApiLimiter({ max: 1, windowMs: 60_000, enabled: true }));
+
+      await request(app).post('/api/auth/device-token').expect(200);
+      await request(app).post('/api/auth/device-token').expect(429);
+      await request(app).get('/api/subscriptions').expect(200);
+    });
+  });
+
+  describe('reporting', () => {
+    it('logs a security event naming the route and bucket, and sends Retry-After', async () => {
+      const app = buildApp(createApiLimiter({ max: 1, windowMs: 60_000, enabled: true }));
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      try {
+        const token = tokenFor('heidi');
+        await request(app).get('/api/subscriptions').set('Authorization', `Bearer ${token}`).expect(200);
+        const res = await request(app)
+          .get('/api/subscriptions')
+          .set('Authorization', `Bearer ${token}`)
+          .expect(429);
+
+        expect(res.headers['retry-after']).toBeDefined();
+
+        const entries = logSpy.mock.calls.map(([line]) => JSON.parse(line as string));
+        expect(entries).toContainEqual(
+          expect.objectContaining({
+            type: 'security_event',
+            event: 'api.rate_limit.exceeded',
+            route: '/api/subscriptions',
+            reason: 'user_bucket',
+            userId: 'heidi',
+          }),
+        );
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
+    it('reports a bucket once, not once per rejected request', async () => {
+      const app = buildApp(createApiLimiter({ max: 1, windowMs: 60_000, enabled: true }));
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      try {
+        const token = tokenFor('ivan');
+        const call = () =>
+          request(app).get('/api/subscriptions').set('Authorization', `Bearer ${token}`);
+
+        await call().expect(200);
+        for (let i = 0; i < 5; i++) await call().expect(429);
+
+        const trips = logSpy.mock.calls
+          .map(([line]) => JSON.parse(line as string))
+          .filter((entry) => entry.event === 'api.rate_limit.exceeded');
+        expect(trips).toHaveLength(1);
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
+    it('records the IP bucket for unauthenticated traffic', async () => {
+      const app = buildApp(createApiLimiter({ max: 1, windowMs: 60_000, enabled: true }));
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      try {
+        const anon = () => request(app).get('/api/ping').set('X-Forwarded-For', '203.0.113.7');
+        await anon().expect(200);
+        await anon().expect(429);
+
+        const trips = logSpy.mock.calls
+          .map(([line]) => JSON.parse(line as string))
+          .filter((entry) => entry.event === 'api.rate_limit.exceeded');
+        expect(trips).toHaveLength(1);
+        expect(trips[0].reason).toBe('ip_bucket');
+        expect(trips[0].userId).toBeUndefined();
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+  });
+
   it('ignores DISABLE_RATE_LIMIT when NODE_ENV is production', async () => {
     const originalNodeEnv = process.env.NODE_ENV;
     const originalDisable = process.env.DISABLE_RATE_LIMIT;
@@ -142,5 +309,44 @@ describe('general API rate limiter', () => {
       warnSpy.mockRestore();
       jest.resetModules();
     }
+  });
+});
+
+// `device-token` moved from an IP bucket to this one, so that a single looping
+// device could no longer throttle every other user behind the same carrier NAT.
+// The switch is only sound while the limiter runs *after* authenticateToken:
+// with no verified user on the request it silently falls back to the IP bucket,
+// which is the behaviour it was moved away from, and nothing about the route
+// makes that ordering visible.
+describe('authenticatedUserKey', () => {
+  const reqWith = (over: Partial<AuthRequest>) => over as AuthRequest;
+
+  it('buckets on the authenticated user', () => {
+    const key = authenticatedUserKey(reqWith({ user: { userId: 'u1', email: 'u1@x.com' } }));
+    expect(key).toBe('user:u1');
+  });
+
+  it('gives two users behind one IP separate buckets', () => {
+    const ip = '203.0.113.9';
+    const a = authenticatedUserKey(reqWith({ user: { userId: 'u1', email: 'u1@x.com' }, ip }));
+    const b = authenticatedUserKey(reqWith({ user: { userId: 'u2', email: 'u2@x.com' }, ip }));
+    expect(a).not.toBe(b);
+  });
+
+  it('falls back to the IP bucket when no user is on the request', () => {
+    // i.e. the limiter was mounted before authenticateToken. Documented rather
+    // than desired — the key is still well-formed and namespaced, but the
+    // per-user isolation above is gone.
+    const key = authenticatedUserKey(reqWith({ ip: '203.0.113.9' }));
+    expect(key).toMatch(/^ip:/);
+    expect(key).not.toMatch(/^user:/);
+  });
+
+  it('namespaces user keys so a user id cannot collide with an IP literal', () => {
+    const asUser = authenticatedUserKey(
+      reqWith({ user: { userId: '203.0.113.9', email: 'u@x.com' } }),
+    );
+    const asIp = authenticatedUserKey(reqWith({ ip: '203.0.113.9' }));
+    expect(asUser).not.toBe(asIp);
   });
 });

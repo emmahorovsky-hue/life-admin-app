@@ -23,6 +23,12 @@ export const apiBaseUrl: string = apiUrl;
 
 export const api = axios.create({
   baseURL: apiUrl,
+  // Without a timeout a request on a stalled connection stays open forever, so
+  // callers that guard on "one at a time" never see their turn end and screens
+  // spin indefinitely. 15s covers every JSON endpoint; the two uploads that
+  // legitimately take longer override it per-request (`subscriptionApi.extract`
+  // in lib/subscriptions.ts, `uploadAvatar` in lib/account.ts).
+  timeout: 15_000,
   headers: {
     'Content-Type': 'application/json',
     'X-Platform': 'mobile',

@@ -663,14 +663,51 @@ Get subscriptions renewing within 30 days.
 
 ## Rate Limiting
 
-Auth endpoints are rate limited to prevent brute force attacks.
+Two layers apply. Every rejection carries a `Retry-After` header giving the
+whole seconds to wait. The `RateLimit-*` standard headers accompany it on the
+general and per-endpoint limiters, but not on the two upload throttles below —
+those are hand-rolled sliding windows, not express-rate-limit.
 
-**Limit:** 5 requests per 15 minutes per IP address
+**General backstop** — all `/api` routes. 1000 requests per 15 minutes
+(`API_RATE_LIMIT_MAX` / `API_RATE_LIMIT_WINDOW_MS`), bucketed per authenticated
+user, falling back to the IP only for requests without a valid token. The budget
+is split into four route groups, each counted separately, so a client looping on
+one endpoint cannot lock the user out of the others:
+
+| Group | Routes |
+|---|---|
+| `session` | `/auth/me`, `/auth/login`, `/auth/logout` |
+| `device` | `/auth/device-token` |
+| `auth` | the rest of `/api/auth/*` |
+| `app` | everything else (subscriptions, dashboard, account) |
+
+`session` is carved out so sign-in and session restore keep answering no matter
+what else the client is doing — a flood that empties another group must never
+leave the user unable to get back in. `device` is carved out because it is the
+one high-frequency, non-interactive endpoint, and the one that has actually run
+away. Matching is case-insensitive, since Express routes `/API/auth/…` to the
+auth router just like the canonical spelling.
+
+**Per-endpoint auth limits** — layered on top, each with its own counter:
+credential endpoints (`register`, `login`, `reset-password`, `change-password`,
+`change-email`) allow 5 requests per 15 minutes per IP; `device-token` allows 30
+per 15 minutes per user. `forgot-password` and `resend-verification` are
+throttled per email and per IP but answer 200 regardless, to avoid confirming
+whether an address is registered.
+
+Uploads have their own per-user throttles: `POST /api/subscriptions/extract`
+allows 20 per 10 minutes, `POST /api/account/avatar` 20 per 15 minutes. Both
+respond with code `RATE_LIMITED` rather than `RATE_LIMIT_EXCEEDED`, and their
+`Retry-After` counts down to the moment the oldest request leaves the window
+rather than to the end of a fixed window.
 
 **Response (429):**
 ```json
 {
-  "error": "Too many requests. Try again later."
+  "error": {
+    "message": "Too many requests, please try again later",
+    "code": "RATE_LIMIT_EXCEEDED"
+  }
 }
 ```
 
