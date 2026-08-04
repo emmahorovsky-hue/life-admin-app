@@ -12,6 +12,9 @@ let registeredToken: string | null = null;
 
 // A registration already running. Every entry point joins it instead of
 // starting a second one — see the loop note on `subscribeToPushTokenRotation`.
+// `registering` is the guard; `inFlight` is only what late callers await, and
+// is null for the synchronous instant between the two (see the assignment).
+let registering = false;
 let inFlight: Promise<void> | null = null;
 
 // When the last attempt started, and how many have failed back to back since
@@ -70,18 +73,30 @@ export function registerForPushNotifications(
   const rotated = incoming !== null && incoming !== lastDeviceTokenData;
   if (incoming !== null) lastDeviceTokenData = incoming;
 
-  if (inFlight) return inFlight;
+  // A re-entrant caller inside the synchronous window has nothing to join yet;
+  // suppressing it is the point, and the only caller that can be there (the
+  // rotation listener) discards the result anyway.
+  if (registering) return inFlight ?? Promise.resolve();
   // A real rotation invalidates the token the server holds, so it goes through
   // regardless of when the last attempt was — it is bounded by how often the
   // push service actually rolls a token, which is rare. Everything else waits.
   if (!rotated && Date.now() - lastAttemptAt < MIN_RETRY_INTERVAL_MS) return Promise.resolve();
 
   lastAttemptAt = Date.now();
-  const run = register(devicePushToken).finally(() => {
+
+  // Raised synchronously, before `register` is invoked. `inFlight` cannot do
+  // this job alone: it only exists once `register()` has returned a promise, so
+  // guarding on it leaves a window in which a re-entrant call sees null. Today
+  // `register` awaits before it reaches the token fetch that triggers such a
+  // call, so the window is never observed — but that is a coincidence of its
+  // current body, not a property a maintainer would know to preserve, and the
+  // loop this prevents is exactly a re-entrant call from inside that fetch.
+  registering = true;
+  inFlight = register(devicePushToken).finally(() => {
+    registering = false;
     inFlight = null;
   });
-  inFlight = run;
-  return run;
+  return inFlight;
 }
 
 // `data` is a string on iOS/Android and an object on web (which never reaches

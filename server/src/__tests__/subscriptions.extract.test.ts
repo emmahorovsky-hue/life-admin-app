@@ -190,5 +190,14 @@ describe('POST /api/subscriptions/extract', () => {
       code: 'RATE_LIMITED',
       message: expect.any(String),
     });
+
+    // This throttle is hand-rolled rather than express-rate-limit, so the header
+    // is set explicitly and is easy to drop by accident. Mobile reads it to
+    // decide how long to hold a retry down (mobile/lib/utils.ts), and the API
+    // contract promises it on every 429. Bounded by the 10-minute window, and
+    // positive — a Retry-After of 0 invites the retry it exists to prevent.
+    const retryAfter = Number(limited.headers['retry-after']);
+    expect(retryAfter).toBeGreaterThan(0);
+    expect(retryAfter).toBeLessThanOrEqual(10 * 60);
   });
 });

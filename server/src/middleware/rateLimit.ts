@@ -106,6 +106,20 @@ export const authenticatedUserKey = (req: Request): string => {
   return `ip:${ipKeyGenerator(req.ip ?? '')}`;
 };
 
+/**
+ * `Retry-After` value, in whole seconds, for the hand-rolled sliding-window
+ * throttles in avatarUpload.ts / receiptUpload.ts. Those predate this module and
+ * are not express-rate-limit, so they get no `standardHeaders` treatment — but
+ * the API contract (docs/API.md) promises the header on every 429, and mobile
+ * reads it to decide how long to hold a retry button down (mobile/lib/utils.ts).
+ *
+ * `oldestHitAt` is the earliest request still inside the window; its slot is the
+ * first to free. Floored at 1 — a `Retry-After: 0` invites the immediate retry
+ * the header exists to prevent.
+ */
+export const retryAfterSeconds = (oldestHitAt: number, now: number, windowMs: number): number =>
+  Math.max(1, Math.ceil((oldestHitAt + windowMs - now) / 1000));
+
 export interface ApiLimiterOptions {
   windowMs?: number;
   max?: number;
@@ -122,6 +136,15 @@ export interface ApiLimiterOptions {
  * (via Sentry) bills for the privilege. The first rejection is the news.
  */
 const REPORT_INTERVAL_MS = 60_000;
+const PRUNE_THRESHOLD = 1000;
+// Above this the map is dropped wholesale. Pruning alone is not a bound: it only
+// evicts entries whose interval has lapsed, so a broad enough simultaneous burst
+// — every entry fresh, nothing evictable — leaves the map growing while the scan
+// it triggers grows with it, O(n) per newly tripped bucket. That is quadratic
+// work on the exact path that exists to handle bursts. Clearing loses only
+// dedup state, so the failure mode is duplicate log lines rather than a server
+// spending its CPU on its own bookkeeping.
+const HARD_CAP = 5000;
 const lastReportedAt = new Map<string, number>();
 
 const shouldReport = (key: string, now: number): boolean => {
@@ -131,10 +154,11 @@ const shouldReport = (key: string, now: number): boolean => {
   lastReportedAt.set(key, now);
   // Keep the map from growing without bound under a distributed burst: once it
   // is large, drop the entries whose interval has already lapsed.
-  if (lastReportedAt.size > 1000) {
+  if (lastReportedAt.size > PRUNE_THRESHOLD) {
     for (const [candidate, at] of lastReportedAt) {
       if (now - at >= REPORT_INTERVAL_MS) lastReportedAt.delete(candidate);
     }
+    if (lastReportedAt.size > HARD_CAP) lastReportedAt.clear();
   }
   return true;
 };
