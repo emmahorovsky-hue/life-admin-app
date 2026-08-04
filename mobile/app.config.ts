@@ -163,9 +163,10 @@ export default {
       // it broke build 19 (2026-08-04), the first build to carry this plugin.
       //
       // To ship without symbolication, set SENTRY_DISABLE_AUTO_UPLOAD=true as an
-      // EAS environment variable — currently set on `production` only, so a
-      // preview-profile build still needs it (or the three vars above).
-      // See DEPLOYMENT.md 6.3.
+      // EAS environment variable. It applies per environment, so any profile
+      // without it still fails — `eas env:list` says which have it. It is a
+      // temporary hatch: remove it once the three vars above are set, or it
+      // silently skips the upload they exist to perform. See DEPLOYMENT.md 6.3.
       '@sentry/react-native',
     ],
     extra: {

@@ -365,15 +365,23 @@ reported at all — but the second decides whether the build succeeds:
    `SENTRY_AUTH_TOKEN` is a real secret — mark it as such on EAS, never commit
    it.
 
-3. **`SENTRY_DISABLE_AUTO_UPLOAD`** — the escape hatch. Set it to `true` as an
-   EAS environment variable to skip the upload step entirely and let the build
-   through without the three variables above. Reporting still works (given a
-   DSN); only symbolication is lost. `SENTRY_ALLOW_FAILURE=true` is the softer
-   alternative — it attempts the upload and tolerates a failure.
+3. **`SENTRY_DISABLE_AUTO_UPLOAD`** — the escape hatch, and a temporary one. Set
+   it to `true` as an EAS environment variable to skip the upload step entirely
+   and let a build through without the three variables above. Reporting still
+   works (given a DSN); only symbolication is lost. `SENTRY_ALLOW_FAILURE=true`
+   is the softer alternative — it attempts the upload and tolerates a failure,
+   which also means a real failure (expired token, network) costs you
+   symbolication with nothing in the build log to say so.
 
-   It is currently set on the **`production`** environment only. A
-   `preview`-profile build will still fail until it is set there too, or the
-   org/project/token trio is configured.
+   It is set **per environment**, so any build profile that does not carry it
+   fails the way build 19 did. Check with `eas env:list` rather than assuming —
+   this document deliberately does not record which environments have it, since
+   that state lives on EAS and nothing in the repo can keep the claim honest.
+
+   **Remove it once the org/project/token trio is configured**, and do not move
+   it into `eas.json`. Left in place it silently skips the upload the trio
+   exists to perform, which looks exactly like Sentry working until you open a
+   stack trace — the same shape of mistake as the one this section documents.
 
 Sampling and PII follow the other two platforms: 20% of traces in release, all
 of them in dev, and `sendDefaultPii: false`. Release and dist are left to the
