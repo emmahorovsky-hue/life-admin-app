@@ -53,14 +53,26 @@ if (process.env.DISABLE_RATE_LIMIT === 'true') {
  * scoped by route group so the two halves of the API cannot starve each other
  * (see `bucketScope`).
  */
-const apiRateLimitKey = (req: Request): string => {
+interface ApiBucket {
+  key: string;
+  /** Set only for a user bucket — its absence is what makes it an IP bucket. */
+  userId?: string;
+}
+
+// Where the key generator leaves its work for the handler. A symbol rather than
+// a string property so it cannot collide with anything else hung off the
+// request, and non-enumerable in practice so it stays out of logs.
+const BUCKET = Symbol('apiRateLimitBucket');
+type BucketCarrier = Request & { [BUCKET]?: ApiBucket };
+
+const apiBucket = (req: Request): ApiBucket => {
   const scope = bucketScope(req);
   const token = getRequestToken(req);
 
   if (token) {
     try {
       const { userId } = verifyToken(token);
-      if (userId) return `user:${userId}:${scope}`;
+      if (userId) return { key: `user:${userId}:${scope}`, userId };
     } catch {
       // Fall through to the IP bucket.
     }
@@ -68,7 +80,17 @@ const apiRateLimitKey = (req: Request): string => {
 
   // ipKeyGenerator normalises IPv6 to a /56 subnet; keying on a bare IPv6
   // address would let one client cycle through addresses within its own prefix.
-  return `ip:${ipKeyGenerator(req.ip ?? '')}:${scope}`;
+  return { key: `ip:${ipKeyGenerator(req.ip ?? '')}:${scope}` };
+};
+
+const apiRateLimitKey = (req: Request): string => {
+  // Stashed so the 429 handler can report on the bucket without recomputing it.
+  // Recomputing meant verifying the JWT a second time and then recovering the
+  // user id by splitting the key on ':' — parsing a format that has no parser,
+  // and one an IPv6 bucket key already contains several of.
+  const bucket = apiBucket(req);
+  (req as BucketCarrier)[BUCKET] = bucket;
+  return bucket.key;
 };
 
 /**
@@ -147,6 +169,16 @@ const PRUNE_THRESHOLD = 1000;
 const HARD_CAP = 5000;
 const lastReportedAt = new Map<string, number>();
 
+/**
+ * Test-only. The dedup map is module state that outlives any one test, so
+ * without this a test asserting on log output either has to pick a bucket
+ * identity no earlier test happened to trip, or silently depend on running
+ * first. Both make the suite order-dependent for no reason.
+ */
+export const __resetRateLimitReporting = (): void => {
+  lastReportedAt.clear();
+};
+
 const shouldReport = (key: string, now: number): boolean => {
   const previous = lastReportedAt.get(key);
   if (previous !== undefined && now - previous < REPORT_INTERVAL_MS) return false;
@@ -181,14 +213,15 @@ export const createApiLimiter = ({
     // to the user. The response body is unchanged — mobile surfaces it verbatim
     // (mobile/lib/utils.ts) and both clients match on `code`.
     handler: (req, res) => {
-      const key = apiRateLimitKey(req);
-      if (shouldReport(key, Date.now())) {
-        const [namespace, id] = key.split(':');
+      // keyGenerator always runs before the handler, so the stash is populated;
+      // the fallback is defensive, not a path taken in practice.
+      const bucket = (req as BucketCarrier)[BUCKET] ?? apiBucket(req);
+      if (shouldReport(bucket.key, Date.now())) {
         logSecurityEvent('api.rate_limit.exceeded', req, {
           // Query strings can carry tokens — path only, per securityLog's contract.
           route: req.originalUrl.split('?')[0],
-          reason: namespace === 'user' ? 'user_bucket' : 'ip_bucket',
-          ...(namespace === 'user' && { userId: id }),
+          reason: bucket.userId ? 'user_bucket' : 'ip_bucket',
+          ...(bucket.userId && { userId: bucket.userId }),
         });
       }
       res.status(429).json({

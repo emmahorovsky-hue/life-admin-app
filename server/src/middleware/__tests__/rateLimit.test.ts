@@ -1,14 +1,23 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
-import { createApiLimiter, apiLimiter } from '../rateLimit';
+import {
+  createApiLimiter,
+  apiLimiter,
+  authenticatedUserKey,
+  __resetRateLimitReporting,
+} from '../rateLimit';
 import { generateToken } from '../../utils/jwt';
+import type { AuthRequest } from '../auth';
+
+// The report-dedup map is module state shared by every test in this file.
+// Clearing it between tests is what lets them assert on log output without
+// having to pick a bucket identity no earlier test happened to trip.
+beforeEach(() => __resetRateLimitReporting());
 
 function buildApp(limiter: ReturnType<typeof createApiLimiter>) {
   const app = express();
-  // Lets a test claim its own source IP via X-Forwarded-For. Reporting is
-  // throttled per bucket and the throttle outlives a single test, so a test
-  // that asserts on log output needs an IP bucket no other test has tripped.
+  // Lets a test claim its own source IP via X-Forwarded-For.
   app.set('trust proxy', 1);
   app.use(cookieParser());
   app.use('/api', limiter);
@@ -251,5 +260,44 @@ describe('general API rate limiter', () => {
       warnSpy.mockRestore();
       jest.resetModules();
     }
+  });
+});
+
+// `device-token` moved from an IP bucket to this one, so that a single looping
+// device could no longer throttle every other user behind the same carrier NAT.
+// The switch is only sound while the limiter runs *after* authenticateToken:
+// with no verified user on the request it silently falls back to the IP bucket,
+// which is the behaviour it was moved away from, and nothing about the route
+// makes that ordering visible.
+describe('authenticatedUserKey', () => {
+  const reqWith = (over: Partial<AuthRequest>) => over as AuthRequest;
+
+  it('buckets on the authenticated user', () => {
+    const key = authenticatedUserKey(reqWith({ user: { userId: 'u1', email: 'u1@x.com' } }));
+    expect(key).toBe('user:u1');
+  });
+
+  it('gives two users behind one IP separate buckets', () => {
+    const ip = '203.0.113.9';
+    const a = authenticatedUserKey(reqWith({ user: { userId: 'u1', email: 'u1@x.com' }, ip }));
+    const b = authenticatedUserKey(reqWith({ user: { userId: 'u2', email: 'u2@x.com' }, ip }));
+    expect(a).not.toBe(b);
+  });
+
+  it('falls back to the IP bucket when no user is on the request', () => {
+    // i.e. the limiter was mounted before authenticateToken. Documented rather
+    // than desired — the key is still well-formed and namespaced, but the
+    // per-user isolation above is gone.
+    const key = authenticatedUserKey(reqWith({ ip: '203.0.113.9' }));
+    expect(key).toMatch(/^ip:/);
+    expect(key).not.toMatch(/^user:/);
+  });
+
+  it('namespaces user keys so a user id cannot collide with an IP literal', () => {
+    const asUser = authenticatedUserKey(
+      reqWith({ user: { userId: '203.0.113.9', email: 'u@x.com' } }),
+    );
+    const asIp = authenticatedUserKey(reqWith({ ip: '203.0.113.9' }));
+    expect(asUser).not.toBe(asIp);
   });
 });
