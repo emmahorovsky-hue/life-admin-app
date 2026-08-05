@@ -218,7 +218,7 @@ export default function DashboardScreen() {
   if (!summary) {
     return (
       <View style={styles.center}>
-        <AppText variant="body" style={styles.mutedText}>Failed to load dashboard</AppText>
+        <AppText variant="body" style={styles.mutedText}>Failed to load overview</AppText>
         <Button title="Retry" onPress={() => { setLoading(true); load(); }} />
       </View>
     );
