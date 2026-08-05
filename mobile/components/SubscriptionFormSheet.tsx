@@ -575,11 +575,21 @@ const styles = StyleSheet.create({
   fieldLabel: { marginTop: 24 },
   // First field sits right under the title, so it needs less top space than the rest.
   firstFieldLabel: { marginTop: 8 },
-  // zIndex lifts the row (and its absolute currency menu) above the fields below.
-  fieldRow: { flexDirection: 'row', gap: 12, zIndex: 20 },
+  /**
+   * Every popover in this form opens *downwards*, so a row that can open one has
+   * to outrank every row after it. They are therefore ranked in descending
+   * source order — service 50 → cost/currency 40 → date 30 — rather than all
+   * sharing one level.
+   *
+   * Sharing a level is what broke it: RN settles a zIndex tie by source order,
+   * so with `fieldRow` and `dateAnchor` both at 20 the date field (later in the
+   * tree) painted over the open currency menu and swallowed its last option.
+   * Raising only the offender would just move the bug up a row, which is why
+   * all three are set together and why the numbers are spaced.
+   */
+  fieldRow: { flexDirection: 'row', gap: 12, zIndex: 40 },
 
-  // zIndex keeps the service row + its absolute suggestions above the fields below.
-  serviceAnchor: { position: 'relative', zIndex: 30 },
+  serviceAnchor: { position: 'relative', zIndex: 50 },
   serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -641,7 +651,7 @@ const styles = StyleSheet.create({
   segmentText: { color: colors.foreground },
   segmentTextActive: { color: colors.background, fontFamily: fonts.sans.semibold },
 
-  dateAnchor: { position: 'relative', zIndex: 20 },
+  dateAnchor: { position: 'relative', zIndex: 30 },
   dateBox: {
     flexDirection: 'row',
     alignItems: 'center',
