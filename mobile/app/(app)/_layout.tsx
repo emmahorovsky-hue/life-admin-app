@@ -13,7 +13,7 @@ import { colors } from '../../lib/theme';
 // SF Symbol names (rendered via expo-symbols); solid variants match the old
 // Ionicons "outline" set closely enough for the tab bar's small size.
 const ITEMS: (GlassTabItem & { href: string })[] = [
-  { name: 'index', href: '/(app)/', label: 'Dashboard', icon: 'square.grid.2x2' },
+  { name: 'index', href: '/(app)/', label: 'Home', icon: 'house' },
   { name: 'subscriptions', href: '/(app)/subscriptions', label: 'Subscriptions', icon: 'square.stack' },
   { name: 'timeline', href: '/(app)/timeline', label: 'Timeline', icon: 'calendar' },
   { name: 'profile', href: '/(app)/profile', label: 'Profile', icon: 'person' },
