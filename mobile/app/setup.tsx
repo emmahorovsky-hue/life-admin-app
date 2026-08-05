@@ -434,7 +434,7 @@ export default function SetupScreen() {
   const tileWidth = (windowWidth - SCREEN_PAD * 2 - TILE_GAP) / 2;
 
   const primaryLabel =
-    step === 1 ? 'Next — check amounts' : step === 2 ? `File ${selected.length}` : 'Go to dashboard';
+    step === 1 ? 'Next — check amounts' : step === 2 ? `File ${selected.length}` : 'Go to Home';
   const primaryDisabled =
     submitting || (step === 2 && (selected.length === 0 || incomplete || retryBlocked));
   const itemNoun = selected.length === 1 ? 'item' : 'items';

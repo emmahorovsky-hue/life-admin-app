@@ -74,7 +74,7 @@ export const DefaultCurrencySheet = forwardRef<DefaultCurrencySheetHandle>(
             );
           })}
         </View>
-        <AppText variant="caption" style={styles.hint}>Dashboard totals are shown in this currency.</AppText>
+        <AppText variant="caption" style={styles.hint}>Home totals are shown in this currency.</AppText>
         {error ? <AppText variant="footnote" style={styles.error}>{error}</AppText> : null}
       </FormSheet>
     );
