@@ -7,10 +7,10 @@ import {
   RefreshControl,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import {
@@ -20,6 +20,7 @@ import {
   getSubscriptionStatus,
   matchesSubscriptionFilter,
   normalizeToMonthlyCost,
+  parseRenewalDate,
   radius,
   ALL_CATEGORIES,
 } from '@life-admin/shared';
@@ -40,9 +41,16 @@ import { colors, fonts, textStyles } from '../../lib/theme';
 import { ROW_LOGO, SCREEN_PAD, quiet } from '../../lib/quiet';
 import { useTabBarInset } from '../../lib/useTabBarInset';
 
+/** Gutter between the two columns, and between grid rows. */
+const GRID_GAP = 12;
+
 export default function SubscriptionsScreen() {
   const router = useRouter();
   const tabBarInset = useTabBarInset();
+  // Cards are sized explicitly rather than flex:1. A last row holding a single
+  // card would otherwise stretch it to the full width and break the grid.
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = (windowWidth - SCREEN_PAD * 2 - GRID_GAP) / 2;
   const { openAdd } = useLocalSearchParams<{ openAdd?: string }>();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,57 +121,58 @@ export default function SubscriptionsScreen() {
 
   const renderItem = ({ item: sub }: { item: Subscription }) => {
     const status = getSubscriptionStatus(sub);
-    const endLabel = format(new Date(sub.nextRenewalDate), 'MMM d, yyyy');
+    const renewal = parseRenewalDate(sub.nextRenewalDate);
+    const endLabel = format(renewal, 'MMM d, yyyy');
     const price = formatCurrency(parseFloat(sub.cost), sub.currency);
+    const annual = formatCurrency(
+      normalizeToMonthlyCost(parseFloat(sub.cost), sub.billingCycle) * 12,
+      sub.currency,
+    );
     const meta =
       status === 'cancelling'
-        ? `Cancelling · ends ${format(new Date(sub.nextRenewalDate), 'MMM d')}`
+        ? `Cancelling · ends ${format(renewal, 'MMM d')}`
         : status === 'ended'
           ? `Ended ${endLabel}`
-          : `Renews ${format(new Date(sub.nextRenewalDate), 'MMM d')}`;
+          : `Renews ${format(renewal, 'MMM d')}`;
     return (
-      <ReanimatedSwipeable
-        friction={2}
-        rightThreshold={40}
-        overshootRight={false}
-        renderRightActions={() => (
-          <Pressable style={styles.deleteAction} onPress={() => handleDelete(sub)}>
-            <Ionicons name="trash-outline" size={22} color={colors.white} />
-            <AppText variant="caption" weight={600} style={styles.deleteActionText}>Delete</AppText>
-          </Pressable>
-        )}
+      <Pressable
+        style={[styles.card, { width: cardWidth }, status === 'ended' && styles.cardEnded]}
+        accessibilityRole="button"
+        // Collapse the logo/name/meta/price fragments into one spoken label,
+        // matching the Timeline row so every subscription surface reads alike.
+        accessibilityLabel={`${sub.name}, ${price}, ${meta}`}
+        // A half-width card has no room for a swipe-out action, so delete moves
+        // to long-press — and to a VoiceOver action, which the swipe never had.
+        accessibilityActions={[{ name: 'delete', label: 'Delete subscription' }]}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === 'delete') handleDelete(sub);
+        }}
+        onPress={() => sheetRef.current?.openDetail(sub)}
+        onLongPress={() => handleDelete(sub)}
       >
-        <Pressable
-          style={[quiet.row, styles.row, status === 'ended' && styles.rowEnded]}
-          accessibilityRole="button"
-          // Collapse the logo/name/meta/price fragments into one spoken label,
-          // matching the Timeline row so both list screens read the same way.
-          accessibilityLabel={`${sub.name}, ${price}, ${meta}`}
-          onPress={() => sheetRef.current?.openDetail(sub)}
-        >
-          <SubscriptionLogo
-            name={sub.name}
-            category={sub.category}
-            size={ROW_LOGO}
-            style={styles.logo}
-          />
-          <View style={quiet.rowBody}>
-            <AppText style={quiet.rowName} numberOfLines={1}>{sub.name}</AppText>
-            {/* Status reads as text rather than a coloured pill — the Quiet
-                language spends brand orange only on the due-soon dot, and an
-                ended row is already dimmed. */}
-            <AppText style={quiet.rowMeta} numberOfLines={1}>{meta}</AppText>
-          </View>
-          <View style={quiet.rowRight}>
-            <AppText variant="monoData" style={styles.rowPrice} numberOfLines={1}>
-              {price}
-            </AppText>
-            <AppText variant="monoMeta" style={styles.rowAnnual} numberOfLines={1}>
-              {formatCurrency(normalizeToMonthlyCost(parseFloat(sub.cost), sub.billingCycle) * 12, sub.currency)}/yr
-            </AppText>
-          </View>
-        </Pressable>
-      </ReanimatedSwipeable>
+        <SubscriptionLogo
+          name={sub.name}
+          category={sub.category}
+          size={ROW_LOGO}
+          style={styles.logo}
+        />
+
+        {/* Two lines for the name: at half width "Xbox Game Pass Ultimate"
+            truncates to nothing on one. */}
+        <AppText style={quiet.rowName} numberOfLines={2}>{sub.name}</AppText>
+        {/* Status reads as text rather than a coloured pill: this screen spends
+            no brand orange at all, and an ended card is already dimmed. */}
+        <AppText style={quiet.rowMeta} numberOfLines={1}>{meta}</AppText>
+
+        <View style={styles.cardPrice}>
+          <AppText variant="monoData" style={styles.rowPrice} numberOfLines={1}>
+            {price}
+          </AppText>
+          <AppText variant="monoMeta" style={styles.rowAnnual} numberOfLines={1}>
+            {annual}/yr
+          </AppText>
+        </View>
+      </Pressable>
     );
   };
 
@@ -235,10 +244,14 @@ export default function SubscriptionsScreen() {
           <ActivityIndicator size="large" color={colors.brandOrange} />
         </View>
       ) : (
-        // No ItemSeparatorComponent: quiet.row carries its own hairline bottom
-        // rule, matching the Dashboard's renewal rows.
+        // Two columns (LIF-249). columnWrapperStyle owns the gutter between the
+        // pair; the row gap is the cards' own marginBottom, so the empty state
+        // — which renders as a single full-width child — is unaffected.
         <FlatList
           data={filtered}
+          key="grid-2"
+          numColumns={2}
+          columnWrapperStyle={styles.column}
           keyExtractor={(sub) => sub.id}
           renderItem={renderItem}
           contentContainerStyle={[styles.listContent, { paddingBottom: tabBarInset }]}
@@ -327,6 +340,9 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: colors.foreground },
 
+  // Don't grow this margin to space the grid off the filters — the chip row is a
+  // horizontal ScrollView with no fixed height, and taking height off it here
+  // clips the pills. The gap lives in listContent's paddingTop instead.
   chips: { flexGrow: 0, marginTop: 18, marginBottom: 4 },
   chipsContent: { paddingHorizontal: SCREEN_PAD, gap: 8, alignItems: 'center' },
   // Inactive chips are plain text; only the active one takes a surface, so the
@@ -343,26 +359,32 @@ const styles = StyleSheet.create({
   },
 
   // paddingBottom is applied dynamically via useTabBarInset to clear the glass tab bar.
-  listContent: { paddingHorizontal: SCREEN_PAD, flexGrow: 1 },
-  // Rhythm and hairline come from quiet.row. This widens the gap for the 36px
-  // logo (quiet.row's default suits a 6px dot) and adds the opaque background
-  // the swipe-to-delete action slides underneath.
-  row: { gap: 12, backgroundColor: colors.background },
-  rowEnded: { opacity: 0.55 },
-  logo: { borderRadius: 8 },
+  // paddingTop + the chip row's 4pt margin puts 18pt above the first row of cards:
+  // more than the 12pt between rows, so the grid starts on a section break rather
+  // than looking like a row that lost its neighbour. Rows had no edge here and
+  // could sit on the 4pt alone; a card's border can't.
+  listContent: { paddingHorizontal: SCREEN_PAD, paddingTop: 14, flexGrow: 1 },
+  column: { gap: GRID_GAP },
 
-  // Right-aligned price stack: mono figure + muted annual equivalent.
+  // A grid can't rule its items apart the way stacked rows do, so the card is
+  // the one place this screen departs from "hairlines, not boxes": a white
+  // surface on Snow with a hairline edge, which is the lightest boundary that
+  // still separates two cards sitting side by side.
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.base,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    padding: 14,
+    marginBottom: GRID_GAP,
+  },
+  cardEnded: { opacity: 0.55 },
+  logo: { borderRadius: 8, marginBottom: 10 },
+
+  // The figures close the card, held apart from the meta line above them.
+  cardPrice: { marginTop: 10 },
   rowPrice: { color: colors.foreground, fontSize: 15 },
   rowAnnual: { color: colors.softMuted, marginTop: 2 },
-
-  deleteAction: {
-    backgroundColor: colors.destructive,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 84,
-    gap: 2,
-  },
-  deleteActionText: { color: colors.white },
 
   footerCount: {
     textAlign: 'center',
