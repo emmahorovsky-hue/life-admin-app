@@ -646,7 +646,8 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: colors.foreground },
 
   // Currency dropdown — the trigger matches the cost box height (ui/Dropdown's
-  // `field` size); zIndex keeps its menu over the fields below.
+  // `field` size). Clearing the fields *below* is `fieldRow`'s job, not this
+  // one's; the zIndex here only orders the menu above the cost column beside it.
   currencyField: { width: 120, zIndex: 20 },
   segmentText: { color: colors.foreground },
   segmentTextActive: { color: colors.background, fontFamily: fonts.sans.semibold },
