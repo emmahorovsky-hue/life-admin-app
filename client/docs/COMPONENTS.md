@@ -271,6 +271,70 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 </Table>
 ```
 
+## Icons
+
+The app draws its own set — direction 1a, **"Thermal Line"** — from
+`@/components/icons`. It replaced `lucide-react` everywhere except two flagged
+holdouts (see below).
+
+### The contract
+
+- **Grid:** 24×24 viewBox, live area 2.5–21.5, every coordinate on a 0.25 grid.
+- **Stroke:** 1.5px, `stroke-linecap: butt`, `stroke-linejoin: miter`, `fill: none`.
+  **No rounded caps anywhere** — that is the identity of the set, not a detail.
+- **Two inks:** the glyph is `currentColor`, so it inherits `text-muted-foreground` /
+  `text-foreground` like lucide did. Exactly **one** detail per icon is brand orange.
+- Straight lines and 45° are preferred over curves.
+
+### The `ink` prop
+
+```tsx
+<IconSettings className="h-5 w-5" />                  {/* orange accent (default) */}
+<IconSettings className="h-5 w-5" ink="inherit" />    {/* one colour throughout */}
+```
+
+Pass `ink="inherit"` wherever the icon is **already tinted** and a second colour would
+fight the first: the active nav row (`text-brand-orange`), a filled `<Button>` or
+`variant="destructive"`, a white-on-orange badge. The accent falls back to
+`currentColor`.
+
+### Geometry is shared with mobile
+
+The coordinates live once, in `packages/shared/src/icons/geometry.ts`, as plain data —
+no React, since the package is consumed by React 18 (web) and React 19 (mobile). Web
+renders it as `<svg>`; mobile renders the same data through `react-native-svg`
+(`mobile/components/icons/`). **A coordinate change lands on both platforms**, which is
+the whole reason it is data rather than 62 hand-written components.
+
+Mobile has no `currentColor`, so its binding takes an explicit `color` prop instead:
+
+```tsx
+<IconSearch size={16} color={colors.mutedForeground} />
+```
+
+### Adding an icon
+
+Draw it on the 24 grid, give it **exactly one** orange detail, add the entry to
+`ICON_GEOMETRY`, then export a thin component from both
+`client/src/components/icons/index.tsx` and `mobile/components/icons/index.tsx`. The
+`IconName` union makes a missing binding a compile error. `src/components/icons/smoke.test.tsx`
+asserts every icon renders its parts and honours `ink`.
+
+Note `client/src/components/icons/**` must stay **components- and types-only** —
+`react-refresh/only-export-components` runs as a warning under `--max-warnings 0`, so an
+exported map or constant there fails lint.
+
+### Still on lucide
+
+`lucide-react` is deliberately still a dependency:
+
+- `Camera` — `components/settings/AvatarTile.tsx` (and mobile's `ReceiptScanChooser`,
+  which also needs a gallery glyph). A lens is curve-heavy and the grid doesn't solve it yet.
+- `Users`, `Shield`, `Globe`, `Home` — `pages/Landing.tsx` only. Marketing copy, outside
+  the set's scope, which is the product's own surfaces.
+
+Drawing those is what removes the dependency.
+
 ## State Management
 
 ### AuthContext

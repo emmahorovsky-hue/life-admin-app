@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Briefcase, CreditCard, Dumbbell } from 'lucide-react';
+import { IconProductivity, IconCard, IconFitness } from '@/components/icons';
 import { categoryIconFor, domainForName, logoUrlForName } from './subscriptionLogo';
 
 describe('domainForName', () => {
@@ -49,12 +49,12 @@ describe('logoUrlForName', () => {
 
 describe('categoryIconFor', () => {
   it('maps known category ids to their icon', () => {
-    expect(categoryIconFor('fitness')).toBe(Dumbbell);
-    expect(categoryIconFor('productivity')).toBe(Briefcase);
+    expect(categoryIconFor('fitness')).toBe(IconFitness);
+    expect(categoryIconFor('productivity')).toBe(IconProductivity);
   });
 
   it('falls back to the "other" icon for unknown categories', () => {
-    expect(categoryIconFor('other')).toBe(CreditCard);
-    expect(categoryIconFor('nonexistent')).toBe(CreditCard);
+    expect(categoryIconFor('other')).toBe(IconCard);
+    expect(categoryIconFor('nonexistent')).toBe(IconCard);
   });
 });

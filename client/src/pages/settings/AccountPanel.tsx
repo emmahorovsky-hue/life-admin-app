@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { Check } from 'lucide-react';
+import { IconCheck } from '@/components/icons';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -74,7 +74,7 @@ export default function AccountPanel() {
             <p className="truncate font-mono text-xs text-muted-foreground">{user?.email}</p>
             {user?.emailVerified && (
               <Badge variant="success" className="mt-2 gap-1 rounded-[2px] font-mono text-[11px] font-normal uppercase tracking-[0.06em]">
-                <Check className="h-3 w-3" strokeWidth={3} />
+                <IconCheck className="h-3 w-3" strokeWidth={3} />
                 Verified
               </Badge>
             )}

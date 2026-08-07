@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Image, StyleSheet, StyleProp, View, ImageStyle, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { categoryIconFor, logoUrlForName } from '../lib/subscriptionLogo';
 import { colors } from '../lib/theme';
 
@@ -41,13 +40,13 @@ export function SubscriptionLogo({ name, category, size = 36, style }: Subscript
     );
   }
 
+  // categoryIconFor returns a stable, module-level component — resolve it to a
+  // capitalised local so JSX treats it as a component, not an element name.
+  const CategoryIcon = categoryIconFor(category);
+
   return (
     <View style={[box, styles.fallback, style]}>
-      <Ionicons
-        name={categoryIconFor(category)}
-        size={Math.round(size * 0.55)}
-        color={colors.mutedForeground}
-      />
+      <CategoryIcon size={Math.round(size * 0.55)} color={colors.mutedForeground} />
     </View>
   );
 }

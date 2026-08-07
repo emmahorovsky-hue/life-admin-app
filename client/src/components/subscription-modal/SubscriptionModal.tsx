@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { X } from 'lucide-react';
+import { IconClose } from '@/components/icons';
 import { format, differenceInCalendarDays } from 'date-fns';
 import {
   normalizeToMonthlyCost,
@@ -226,7 +226,7 @@ export default function SubscriptionModal({
             aria-label="Close"
             className="h-8 w-8 -mr-1 shrink-0"
           >
-            <X className="h-4 w-4" />
+            <IconClose className="h-4 w-4" />
           </Button>
         </div>
 
