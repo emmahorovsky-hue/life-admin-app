@@ -326,14 +326,13 @@ exported map or constant there fails lint.
 
 ### Still on lucide
 
-`lucide-react` is deliberately still a dependency:
+`lucide-react` is deliberately still a dependency, for **one** reason:
 
-- `Camera` — `components/settings/AvatarTile.tsx` (and mobile's `ReceiptScanChooser`,
-  which also needs a gallery glyph). A lens is curve-heavy and the grid doesn't solve it yet.
 - `Users`, `Shield`, `Globe`, `Home` — `pages/Landing.tsx` only. Marketing copy, outside
   the set's scope, which is the product's own surfaces.
 
-Drawing those is what removes the dependency.
+Every product surface is on the Paypr set. Drawing those four is what removes the
+dependency entirely.
 
 ## State Management
 

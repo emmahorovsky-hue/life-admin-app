@@ -1,13 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 import { Image, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { getInitials, radius, spacing } from '@life-admin/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { avatarAssetError, deleteAvatar, uploadAvatar, useAvatarSource } from '../../lib/account';
 import { getApiErrorMessage } from '../../lib/utils';
 import { AppText, FormSheet, useToast, type FormSheetHandle } from '../ui';
-import { IconEdit, IconUpload, IconDelete } from '../icons';
+import { IconEdit, IconCamera, IconUpload, IconDelete } from '../icons';
 import { colors, fonts } from '../../lib/theme';
 
 // Pixel twins of the web tile's md/lg variants (client AvatarTile.tsx).
@@ -128,12 +127,11 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
         style={[styles.badge, { width: s.badge, height: s.badge }, busy && styles.badgeBusy]}
       >
         {/* The badge is white-on-orange, so the accent falls back to the base
-            colour. `camera` has no Paypr equivalent yet and stays on Ionicons —
-            the same gap the web AvatarTile has. */}
+            colour on both glyphs. */}
         {showImage ? (
           <IconEdit size={s.badgeIcon} color={colors.background} ink="inherit" />
         ) : (
-          <Ionicons name="camera" size={s.badgeIcon} color={colors.background} />
+          <IconCamera size={s.badgeIcon} color={colors.background} ink="inherit" />
         )}
       </Pressable>
 

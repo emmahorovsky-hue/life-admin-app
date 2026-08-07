@@ -75,6 +75,12 @@ export function IconUpload(props: PayprIconProps) {
 export function IconScan(props: PayprIconProps) {
   return <PayprIcon name="scan" {...props} />;
 }
+export function IconCamera(props: PayprIconProps) {
+  return <PayprIcon name="camera" {...props} />;
+}
+export function IconGallery(props: PayprIconProps) {
+  return <PayprIcon name="gallery" {...props} />;
+}
 export function IconSearch(props: PayprIconProps) {
   return <PayprIcon name="search" {...props} />;
 }

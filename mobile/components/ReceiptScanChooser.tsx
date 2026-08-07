@@ -1,6 +1,5 @@
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { radius, spacing, type SubscriptionCandidate } from '@life-admin/shared';
 import {
@@ -13,6 +12,13 @@ import { subscriptionApi } from '../lib/subscriptions';
 import { getApiErrorMessage } from '../lib/utils';
 import { ExtractionLoadingOverlay } from './ExtractionLoadingOverlay';
 import { AppText, FormSheet, useToast, type FormSheetHandle } from './ui';
+import {
+  IconCamera,
+  IconGallery,
+  IconReceipt,
+  IconEdit,
+  type PayprIconComponent,
+} from './icons';
 import { colors } from '../lib/theme';
 
 export interface ReceiptScanChooserHandle {
@@ -27,20 +33,16 @@ interface Props {
   onExtracted: (candidate: SubscriptionCandidate) => void;
 }
 
-// TODO: this chooser stays on Ionicons until the Paypr set has camera and
-// gallery glyphs. Two of its three scan sources have no equivalent, and mixing
-// two icon systems inside a single menu reads worse than deferring the whole
-// menu — the stroke weights don't match. Same gap as `Camera` on web.
 interface Option {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: PayprIconComponent;
   label: string;
   pick: () => Promise<PickOutcome>;
 }
 
 const SCAN_OPTIONS: Option[] = [
-  { icon: 'camera-outline', label: 'Take a photo', pick: pickFromCamera },
-  { icon: 'images-outline', label: 'Choose from gallery', pick: pickFromGallery },
-  { icon: 'document-text-outline', label: 'Upload a document', pick: pickDocument },
+  { icon: IconCamera, label: 'Take a photo', pick: pickFromCamera },
+  { icon: IconGallery, label: 'Choose from gallery', pick: pickFromGallery },
+  { icon: IconReceipt, label: 'Upload a document', pick: pickDocument },
 ];
 
 /**
@@ -118,15 +120,15 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
           subtitle="Scan a receipt and we'll fill in the details for you to review."
           accessibilityLabel="Add a subscription"
         >
-          {SCAN_OPTIONS.map((opt) => (
+          {SCAN_OPTIONS.map(({ icon: Icon, label, pick }) => (
             <Pressable
-              key={opt.label}
+              key={label}
               accessibilityRole="button"
-              onPress={() => void runScan(opt.pick)}
+              onPress={() => void runScan(pick)}
               style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
             >
-              <Ionicons name={opt.icon} size={20} color={colors.foreground} />
-              <AppText variant="headline" weight={600} style={styles.menuLabel}>{opt.label}</AppText>
+              <Icon size={20} color={colors.foreground} />
+              <AppText variant="headline" weight={600} style={styles.menuLabel}>{label}</AppText>
             </Pressable>
           ))}
 
@@ -137,7 +139,7 @@ export const ReceiptScanChooser = forwardRef<ReceiptScanChooserHandle, Props>(
             onPress={handleManual}
             style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
           >
-            <Ionicons name="create-outline" size={20} color={colors.mutedForeground} />
+            <IconEdit size={20} color={colors.mutedForeground} />
             <AppText variant="headline" weight={600} style={[styles.menuLabel, styles.menuLabelMuted]}>Enter manually</AppText>
           </Pressable>
         </FormSheet>

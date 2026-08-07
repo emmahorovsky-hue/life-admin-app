@@ -44,6 +44,8 @@ const ICON_GROUPS: { group: string; icons: [string, PayprIconComponent][] }[] = 
       ['Add', Icons.IconAdd],
       ['Upload', Icons.IconUpload],
       ['Scan', Icons.IconScan],
+      ['Camera', Icons.IconCamera],
+      ['Gallery', Icons.IconGallery],
       ['Search', Icons.IconSearch],
       ['Edit', Icons.IconEdit],
       ['Delete', Icons.IconDelete],
