@@ -2,7 +2,7 @@
 
 **Author:** Claude (with Anna, product decisions)
 **Date:** 2026-07-13
-**Status:** Approved — Phase 1 in implementation
+**Status:** Approved — Phases 1 and 3 shipped; Phase 2 (local-time delivery) outstanding
 **Supersedes:** `LIF-42-email-reminder-system.md` (pre-implementation design; LIF-11 shipped a different MVP)
 
 ---
@@ -94,16 +94,40 @@ One email per user per run covering all due subscriptions:
 - One `NotificationLog` row **per subscription** (dedup granularity unchanged), with the
   digest outcome applied to each.
 
-## Push (Phase 3 — blocked on LIF-88 EAS setup; token registration is LIF-115)
+## Push (Phase 3 — shipped)
 
-- `server/src/services/pushService.ts` using the already-installed `expo-server-sdk` and
+Built as designed; no migration was needed, since `reminderPushEnabled` and
+`NotificationLog.channel` were provisioned in Phase 1 for exactly this.
+
+- `server/src/services/pushService.ts` uses the already-installed `expo-server-sdk` and
   the existing `DeviceToken` table.
 - Same job, second channel: `NotificationLog.channel` (`"email" | "push"`) dedups each
   channel independently. Both channels fire per their own toggle — no fallback state
   machine.
-- One digest-style push per user per run, chunked to all their tokens; store ticket ids;
-  a receipts pass prunes tokens on `DeviceNotRegistered`.
-- Notification tap deep-links to the subscriptions screen.
+- Channel eligibility moved out of the Prisma query into JS, because the two channels no
+  longer share a rule: email additionally requires `emailVerified`, push does not. The
+  query now narrows to users who want *either* channel.
+- `sendRenewalReminders()` returns `{ email, push }` counters rather than one flat triple.
+- One digest push per user per run, one message per token so tickets stay index-aligned;
+  tokens Expo rejects as `DeviceNotRegistered` are deleted.
+- Notification tap deep-links to the subscriptions screen
+  (`mobile/lib/notificationRouting.ts`), including from a cold start.
+- Push toggles revealed on both web and mobile; mobile also shows an "open Settings" path
+  when OS permission is denied, rather than a switch that cannot work.
+
+Two deliberate deviations from the design above:
+
+- **No receipts pass.** Ticket-level `DeviceNotRegistered` pruning covers the common case;
+  a second scheduled job to poll receipts 15 minutes later was judged not worth its
+  complexity at this user count. The ticket ids are not stored.
+- **No Android notification icon.** `expo-notifications` gets `color` but not `icon`: the
+  only monochrome asset in the repo is still the pre-rebrand chevron. Belongs to LIF-234
+  along with FCM credentials; iOS is unaffected and uses the app icon.
+
+Known gap: `pushService.ts` has no unit test. `expo-server-sdk` v6 is pure ESM and jest's
+CommonJS registry cannot load it, so `src/__tests__/setup.ts` mocks the module wholesale.
+What the suite covers is the orchestration around it — channel eligibility, per-channel
+dedup, token pruning, partial failure — which is where the logic lives.
 
 ## Phases
 
@@ -111,7 +135,7 @@ One email per user per run covering all due subscriptions:
    `emailVerified` filter, timezone capture, strategy doc.
 2. **Next:** mobile profile settings section, timezone override dropdown on web, hourly
    cron delivering at 09:00 local time.
-3. **After LIF-88 + LIF-115:** push channel as above; reveal push toggles on web + mobile.
+3. **Done:** push channel as above; push toggles revealed on web + mobile.
 
 ## Rollback
 

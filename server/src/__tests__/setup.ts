@@ -33,6 +33,19 @@ jest.mock('../services/emailService', () => ({
 // NOTE: We do not mock `emailVerificationService.issueEmailVerificationToken`
 // because several tests assert that tokens are persisted and emails are sent.
 
+// Mocked with a factory and NO requireActual, unlike emailService above: the
+// real module imports expo-server-sdk v6, which is pure ESM, and jest's
+// CommonJS registry cannot load it ("Cannot use import statement outside a
+// module"). Requiring the actual module here would break every suite that
+// transitively reaches it. The consequence is that pushService itself is not
+// unit-testable under this config — what the suite covers is the orchestration
+// around it (channel eligibility, per-channel dedup, token pruning), which is
+// where the logic actually lives. Tests override the resolved value to
+// simulate Expo rejecting a token.
+jest.mock('../services/pushService', () => ({
+  sendRenewalPushDigest: jest.fn().mockResolvedValue({ invalidTokens: [] }),
+}));
+
 // Helper: Clean up test data
 async function cleanupTestData() {
   try {

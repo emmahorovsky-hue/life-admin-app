@@ -299,6 +299,10 @@ router.patch(
       .optional()
       .isBoolean({ strict: true })
       .withMessage('reminderEmailsEnabled must be a boolean'),
+    body('reminderPushEnabled')
+      .optional()
+      .isBoolean({ strict: true })
+      .withMessage('reminderPushEnabled must be a boolean'),
     body('timezone')
       .optional()
       .isString()
