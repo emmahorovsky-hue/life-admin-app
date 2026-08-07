@@ -435,7 +435,7 @@ export default function SubscriptionModal({
               <div>
                 <FieldLabel>Renewal reminders</FieldLabel>
                 <p className="text-[13px] text-muted-foreground">
-                  Include this subscription in reminder emails before it renews.
+                  Include this subscription in reminders before it renews.
                 </p>
               </div>
               <Switch

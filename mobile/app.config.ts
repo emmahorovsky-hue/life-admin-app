@@ -105,7 +105,16 @@ export default {
     plugins: [
       'expo-router',
       'expo-secure-store',
-      'expo-notifications',
+      // `color` tints the Android notification tray entry with the brand accent.
+      // `icon` is deliberately NOT set: Android wants a 96x96 all-white PNG on
+      // transparency, and the only monochrome asset in the repo
+      // (assets/android-icon-monochrome.png) is still the pre-rebrand blue
+      // chevron, so wiring it up would ship the old identity into the tray.
+      // Both the asset and this option belong to LIF-234 (FCM credentials and
+      // Android push delivery); iOS ignores all of this and uses the app icon.
+      ['expo-notifications', {
+        color: '#E63D00', // brandOrange — packages/shared/src/tokens/colors.ts
+      }],
       // LIF-218: the static frame iOS draws before JS boots. `splash-icon.png`
       // is the Paypr wordmark rasterised at 3.5px per point (font-size 210 = the
       // 60pt wordmark `components/BrandSplash.tsx` renders), so imageWidth is
