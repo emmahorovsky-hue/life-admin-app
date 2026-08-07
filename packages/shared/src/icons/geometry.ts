@@ -140,6 +140,24 @@ export const ICON_GEOMETRY = {
     { el: 'circle', cx: 10.5, cy: 10.5, r: 6.25 },
     { el: 'path', d: 'M15.25 15.25 20.5 20.5', stroke: 'accent' },
   ],
+  // Body + viewfinder hump + lens. The accent is the indicator lamp rather
+  // than the lens: the lens is the mass of the glyph, and filling it orange at
+  // 16px turns the icon into a blob.
+  camera: [
+    { el: 'path', d: 'M8.75 6.5V4.25h6.5V6.5' },
+    { el: 'rect', x: 2.75, y: 6.5, width: 18.5, height: 12.75 },
+    { el: 'circle', cx: 12, cy: 13, r: 4 },
+    { el: 'rect', x: 17, y: 8.75, width: 1.75, height: 1.75, stroke: 'accent', fill: 'accent' },
+  ],
+  // A framed photo with a second frame behind it — the stack is what says
+  // "pick an existing one" rather than "an image". The ridge is four 45°
+  // segments, which is the set's preferred way to draw anything organic.
+  gallery: [
+    { el: 'path', d: 'M6.5 4.25h14.75v12.5' },
+    { el: 'rect', x: 2.75, y: 7, width: 15, height: 12.25 },
+    { el: 'polyline', points: '5 16.5 9 12.5 12.25 15.75 15.5 12.5' },
+    { el: 'circle', cx: 14.25, cy: 10.25, r: 1.5, stroke: 'accent', fill: 'accent' },
+  ],
   edit: [
     { el: 'path', d: 'M4 20h4.25L20 8.25 15.75 4 4 15.75V20Z' },
     { el: 'path', d: 'M13.75 6 18 10.25' },

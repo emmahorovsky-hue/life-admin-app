@@ -1,10 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-// TODO: `Camera` has no equivalent in the Paypr set (a lens is a curve-heavy
-// glyph the Thermal Line grid doesn't yet solve). Left on lucide deliberately
-// rather than inventing one — it and the four Landing icons are the last two
-// lucide holdouts.
-import { Camera } from 'lucide-react';
-import { IconEdit, IconUpload, IconDelete } from '@/components/icons';
+import { IconEdit, IconCamera, IconUpload, IconDelete } from '@/components/icons';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { avatarUrl, uploadAvatar, deleteAvatar } from '@/lib/api';
@@ -144,7 +139,7 @@ export function AvatarTile({ size = 'lg', className }: AvatarTileProps) {
         {showImage ? (
           <IconEdit className={s.badgeIcon} strokeWidth={2} ink="inherit" />
         ) : (
-          <Camera className={s.badgeIcon} strokeWidth={2} />
+          <IconCamera className={s.badgeIcon} strokeWidth={2} ink="inherit" />
         )}
       </button>
       <input
