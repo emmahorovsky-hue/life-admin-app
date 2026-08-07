@@ -126,6 +126,7 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `ANTHROPIC_API_KEY` | Receipt/invoice AI extraction (optional; feature degrades gracefully without it) |
 | `AI_MODEL`      | Claude model id for extraction (optional, defaults to `claude-haiku-4-5`; recommended in production: `claude-sonnet-5` for amount accuracy — see `server/docs/API.md`) |
 | `EMAIL_FROM`    | From address on outgoing emails (default `noreply@paypr.live`)       |
+| `EXPO_ACCESS_TOKEN` | Authenticates renewal-reminder pushes to Expo (`services/pushService.ts`). Optional **today** — sending works without it — but it becomes required the moment "enhanced push security" is switched on for the Expo project, and until it is set, anyone holding a leaked device token can notify our users. Note the push channel makes **Node 24+** a hard requirement: `expo-server-sdk` v6 is pure ESM and an older runtime fails at startup, not at send time (LIF-250) |
 | `MOBILE_URL`    | Deep link scheme the verify-email/email-change endpoints redirect *to* when `?platform=mobile` (default `lifeadmin://`). Never put it in an email body — mail clients can't open a custom scheme and no Universal Links are configured (LIF-244) |
 | `SENTRY_RELEASE`| Tags Sentry errors by deploy (optional; set in CI/CD)                |
 | `ENABLE_CRON`   | Set to `false` to skip scheduling background jobs (default enabled)  |

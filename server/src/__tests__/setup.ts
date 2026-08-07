@@ -43,7 +43,7 @@ jest.mock('../services/emailService', () => ({
 // where the logic actually lives. Tests override the resolved value to
 // simulate Expo rejecting a token.
 jest.mock('../services/pushService', () => ({
-  sendRenewalPushDigest: jest.fn().mockResolvedValue({ invalidTokens: [] }),
+  sendRenewalPushDigest: jest.fn().mockResolvedValue({ invalidTokens: [], delivered: 1 }),
 }));
 
 // Helper: Clean up test data
