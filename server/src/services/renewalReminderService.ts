@@ -145,14 +145,28 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<Remi
       alreadySent,
       counters: result.push,
       send: async (items) => {
-        const { invalidTokens } = await sendRenewalPushDigest({ tokens, items });
-        if (invalidTokens.length === 0) return;
+        const { invalidTokens, delivered } = await sendRenewalPushDigest({ tokens, items });
+
         // The device is gone (uninstalled, permission revoked). Drop the rows so
         // the table doesn't accumulate addresses that can never be delivered to.
-        try {
-          await prisma.deviceToken.deleteMany({ where: { token: { in: invalidTokens } } });
-        } catch (err) {
-          reportServerError(`[renewal-reminders] Failed to prune device tokens for user ${userId}`, err);
+        if (invalidTokens.length > 0) {
+          try {
+            await prisma.deviceToken.deleteMany({ where: { token: { in: invalidTokens } } });
+          } catch (err) {
+            reportServerError(`[renewal-reminders] Failed to prune device tokens for user ${userId}`, err);
+          }
+        }
+
+        // Every device rejected, so nothing was delivered. Throwing is what makes
+        // deliverChannel log `failed` rather than `sent`: the log is the record of
+        // whether we warned this user, and a `sent` row here would both lie and
+        // let dedup suppress the retry. Pruning first means an all-dead set of
+        // tokens is gone by the next run, so this does not retry forever — the
+        // user simply falls out of push eligibility.
+        if (delivered === 0) {
+          throw new Error(
+            `Expo accepted none of the ${tokens.length} device token(s) for this digest`
+          );
         }
       },
     });

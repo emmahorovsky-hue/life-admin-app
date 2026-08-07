@@ -1,5 +1,6 @@
 import { Expo, ExpoPushMessage, ExpoPushTicket } from 'expo-server-sdk';
 import { DigestItem, daysUntilLabel } from './emailService';
+import { reportServerError } from '../utils/reportError';
 
 // expo-server-sdk v6 is pure ESM ("type": "module") while this server compiles
 // to CommonJS. Node 24 (see .nvmrc) supports require() of a synchronous ESM
@@ -48,10 +49,14 @@ function buildContent(items: DigestItem[]): { title: string; body: string } {
  * permission revoked) so the caller can delete those rows; a device that no
  * longer exists must not keep a row alive forever.
  *
+ * Also returns `delivered`, the number of tokens Expo accepted. A token-level
+ * rejection is not a failure of the digest *while other devices got it* — but
+ * when none did, the caller must not record the reminder as sent, or dedup will
+ * suppress a warning that never left the building. `delivered === 0` with a
+ * non-empty `tokens` list is the caller's cue to log `failed`.
+ *
  * Throws if a send request fails outright, matching the email path: the caller
  * logs `status: 'failed'` and the per-occurrence dedup lets the next run retry.
- * Individual token-level rejections are *not* failures of the digest — the
- * other devices got it — so they only surface through the return value.
  */
 export async function sendRenewalPushDigest({
   tokens,
@@ -59,7 +64,7 @@ export async function sendRenewalPushDigest({
 }: {
   tokens: string[];
   items: DigestItem[];
-}): Promise<{ invalidTokens: string[] }> {
+}): Promise<{ invalidTokens: string[]; delivered: number }> {
   // A malformed row (hand-edited, or a native token that reached the column by
   // mistake) would make Expo reject the whole request, taking the valid devices
   // down with it. Drop it here and treat it as unregistered so it gets cleaned up.
@@ -71,7 +76,7 @@ export async function sendRenewalPushDigest({
     (Expo.isExpoPushToken(token) ? valid : malformed).push(token);
   }
 
-  if (valid.length === 0) return { invalidTokens: malformed };
+  if (valid.length === 0) return { invalidTokens: malformed, delivered: 0 };
 
   const { title, body } = buildContent(items);
 
@@ -100,13 +105,27 @@ export async function sendRenewalPushDigest({
   }
 
   const invalidTokens = [...malformed];
+  let delivered = 0;
   tickets.forEach((ticket, i) => {
-    if (ticket.status !== 'error') return;
+    if (ticket.status !== 'error') {
+      delivered++;
+      return;
+    }
     if (ticket.details?.error === 'DeviceNotRegistered') {
       // Prefer the token Expo echoes back; fall back to index alignment.
       invalidTokens.push(ticket.details.expoPushToken ?? valid[i]);
+      return;
     }
+    // Everything else — MessageTooBig, MessageRateExceeded, and above all
+    // InvalidCredentials — is not actionable per-token, but silence here is
+    // worse than noise: InvalidCredentials means the project's push credentials
+    // are broken and *every* notification is failing, which is otherwise
+    // indistinguishable from complete success in both Sentry and the cron log.
+    reportServerError(
+      `[push] Expo rejected a renewal digest (${ticket.details?.error ?? 'unspecified'})`,
+      new Error(ticket.message)
+    );
   });
 
-  return { invalidTokens };
+  return { invalidTokens, delivered };
 }

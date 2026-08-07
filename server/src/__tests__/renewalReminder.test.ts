@@ -457,7 +457,7 @@ describe('sendRenewalReminders', () => {
         deviceTokens: [TOKEN, DEAD],
       });
 
-      mockSendRenewalPushDigest.mockResolvedValueOnce({ invalidTokens: [DEAD] });
+      mockSendRenewalPushDigest.mockResolvedValueOnce({ invalidTokens: [DEAD], delivered: 1 });
 
       const result = await sendRenewalReminders(now);
 
@@ -485,9 +485,50 @@ describe('sendRenewalReminders', () => {
       expect(logs.find((l) => l.channel === 'email')!.status).toBe('sent');
 
       // A failed log does not dedup, so a second run tries again.
-      mockSendRenewalPushDigest.mockResolvedValueOnce({ invalidTokens: [] });
+      mockSendRenewalPushDigest.mockResolvedValueOnce({ invalidTokens: [], delivered: 1 });
       const second = await sendRenewalReminders(now);
       expect(second.push.sent).toBe(1);
+    });
+
+    it('records a failure when Expo accepts none of the tokens, and prunes them', async () => {
+      const { user, subscription } = await createUserAndSubscription({
+        renewalDate: utcMidnight(3),
+        deviceTokens: [TOKEN],
+      });
+
+      // The device is gone: the only token comes back unregistered, so nothing
+      // was delivered even though the request itself succeeded.
+      mockSendRenewalPushDigest.mockResolvedValueOnce({ invalidTokens: [TOKEN], delivered: 0 });
+
+      const result = await sendRenewalReminders(now);
+
+      // Not `sent` — the log is the record of whether we warned this user.
+      expect(result.push.sent).toBe(0);
+      expect(result.push.failed).toBe(1);
+      expect(result.email.sent).toBe(1);
+
+      const logs = await prisma.notificationLog.findMany({ where: { subscriptionId: subscription.id } });
+      expect(logs.find((l) => l.channel === 'push')!.status).toBe('failed');
+
+      // Pruned regardless, so the user falls out of push eligibility next run
+      // rather than retrying a dead token forever.
+      const remaining = await prisma.deviceToken.findMany({ where: { userId: user.id } });
+      expect(remaining).toHaveLength(0);
+    });
+
+    it('does not retry a pruned user on the next run (no tokens left to send to)', async () => {
+      await createUserAndSubscription({
+        renewalDate: utcMidnight(3),
+        deviceTokens: [TOKEN],
+      });
+
+      mockSendRenewalPushDigest.mockResolvedValueOnce({ invalidTokens: [TOKEN], delivered: 0 });
+      await sendRenewalReminders(now);
+
+      const second = await sendRenewalReminders(now);
+      expect(second.push.sent).toBe(0);
+      expect(second.push.failed).toBe(0);
+      expect(mockSendRenewalPushDigest).toHaveBeenCalledTimes(1);
     });
 
     it('bundles a user’s due subscriptions into one push', async () => {

@@ -28,9 +28,17 @@ GitHub Repository (main branch)
 
 ### Local Requirements
 
-- Node.js 20+
+- Node.js 24+ (see `.nvmrc` and the root `engines` field — **not** optional)
 - PostgreSQL 15+ (locally for testing)
 - Git
+
+> **Node 24 is a hard requirement, not a recommendation.** `expo-server-sdk` v6 is
+> pure ESM (`"type": "module"`) and the server compiles to CommonJS, so the interop
+> relies on Node's `require()` of a synchronous ESM graph — unflagged from Node 22.12
+> onwards. On an older runtime this does not degrade the push channel: `pushService`
+> is imported transitively from the server entrypoint, so the process throws
+> `ERR_REQUIRE_ESM` **at startup** and nothing serves at all. If you are provisioning
+> a new environment, confirm the resolved Node version before deploying.
 
 ### Environment Files
 
@@ -86,6 +94,16 @@ Settings → Source → Root Directory must be `/` (the repo root) — **not**
 
 `packages/shared/**` must stay in the watch paths: the server consumes that
 package's built `dist/`, so a shared-only change has to redeploy the API.
+
+> **Node version — verify this, it is a boot requirement (LIF-250).** Railpack
+> resolves the runtime from `.nvmrc` / the root `engines` field, both of which
+> pin **24**. That pin stopped being advisory when the push channel landed:
+> `expo-server-sdk` v6 is pure ESM, and `require()`-ing it from our CommonJS
+> build only works on Node 22.12+. A service that resolves to an older runtime
+> does not lose push — it fails to start, because `pushService` is imported
+> transitively from the entrypoint. The row is absent from the table above
+> because it was not part of the 2026-07-19 API snapshot; confirm it in the
+> dashboard (or with `node -v` in a deploy log) before trusting it.
 
 > **Migrating to config-as-code (optional, not done).** Versioning this in the
 > repo is reasonable, but do it deliberately: the file must declare
