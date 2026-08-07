@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useRef } from 'react';
-import { Check } from 'lucide-react';
+import { IconCheck } from '@/components/icons';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { APP_NAME } from '@/lib/constants';
 
@@ -132,7 +132,7 @@ export default function ExtractionSection() {
                     viewport={{ once: true, margin: '-40px' }}
                     transition={{ delay: 0.35 + i * 0.12, type: 'spring', stiffness: 500, damping: 18 }}
                   >
-                    <Check className="w-3 h-3 text-white" strokeWidth={3.2} />
+                    <IconCheck className="w-3 h-3 text-white" strokeWidth={3.2} />
                   </motion.span>
                   <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground w-[130px] flex-shrink-0">
                     {f.label}

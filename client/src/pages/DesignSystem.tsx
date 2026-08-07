@@ -8,7 +8,70 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AppDialog } from '@/components/ui/AppDialog';
 import { EmptyState } from '@/components/EmptyState';
-import { Bell, CreditCard, LayoutDashboard, Plus, Search, Trash2, Upload } from 'lucide-react';
+import * as Icons from '@/components/icons';
+import type { PayprIconComponent } from '@/components/icons';
+
+// The full set, grouped the way the design contract groups it. Listed by hand
+// rather than derived from the module so the page shows a deliberate order and
+// a missing icon is visible here rather than silently absent.
+const ICON_GROUPS: { group: string; icons: [string, PayprIconComponent][] }[] = [
+  {
+    group: 'nav',
+    icons: [
+      ['Dashboard', Icons.IconDashboard],
+      ['Timeline', Icons.IconTimeline],
+      ['Subscriptions', Icons.IconSubscriptions],
+      ['Settings', Icons.IconSettings],
+      ['Logout', Icons.IconLogout],
+    ],
+  },
+  {
+    group: 'categories',
+    icons: [
+      ['Streaming', Icons.IconStreaming],
+      ['Fitness', Icons.IconFitness],
+      ['Software', Icons.IconSoftware],
+      ['Music', Icons.IconMusic],
+      ['Cloud', Icons.IconCloud],
+      ['Gaming', Icons.IconGaming],
+      ['Productivity', Icons.IconProductivity],
+      ['Card', Icons.IconCard],
+    ],
+  },
+  {
+    group: 'actions',
+    icons: [
+      ['Add', Icons.IconAdd],
+      ['Upload', Icons.IconUpload],
+      ['Scan', Icons.IconScan],
+      ['Search', Icons.IconSearch],
+      ['Edit', Icons.IconEdit],
+      ['Delete', Icons.IconDelete],
+      ['Close', Icons.IconClose],
+      ['Check', Icons.IconCheck],
+    ],
+  },
+  {
+    group: 'status',
+    icons: [
+      ['Bell', Icons.IconBell],
+      ['Warning', Icons.IconWarning],
+      ['Renewing', Icons.IconRenewing],
+      ['Cancelled', Icons.IconCancelled],
+      ['Calendar', Icons.IconCalendar],
+    ],
+  },
+  {
+    group: 'chrome',
+    icons: [
+      ['Menu', Icons.IconMenu],
+      ['Chevron', Icons.IconChevron],
+      ['Theme', Icons.IconTheme],
+      ['User', Icons.IconUser],
+      ['Receipt', Icons.IconReceipt],
+    ],
+  },
+];
 
 // ─── Section wrapper ────────────────────────────────────────────────────────
 
@@ -188,14 +251,14 @@ export default function DesignSystem() {
             <Button size="lg">Large</Button>
             <Button size="default">Default</Button>
             <Button size="sm">Small</Button>
-            <Button size="icon" variant="outline"><Plus className="h-4 w-4" /></Button>
-            <Button size="icon"><Bell className="h-4 w-4" /></Button>
-            <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline"><Icons.IconAdd className="h-4 w-4" /></Button>
+            <Button size="icon"><Icons.IconBell className="h-4 w-4" ink="inherit" /></Button>
+            <Button size="icon" variant="destructive"><Icons.IconDelete className="h-4 w-4" ink="inherit" /></Button>
           </Row>
           <Row label="with icon">
-            <Button><Plus className="h-4 w-4" />Add subscription</Button>
-            <Button variant="outline"><Upload className="h-4 w-4" />Upload receipt</Button>
-            <Button variant="secondary"><CreditCard className="h-4 w-4" />Payment</Button>
+            <Button><Icons.IconAdd className="h-4 w-4" ink="inherit" />Add subscription</Button>
+            <Button variant="outline"><Icons.IconUpload className="h-4 w-4" />Upload receipt</Button>
+            <Button variant="secondary"><Icons.IconCard className="h-4 w-4" />Payment</Button>
           </Row>
           <Row label="disabled">
             <Button disabled>Default</Button>
@@ -269,7 +332,7 @@ export default function DesignSystem() {
               <EmptyState
                 icon={
                   <span className="flex h-11 w-11 items-center justify-center rounded-full bg-foreground/[0.06]">
-                    <Search className="h-5 w-5 text-muted-foreground" />
+                    <Icons.IconSearch className="h-5 w-5 text-muted-foreground" />
                   </span>
                 }
                 kicker="No matches"
@@ -314,7 +377,7 @@ export default function DesignSystem() {
         {/* ── Dialog ────────────────────────────────────────────────────── */}
         <Section title="Dialog">
           <Row>
-            <Button variant="outline" onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4" />Open dialog</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(true)}><Icons.IconAdd className="h-4 w-4" />Open dialog</Button>
             <AppDialog
               open={dialogOpen}
               onOpenChange={setDialogOpen}
@@ -381,24 +444,26 @@ export default function DesignSystem() {
         </Section>
 
         {/* ── Icons ─────────────────────────────────────────────────────── */}
-        <Section title="Icons (Lucide)">
-          <Row label="examples from the app">
-            {[
-              { icon: LayoutDashboard, name: 'LayoutDashboard' },
-              { icon: CreditCard, name: 'CreditCard' },
-              { icon: Bell, name: 'Bell' },
-              { icon: Plus, name: 'Plus' },
-              { icon: Trash2, name: 'Trash2' },
-              { icon: Upload, name: 'Upload' },
-            ].map(({ icon: Icon, name }) => (
-              <div key={name} className="flex flex-col items-center gap-1.5">
-                <div className="h-10 w-10 flex items-center justify-center border border-border rounded bg-card">
-                  <Icon className="h-4 w-4" />
+        <Section title="Icons (Paypr)">
+          <p className="max-w-prose text-sm text-muted-foreground">
+            Direction 1a, &ldquo;Thermal Line&rdquo;. 24&times;24 grid, 1.5px stroke, butt caps and
+            miter joins &mdash; no rounded caps anywhere. Every glyph carries exactly one detail in
+            brand orange; <code className="font-mono text-xs">ink=&quot;inherit&quot;</code> drops
+            that back to <code className="font-mono text-xs">currentColor</code> for surfaces that
+            are already tinted.
+          </p>
+          {ICON_GROUPS.map(({ group, icons }) => (
+            <Row key={group} label={group}>
+              {icons.map(([name, Icon]) => (
+                <div key={name} className="flex flex-col items-center gap-1.5">
+                  <div className="h-10 w-10 flex items-center justify-center border border-border rounded bg-card">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <span className="font-mono text-[10px] text-muted-foreground">{name}</span>
                 </div>
-                <span className="font-mono text-[10px] text-muted-foreground">{name}</span>
-              </div>
-            ))}
-          </Row>
+              ))}
+            </Row>
+          ))}
           <Row label="sizes">
             {([
               ['h-3 w-3', 12],
@@ -408,10 +473,20 @@ export default function DesignSystem() {
               ['h-8 w-8', 32],
             ] as const).map(([cls, px]) => (
               <div key={px} className="flex flex-col items-center gap-1.5">
-                <Bell className={cls} />
+                <Icons.IconBell className={cls} />
                 <span className="font-mono text-[10px] text-muted-foreground">{px}px</span>
               </div>
             ))}
+          </Row>
+          <Row label="ink — brand (default) vs inherit on a tinted surface">
+            <div className="flex items-center gap-3 rounded border border-border bg-card p-3">
+              <Icons.IconSettings className="h-6 w-6" />
+              <span className="font-mono text-[10px] text-muted-foreground">brand</span>
+            </div>
+            <div className="flex items-center gap-3 rounded bg-brand-orange p-3 text-[#FAFAF8]">
+              <Icons.IconSettings className="h-6 w-6" ink="inherit" />
+              <span className="font-mono text-[10px]">inherit</span>
+            </div>
           </Row>
         </Section>
 

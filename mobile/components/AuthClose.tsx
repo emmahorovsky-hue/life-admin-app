@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { spacing } from '@life-admin/shared';
+import { IconClose } from './icons';
 import { colors } from '../lib/theme';
 import { SCREEN_PAD } from '../lib/quiet';
 
@@ -38,7 +38,7 @@ export function AuthClose() {
       hitSlop={8}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
-      <Ionicons name="close" size={24} color={colors.foreground} />
+      <IconClose size={24} color={colors.foreground} />
     </Pressable>
   );
 }

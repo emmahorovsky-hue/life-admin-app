@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload } from 'lucide-react';
+import { IconUpload } from '@/components/icons';
 import { AppDialog } from '@/components/ui/AppDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -101,7 +101,7 @@ export default function UploadReceiptDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={loading || !file}>
-              <Upload className="mr-2 h-4 w-4" />
+              <IconUpload className="mr-2 h-4 w-4" />
               Extract
             </Button>
           </>

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { hairline, radius, spacing } from '@life-admin/shared';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -21,6 +20,7 @@ import {
   useToast,
   type OpenableSheetHandle,
 } from '../../../components/ui';
+import { IconCheck } from '../../../components/icons';
 import { colors } from '../../../lib/theme';
 import { SCREEN_PAD } from '../../../lib/quiet';
 import { useTabBarInset } from '../../../lib/useTabBarInset';
@@ -172,7 +172,7 @@ export default function AccountScreen() {
               </AppText>
               {user?.emailVerified && (
                 <View style={styles.badge}>
-                  <Ionicons name="checkmark" size={11} color={colors.success} />
+                  <IconCheck size={11} color={colors.success} />
                   <AppText variant="monoLabel" style={styles.badgeText}>VERIFIED</AppText>
                 </View>
               )}

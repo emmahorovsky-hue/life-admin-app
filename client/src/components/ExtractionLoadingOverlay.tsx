@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from 'react';
-import { Check } from 'lucide-react';
+import { IconCheck } from '@/components/icons';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   APP_NAME,
@@ -121,7 +121,7 @@ export default function ExtractionLoadingOverlay({
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 18 }}
                   >
-                    <Check className="w-3 h-3 text-white" strokeWidth={3.2} />
+                    <IconCheck className="w-3 h-3 text-white" strokeWidth={3.2} />
                   </motion.span>
                 ) : (
                   <span className="w-[22px] h-[22px] rounded-full flex-shrink-0 border-2 border-dashed border-border" />

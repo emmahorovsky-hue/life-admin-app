@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { radius } from '@life-admin/shared';
+import { IconChevron } from '../icons';
 import { colors } from '../../lib/theme';
 import { AppText } from '../ui';
 
@@ -20,7 +20,7 @@ export function SettingsDetailHeader({ title }: { title: string }) {
         onPress={() => router.back()}
         style={({ pressed }) => [styles.back, pressed && styles.backPressed]}
       >
-        <Ionicons name="chevron-back" size={24} color={colors.foreground} />
+        <IconChevron direction="left" size={24} color={colors.foreground} />
       </Pressable>
       <AppText variant="title">
         {title}

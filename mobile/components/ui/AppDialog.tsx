@@ -10,8 +10,8 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { radius, spacing } from '@life-admin/shared';
+import { IconClose } from '../icons';
 import { colors } from '../../lib/theme';
 import { useAppActive } from '../../lib/useAppActive';
 import { AppText } from './AppText';
@@ -92,7 +92,7 @@ export function AppDialog({
               onPress={onClose}
               style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
             >
-              <Ionicons name="close" size={16} color={colors.foreground} />
+              <IconClose size={16} color={colors.foreground} />
             </Pressable>
           </View>
           <View style={[styles.body, bodyStyle]}>{children}</View>

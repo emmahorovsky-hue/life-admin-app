@@ -1,33 +1,37 @@
-import { ComponentProps, useRef } from 'react';
+import { useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useMinimizeOnScroll } from 'expo-glass-tabs';
 import { useTabBarInset } from '../../../lib/useTabBarInset';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { radius } from '@life-admin/shared';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AvatarTile } from '../../../components/settings/AvatarTile';
 import { SignOutSheet } from '../../../components/settings/SignOutSheet';
 import { AppText, Card, ScreenTitle, type OpenableSheetHandle } from '../../../components/ui';
+import {
+  IconUser,
+  IconBell,
+  IconWarning,
+  IconChevron,
+  type PayprIconComponent,
+} from '../../../components/icons';
 import { colors } from '../../../lib/theme';
 import { SCREEN_PAD } from '../../../lib/quiet';
-
-type IconName = ComponentProps<typeof Ionicons>['name'];
 
 interface MenuItem {
   href: '/profile/account' | '/profile/notifications' | '/profile/privacy';
   label: string;
-  icon: IconName;
+  icon: PayprIconComponent;
   orange?: boolean;
 }
 
 // Web SettingsIndex's menu minus Appearance — theme is deferred with mobile
 // dark mode; default currency lives in the Account panel (LIF-200 decision).
 const menuItems: MenuItem[] = [
-  { href: '/profile/account', label: 'Account', icon: 'person-outline', orange: true },
-  { href: '/profile/notifications', label: 'Notifications', icon: 'notifications-outline' },
-  { href: '/profile/privacy', label: 'Data & privacy', icon: 'warning-outline', orange: true },
+  { href: '/profile/account', label: 'Account', icon: IconUser, orange: true },
+  { href: '/profile/notifications', label: 'Notifications', icon: IconBell },
+  { href: '/profile/privacy', label: 'Data & privacy', icon: IconWarning, orange: true },
 ];
 
 /**
@@ -76,7 +80,7 @@ export default function SettingsIndexScreen() {
 
       {/* Menu list */}
       <Card padding="none" style={styles.menu} accessibilityLabel="Settings menu">
-        {menuItems.map(({ href, label, icon, orange }, index) => (
+        {menuItems.map(({ href, label, icon: Icon, orange }, index) => (
           <View key={href}>
             {index > 0 && <DottedRule />}
             <Pressable
@@ -84,13 +88,14 @@ export default function SettingsIndexScreen() {
               onPress={() => router.push(href)}
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             >
-              <Ionicons
-                name={icon}
+              <Icon
                 size={20}
                 color={orange ? colors.brandOrange : colors.mutedForeground}
+                // Orange rows are already tinted — see Layout's active nav row.
+                ink={orange ? 'inherit' : 'brand'}
               />
               <AppText variant="headline" style={styles.rowLabel}>{label}</AppText>
-              <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
+              <IconChevron size={20} color={colors.mutedForeground} />
             </Pressable>
           </View>
         ))}

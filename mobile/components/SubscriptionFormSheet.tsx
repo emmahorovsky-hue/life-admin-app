@@ -15,7 +15,6 @@ import {
   BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { format, differenceInCalendarDays } from 'date-fns';
 import {
@@ -39,6 +38,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { subscriptionApi } from '../lib/subscriptions';
 import { candidateToFormPrefill } from '../lib/receiptScan';
 import { categoryIconFor } from '../lib/subscriptionLogo';
+import {
+  IconScan,
+  IconCalendar,
+  IconCancelled,
+  IconSubscriptions,
+  IconDelete,
+} from './icons';
 import { getApiErrorMessage } from '../lib/utils';
 import { SubscriptionLogo } from './SubscriptionLogo';
 import {
@@ -85,6 +91,25 @@ const UNCERTAIN_FIELD_LABELS: Record<string, string> = {
 interface Props {
   /** Called after any successful mutation (create/update/cancel/resume/delete). */
   onSaved: () => void;
+}
+
+/**
+ * Resolves a category to its icon component. A tiny wrapper so the lookup can
+ * happen inside a `.map()` without assigning a component to a local mid-render.
+ */
+function CategoryGlyph({
+  category,
+  size,
+  color,
+  ink,
+}: {
+  category: string;
+  size: number;
+  color: string;
+  ink?: 'brand' | 'inherit';
+}) {
+  const Icon = categoryIconFor(category);
+  return <Icon size={size} color={color} ink={ink} />;
 }
 
 export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Props>(
@@ -331,7 +356,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           {/* Receipt-scan review banner — flags fields the extraction was unsure about. */}
           {uncertainFields.length > 0 && (
             <View style={styles.reviewBanner}>
-              <Ionicons name="scan-outline" size={16} color={colors.brandOrange} />
+              <IconScan size={16} color={colors.brandOrange} ink="inherit" />
               <AppText variant="caption" style={styles.reviewBannerText}>
                 Scanned from your receipt — please double-check{' '}
                 {uncertainFields.map((f) => UNCERTAIN_FIELD_LABELS[f] ?? f).join(', ')}.
@@ -363,7 +388,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
                 {suggestions.map((s) => (
                   <Pressable key={s.name} style={styles.suggestionRow} onPress={() => applySuggestion(s)}>
                     <View style={styles.suggestionIcon}>
-                      <Ionicons name={categoryIconFor(s.category)} size={15} color={colors.foreground} />
+                      <CategoryGlyph category={s.category} size={15} color={colors.foreground} />
                     </View>
                     <AppText variant="body" weight={500} style={styles.suggestionName}>{s.name}</AppText>
                     <AppText variant="monoMeta" style={styles.suggestionCost}>{formatCurrency(suggestionCost(s, values.currency), values.currency)}</AppText>
@@ -442,7 +467,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
               accessibilityState={{ expanded: showDatePicker }}
             >
               <View style={styles.dateBoxLeft}>
-                <Ionicons name="calendar-outline" size={16} color={colors.mutedForeground} />
+                <IconCalendar size={16} color={colors.mutedForeground} />
                 <AppText variant="monoData" style={styles.dateText}>{format(renewalAsDate, 'MMM d, yyyy')}</AppText>
               </View>
               <AppText variant="monoMeta" style={styles.dateRelative}>{relativeLabel}</AppText>
@@ -494,10 +519,11 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
                   }}
                   style={[styles.categoryChip, active && styles.categoryChipActive]}
                 >
-                  <Ionicons
-                    name={categoryIconFor(cat.id)}
+                  <CategoryGlyph
+                    category={cat.id}
                     size={14}
                     color={active ? colors.brandOrange : colors.mutedForeground}
+                    ink={active ? 'inherit' : 'brand'}
                   />
                   <AppText variant="caption" weight={500} style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>
                     {cat.name}
@@ -552,7 +578,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
               <View style={styles.editDivider} />
               {editStatus === 'active' && (
                 <Pressable disabled={loading} onPress={confirmCancelRenewal} style={styles.editAction}>
-                  <Ionicons name="close-circle-outline" size={18} color={colors.brandOrange} />
+                  <IconCancelled size={18} color={colors.brandOrange} ink="inherit" />
                   <AppText variant="footnote" weight={600} style={styles.cancelActionText}>Cancel subscription</AppText>
                 </Pressable>
               )}
@@ -565,12 +591,12 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
                   }
                   style={styles.editAction}
                 >
-                  <Ionicons name="refresh-outline" size={18} color={colors.foreground} />
+                  <IconSubscriptions size={18} color={colors.foreground} />
                   <AppText variant="footnote" weight={600} style={styles.resumeActionText}>Resume subscription</AppText>
                 </Pressable>
               )}
               <Pressable disabled={loading} onPress={confirmDelete} style={styles.editAction}>
-                <Ionicons name="trash-outline" size={18} color={colors.destructive} />
+                <IconDelete size={18} color={colors.destructive} ink="inherit" />
                 <AppText variant="footnote" weight={600} style={styles.deleteActionText}>Delete</AppText>
               </Pressable>
             </View>

@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import {
   Subscription,
@@ -35,6 +34,7 @@ import {
   ReceiptScanChooserHandle,
 } from '../../components/ReceiptScanChooser';
 import { EmptyState } from '../../components/EmptyState';
+import { IconAdd, IconSearch, IconClose, IconDelete } from '../../components/icons';
 import { AppText, Button, ScreenTitle } from '../../components/ui';
 import { colors, fonts, textStyles } from '../../lib/theme';
 import { ROW_LOGO, SCREEN_PAD, quiet } from '../../lib/quiet';
@@ -128,7 +128,7 @@ export default function SubscriptionsScreen() {
         overshootRight={false}
         renderRightActions={() => (
           <Pressable style={styles.deleteAction} onPress={() => handleDelete(sub)}>
-            <Ionicons name="trash-outline" size={22} color={colors.white} />
+            <IconDelete size={22} color={colors.white} ink="inherit" />
             <AppText variant="caption" weight={600} style={styles.deleteActionText}>Delete</AppText>
           </Pressable>
         )}
@@ -180,14 +180,14 @@ export default function SubscriptionsScreen() {
           accessibilityLabel="Add subscription"
           onPress={() => chooserRef.current?.open()}
         >
-          <Ionicons name="add" size={16} color={colors.background} />
+          <IconAdd size={16} color={colors.background} ink="inherit" />
           <AppText style={styles.addButtonText}>Add</AppText>
         </Pressable>
       </View>
 
       {/* Search — a hairline-ruled field, not a bordered card. */}
       <View style={styles.searchBox}>
-        <Ionicons name="search" size={16} color={colors.softMuted} />
+        <IconSearch size={16} color={colors.softMuted} />
         <TextInput
           style={[textStyles.body, styles.searchInput]}
           placeholder="Search subscriptions…"
@@ -198,7 +198,7 @@ export default function SubscriptionsScreen() {
         />
         {searchTerm.length > 0 && (
           <Pressable onPress={() => setSearchTerm('')} hitSlop={8}>
-            <Ionicons name="close-circle" size={16} color={colors.faint} />
+            <IconClose size={16} color={colors.faint} ink="inherit" />
           </Pressable>
         )}
       </View>
@@ -246,7 +246,7 @@ export default function SubscriptionsScreen() {
           ListEmptyComponent={
             searchTerm || categoryFilter !== ALL_CATEGORIES ? (
               <EmptyState
-                iconName="search-outline"
+                icon={IconSearch}
                 iconVariant="muted"
                 kicker="No matches"
                 title="No subscriptions match your filters"

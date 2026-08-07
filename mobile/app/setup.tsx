@@ -12,7 +12,6 @@ import {
 import { Redirect, Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { addDays, addMonths, format } from 'date-fns';
 import {
@@ -44,6 +43,7 @@ import {
   Switch,
   useToast,
 } from '../components/ui';
+import { IconChevron, IconCheck, IconCalendar } from '../components/icons';
 import { colors, fonts } from '../lib/theme';
 import { ROW_PAD_V, SCREEN_PAD, quiet } from '../lib/quiet';
 import { useSheetBackHandler } from '../lib/useSheetBackHandler';
@@ -465,7 +465,7 @@ export default function SetupScreen() {
             accessibilityLabel="Back to picking services"
             style={styles.navButton}
           >
-            <Ionicons name="chevron-back" size={24} color={colors.foreground} />
+            <IconChevron direction="left" size={24} color={colors.foreground} />
           </Pressable>
         ) : (
           <View style={styles.navButton} />
@@ -705,7 +705,7 @@ function PickTile({
       </View>
       {picked && (
         <View style={styles.tileTick}>
-          <Ionicons name="checkmark" size={12} color={colors.white} />
+          <IconCheck size={12} color={colors.white} ink="inherit" />
         </View>
       )}
     </Pressable>
@@ -790,7 +790,7 @@ function CheckRow({
               accessibilityRole="button"
               accessibilityLabel={`${service.name} renewal date`}
             >
-              <Ionicons name="calendar-outline" size={14} color={colors.mutedForeground} />
+              <IconCalendar size={14} color={colors.mutedForeground} />
               <AppText variant="monoMeta" style={styles.dateText}>
                 {format(value, 'MMM d, yyyy')}
               </AppText>

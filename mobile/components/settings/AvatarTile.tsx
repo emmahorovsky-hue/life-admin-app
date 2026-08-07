@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { avatarAssetError, deleteAvatar, uploadAvatar, useAvatarSource } from '../../lib/account';
 import { getApiErrorMessage } from '../../lib/utils';
 import { AppText, FormSheet, useToast, type FormSheetHandle } from '../ui';
+import { IconEdit, IconUpload, IconDelete } from '../icons';
 import { colors, fonts } from '../../lib/theme';
 
 // Pixel twins of the web tile's md/lg variants (client AvatarTile.tsx).
@@ -126,11 +127,14 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
         hitSlop={8}
         style={[styles.badge, { width: s.badge, height: s.badge }, busy && styles.badgeBusy]}
       >
-        <Ionicons
-          name={showImage ? 'pencil' : 'camera'}
-          size={s.badgeIcon}
-          color={colors.background}
-        />
+        {/* The badge is white-on-orange, so the accent falls back to the base
+            colour. `camera` has no Paypr equivalent yet and stays on Ionicons —
+            the same gap the web AvatarTile has. */}
+        {showImage ? (
+          <IconEdit size={s.badgeIcon} color={colors.background} ink="inherit" />
+        ) : (
+          <Ionicons name="camera" size={s.badgeIcon} color={colors.background} />
+        )}
       </Pressable>
 
       <FormSheet ref={sheetRef} accessibilityLabel="Photo options">
@@ -140,7 +144,7 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
           onPress={() => void pickAndUpload()}
           style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
         >
-          <Ionicons name="cloud-upload-outline" size={20} color={colors.mutedForeground} />
+          <IconUpload size={20} color={colors.mutedForeground} />
           <AppText variant="headline" weight={600} style={styles.menuLabel}>Upload new photo</AppText>
         </Pressable>
         <Pressable
@@ -149,7 +153,7 @@ export function AvatarTile({ size = 'lg', style }: AvatarTileProps) {
           onPress={() => void handleRemove()}
           style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
         >
-          <Ionicons name="trash-outline" size={20} color={colors.destructive} />
+          <IconDelete size={20} color={colors.destructive} ink="inherit" />
           <AppText variant="headline" weight={600} style={[styles.menuLabel, styles.menuLabelDestructive]}>Remove photo</AppText>
         </Pressable>
       </FormSheet>

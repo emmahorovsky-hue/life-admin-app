@@ -3,9 +3,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { buttonVariants } from '@/components/ui/button';
 import { APP_NAME } from '@/lib/constants';
 import { Logo } from '@/components/Logo';
-import {
-  RefreshCw, FileText, Users, Shield, Globe, Home,
-} from 'lucide-react';
+// TODO: Users / Shield / Globe / Home are outside the Paypr set's scope — it
+// covers the product's own surfaces, and these four only appear in this
+// marketing list. Left on lucide deliberately rather than inventing glyphs;
+// they and `Camera` in AvatarTile are why lucide-react is still a dependency.
+import { Users, Shield, Globe, Home } from 'lucide-react';
+import { IconSubscriptions, IconReceipt } from '@/components/icons';
 import {
   motion,
   useScroll,
@@ -18,8 +21,8 @@ import ExtractionSection from './ExtractionSection';
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const TRACKED_ITEMS = [
-  { icon: RefreshCw, label: 'Subscriptions', description: 'Netflix, Spotify, SaaS tools' },
-  { icon: FileText, label: 'Contracts', description: 'Service agreements, phone plans' },
+  { icon: IconSubscriptions, label: 'Subscriptions', description: 'Netflix, Spotify, SaaS tools' },
+  { icon: IconReceipt, label: 'Contracts', description: 'Service agreements, phone plans' },
   { icon: Users, label: 'Memberships', description: 'Gym, clubs, associations' },
   { icon: Shield, label: 'Warranties', description: 'Appliances, electronics, vehicles' },
   { icon: Globe, label: 'Domain Names', description: 'Never let a domain lapse' },

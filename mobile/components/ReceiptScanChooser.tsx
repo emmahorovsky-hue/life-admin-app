@@ -27,6 +27,10 @@ interface Props {
   onExtracted: (candidate: SubscriptionCandidate) => void;
 }
 
+// TODO: this chooser stays on Ionicons until the Paypr set has camera and
+// gallery glyphs. Two of its three scan sources have no equivalent, and mixing
+// two icon systems inside a single menu reads worse than deferring the whole
+// menu — the stroke weights don't match. Same gap as `Camera` on web.
 interface Option {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;

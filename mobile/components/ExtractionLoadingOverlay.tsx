@@ -20,7 +20,6 @@ import Animated, {
   useReducedMotion,
   ZoomIn,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 import {
   APP_NAME,
   EXTRACTION_FIELDS,
@@ -30,6 +29,7 @@ import {
   radius,
   spacing,
 } from '@life-admin/shared';
+import { IconCheck } from './icons';
 import { colors, fonts } from '../lib/theme';
 import { AppText } from './ui';
 
@@ -58,7 +58,7 @@ function FieldRow({ label, checked, reduced }: { label: string; checked: boolean
           entering={reduced ? undefined : ZoomIn.springify().damping(18).stiffness(500)}
           style={styles.checkFilled}
         >
-          <Ionicons name="checkmark" size={13} color={colors.white} />
+          <IconCheck size={13} color={colors.white} />
         </Animated.View>
       ) : (
         <View style={styles.checkPending} />

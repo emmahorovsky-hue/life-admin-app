@@ -27,6 +27,7 @@ import {
   SubscriptionSheetsHandle,
 } from '../../components/SubscriptionSheets';
 import { EmptyState } from '../../components/EmptyState';
+import { IconCalendar } from '../../components/icons';
 import { AppText, Button, ScreenTitle } from '../../components/ui';
 import { colors, fonts } from '../../lib/theme';
 import { SCREEN_PAD, quiet } from '../../lib/quiet';
@@ -132,7 +133,7 @@ export default function TimelineScreen() {
       ListHeaderComponent={<ScreenTitle style={styles.title}>What's due next</ScreenTitle>}
       ListEmptyComponent={
         <EmptyState
-          iconName="calendar-outline"
+          icon={IconCalendar}
           kicker="All clear"
           title="Nothing due in the next two months"
           description="Renewals will show up here as they approach."
