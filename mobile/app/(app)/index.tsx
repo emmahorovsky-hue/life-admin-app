@@ -5,7 +5,6 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -15,14 +14,13 @@ import { useTabBarInset } from '../../lib/useTabBarInset';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import {
-  CurrencyAmount,
   DashboardSummary,
   DEFAULT_CURRENCY,
   DUE_SOON_DAYS,
   Subscription,
   dominantCurrency,
   formatCurrency,
-  formatCurrencyTotals,
+  formatCurrencyWithCode,
   spendTotals,
 } from '@life-admin/shared';
 import { dashboardApi } from '../../lib/dashboard';
@@ -39,12 +37,12 @@ import {
   useSetupState,
 } from '../../lib/onboarding';
 import { AppText, Button } from '../../components/ui';
-import { Sparkline } from '../../components/Sparkline';
+import { SpendPage, SpendPager } from '../../components/SpendPager';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors, fonts } from '../../lib/theme';
 // The Dashboard established this language; it now lives in lib/quiet so the
 // other tabs share one definition rather than copying the numbers (LIF-213).
-// The sparkline spans the content width, hence SCREEN_PAD here too.
+// The hero pager spans the content width, hence SCREEN_PAD here too.
 import { ROW_PAD_V, SCREEN_PAD, quiet } from '../../lib/quiet';
 
 // "2026-06" → "Jun". Built as a *local* date on purpose: date-fns `format`
@@ -57,52 +55,60 @@ const monthAbbr = (key: string) => {
   return format(new Date(year, month - 1, 1), 'MMM');
 };
 
-// Split a formatted amount into the three parts the hero styles differently:
-// head ("$84"), decimals (".20"), and a trailing currency code (" SGD", which
-// formatCurrencyTotals appends only when several currencies are on screen).
-// Matching `.dd` specifically — not the last "." — keeps the code out of the
-// de-emphasized tail: it is the only thing telling a USD line from an SGD one,
-// so greying it out would defeat the reason it is there.
-const AMOUNT_PARTS = /^(.*)(\.\d{2})(.*)$/;
+/**
+ * One hero page per currency, dominant first (LIF-251).
+ *
+ * Every figure here stays inside its own currency — this project has no
+ * exchange-rate source, so nothing below adds a USD amount to an SGD one. The
+ * pager puts them side by side instead of stacking them.
+ *
+ * Symbols aren't unique ($ is both USD and SGD), so a page has to name its
+ * currency somewhere — but only once, and not on the 54pt figure, which already
+ * carries a symbol and doesn't need a second qualifier beside it. The
+ * supporting line does the naming instead, and only when there is more than one
+ * page: a lone currency has nothing to be confused with, and that is the common
+ * case.
+ */
+function spendPages(summary: DashboardSummary, primaryCurrency: string): SpendPage[] {
+  const spend = spendTotals(summary, primaryCurrency);
+  const multi = spend.monthly.length > 1;
+  const history = summary.spendHistory ?? [];
 
-function splitAmount(formatted: string): [head: string, decimals: string, code: string] {
-  const m = AMOUNT_PARTS.exec(formatted);
-  return m ? [m[1], m[2], m[3]] : [formatted, '', ''];
-}
+  return spend.monthly.map(({ currency, amount }) => {
+    const annual = spend.annual.find((a) => a.currency === currency)?.amount ?? 0;
+    // Per-currency counts ride along on spendByCurrency; the flat total is the
+    // fallback for a server too old to send it, where there is only one page
+    // anyway and the two numbers agree.
+    const count =
+      summary.spendByCurrency?.find((c) => c.currency === currency)?.activeSubscriptions ??
+      summary.activeSubscriptions;
 
-/** Hero spend figure(s) — 54px, integer ink + decimals de-emphasized. One line
- *  per currency (multi-currency has no exchange rate to collapse into one). */
-function HeroAmount({
-  totals,
-  fallbackCurrency,
-}: {
-  totals: CurrencyAmount[];
-  fallbackCurrency: string;
-}) {
-  const lines = formatCurrencyTotals(totals, fallbackCurrency);
-  return (
-    <View>
-      {lines.map((line) => {
-        const [head, decimals, code] = splitAmount(line);
-        return (
-          // adjustsFontSizeToFit: amounts carry no thousands separators, so a
-          // four-figure multi-currency line ("$1234.56 SGD") overruns the
-          // content width at 54px — shrink it rather than ellipsizing money.
-          <AppText
-            key={line}
-            style={styles.hero}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.6}
-          >
-            {head}
-            <Text style={styles.heroDecimal}>{decimals}</Text>
-            {code ? <Text style={styles.heroCode}>{code}</Text> : null}
-          </AppText>
-        );
-      })}
-    </View>
-  );
+    // The server already trims months with no data at all; this trims the
+    // leading months with none *in this currency* — otherwise a currency the
+    // user picked up recently reads as $0 spent rather than "not tracked yet"
+    // (LIF-212). Later gaps stay 0 so the line stays continuous.
+    const firstTracked = history.findIndex((m) =>
+      m.byCurrency.some((c) => c.currency === currency),
+    );
+    const months = firstTracked === -1 ? [] : history.slice(firstTracked);
+    const trend = months.map((m) => {
+      const entry = m.byCurrency.find((c) => c.currency === currency);
+      return entry ? parseFloat(entry.total) : 0;
+    });
+
+    return {
+      currency,
+      amount: formatCurrency(amount, currency),
+      detail: `${count} ${count === 1 ? 'subscription' : 'subscriptions'} · ${
+        multi ? formatCurrencyWithCode(annual, currency) : formatCurrency(annual, currency)
+      } per year`,
+      trend,
+      axis:
+        months.length >= 2
+          ? [monthAbbr(months[0].month), monthAbbr(months[months.length - 1].month)]
+          : null,
+    };
+  });
 }
 
 export default function DashboardScreen() {
@@ -224,29 +230,12 @@ export default function DashboardScreen() {
     );
   }
 
-  const spend = spendTotals(summary, displayCurrency);
-  const annualLine = formatCurrencyTotals(spend.annual, displayCurrency).join(' / ');
-  const subCount = summary.activeSubscriptions;
+  const pages = spendPages(summary, displayCurrency);
   const shownRenewals = summary.upcomingRenewals.slice(0, 5);
   const hasMore = summary.upcomingRenewals.length > shownRenewals.length;
 
   const currentMonth = format(new Date(), 'MMMM');
-  const chartWidth = Math.max(0, width - SCREEN_PAD * 2);
-
-  // Trend = the dominant currency's series from the reconstructed spend history
-  // (LIF-212). The server already trims months with no data at all; this trims
-  // the leading months with none *in this currency* — otherwise a user whose
-  // dominant currency is recent reads the earlier months as $0 spent rather
-  // than "not tracked yet". Later gaps stay 0 so the line stays continuous.
-  const history = summary.spendHistory ?? [];
-  const firstTracked = history.findIndex((m) =>
-    m.byCurrency.some((c) => c.currency === displayCurrency),
-  );
-  const trendMonths = firstTracked === -1 ? [] : history.slice(firstTracked);
-  const trend = trendMonths.map((m) => {
-    const entry = m.byCurrency.find((c) => c.currency === displayCurrency);
-    return entry ? parseFloat(entry.total) : 0;
-  });
+  const heroWidth = Math.max(0, width - SCREEN_PAD * 2);
 
   const renewalTiming = (days: number, date: string) => {
     if (days <= 0) return 'Renews today';
@@ -298,27 +287,13 @@ export default function DashboardScreen() {
         </Pressable>
       )}
 
-      {/* 2 — Hero spend figure */}
+      {/* 2 — Hero spend figure and its trend, one currency per page (LIF-251).
+          The eyebrow sits outside the pager: it labels every page equally, and
+          a heading that slid with the figures would just be noise. */}
       <View>
         <AppText style={[quiet.eyebrow, styles.eyebrowSpacing]}>Spent this month</AppText>
-        <HeroAmount totals={spend.monthly} fallbackCurrency={displayCurrency} />
-        <AppText style={styles.heroSub}>
-          {subCount} {subCount === 1 ? 'subscription' : 'subscriptions'} · {annualLine} per year
-        </AppText>
+        <SpendPager pages={pages} width={heroWidth} />
       </View>
-
-      {/* 3 — Spending trend (needs ≥2 months to draw a line) */}
-      {trend.length >= 2 && (
-        <View>
-          <Sparkline data={trend} width={chartWidth} />
-          <View style={styles.axisRow}>
-            <AppText style={styles.axisLabel}>{monthAbbr(trendMonths[0].month)}</AppText>
-            <AppText style={styles.axisLabel}>
-              {monthAbbr(trendMonths[trendMonths.length - 1].month)}
-            </AppText>
-          </View>
-        </View>
-      )}
 
       {/* 4 — Divider */}
       <View style={quiet.divider} />
@@ -405,9 +380,10 @@ export default function DashboardScreen() {
 }
 
 // Dashboard "Quiet" 1b (LIF-211). Several sizes here are design-exact and sit
-// off the LIF-210 type ladder by intent (54 hero, 16 row name, 11 eyebrow/axis);
-// the screen is card-free and near-monochrome. Mostly Archivo, but renewal
-// amounts use Space Mono (the monoData face) to match figures on every other tab.
+// off the LIF-210 type ladder by intent (16 row name, 11 eyebrow); the screen is
+// card-free and near-monochrome. Mostly Archivo, but renewal amounts use Space
+// Mono (the monoData face) to match figures on every other tab. The hero's own
+// sizes moved to components/SpendPager with the figure itself (LIF-251).
 const styles = StyleSheet.create({
   // paddingBottom is applied dynamically via useTabBarInset to clear the glass tab bar.
   content: { paddingHorizontal: SCREEN_PAD, paddingTop: SCREEN_PAD, gap: 34 },
@@ -427,28 +403,6 @@ const styles = StyleSheet.create({
   resumeAction: { fontFamily: fonts.sans.medium, fontSize: 13, color: colors.foreground },
 
   eyebrowSpacing: { marginBottom: 12 },
-  hero: {
-    fontFamily: fonts.sans.bold,
-    fontSize: 54,
-    letterSpacing: -2,
-    lineHeight: 51,
-    color: colors.foreground,
-    fontVariant: ['tabular-nums'],
-  },
-  heroDecimal: { color: colors.faint },
-  // Ink, not faint: the code disambiguates $ USD from $ SGD. Sized down so it
-  // reads as a qualifier rather than competing with the figure.
-  heroCode: { fontSize: 22, color: colors.foreground },
-  heroSub: {
-    fontFamily: fonts.sans.regular,
-    fontSize: 13,
-    color: colors.mutedForeground,
-    marginTop: 14,
-    fontVariant: ['tabular-nums'],
-  },
-
-  axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  axisLabel: { fontFamily: fonts.sans.regular, fontSize: 11, color: colors.softMuted },
 
   upcomingTitle: { color: colors.foreground, marginBottom: 4 },
   emptyRenewals: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted, paddingVertical: ROW_PAD_V },
