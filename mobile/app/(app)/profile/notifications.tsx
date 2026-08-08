@@ -83,10 +83,13 @@ export default function NotificationsScreen() {
             <AppText variant="headline" style={styles.rowTitle}>Email reminders</AppText>
             <AppText variant="footnote" style={styles.rowSubtitle}>A heads-up before a subscription renews.</AppText>
           </View>
+          {/* Only the channel actually in flight locks — `saving` already
+              tracks which one, and greying out the other implies the two
+              settings are coupled when the whole point is that they aren't. */}
           <Switch
             checked={emailEnabled}
             onCheckedChange={(next) => save('email', { reminderEmailsEnabled: next }, next)}
-            disabled={saving !== null}
+            disabled={saving === 'email'}
           />
         </View>
 
@@ -109,7 +112,7 @@ export default function NotificationsScreen() {
             <Switch
               checked={pushEnabled}
               onCheckedChange={(next) => save('push', { reminderPushEnabled: next }, next)}
-              disabled={saving !== null}
+              disabled={saving === 'push'}
             />
           )}
         </View>
