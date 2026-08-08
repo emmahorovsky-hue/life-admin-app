@@ -237,8 +237,10 @@ jobs:
       # It used to be a bare `npm audit --audit-level=moderate`. The wrapper
       # exists because that had no way to express "this advisory has no fix that
       # anyone could apply" — and an advisory like that (GHSA-qwww-vcr4-c8h2 in
-      # react-router, whose only patched version has never been published) left
-      # the job permanently red, which is how people learn to stop reading it.
+      # react-router, whose only patched version has never been published; since
+      # withdrawn, so the allowlist entry is gone — the image-size ones are the
+      # live example) left the job permanently red, which is how people learn to
+      # stop reading it.
       # That is the same failure LIF-32 fixed the `|| true` to prevent, arrived
       # at from the other direction. See LIF-215.
       #
