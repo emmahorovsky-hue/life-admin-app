@@ -127,6 +127,7 @@ export const updateProfile = async (data: {
   name?: string;
   surname?: string;
   reminderEmailsEnabled?: boolean;
+  reminderPushEnabled?: boolean;
   timezone?: string;
   theme?: Theme;
   defaultCurrency?: string;

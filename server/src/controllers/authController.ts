@@ -426,7 +426,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    const { name, surname, reminderEmailsEnabled, timezone, theme, defaultCurrency } = req.body;
+    const { name, surname, reminderEmailsEnabled, reminderPushEnabled, timezone, theme, defaultCurrency } = req.body;
 
     const user = await prisma.user.update({
       where: { id: req.user.userId },
@@ -434,6 +434,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
         name: name ?? undefined,
         surname: surname ?? undefined,
         reminderEmailsEnabled: reminderEmailsEnabled ?? undefined,
+        reminderPushEnabled: reminderPushEnabled ?? undefined,
         timezone: timezone ?? undefined,
         theme: theme ?? undefined,
         defaultCurrency: defaultCurrency ?? undefined,

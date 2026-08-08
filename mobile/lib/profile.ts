@@ -6,6 +6,7 @@ export const updateProfile = async (data: {
   surname?: string;
   defaultCurrency?: string;
   reminderEmailsEnabled?: boolean;
+  reminderPushEnabled?: boolean;
 }) => {
   return api.patch<{ user: User }>('/auth/profile', data);
 };
