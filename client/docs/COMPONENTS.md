@@ -279,7 +279,9 @@ holdouts (see below).
 
 ### The contract
 
-- **Grid:** 24×24 viewBox, live area 2.5–21.5, every coordinate on a 0.25 grid.
+- **Grid:** 24×24 viewBox, live area 2.5–21.5 (enforced). Coordinates sit on a
+  0.25 grid wherever the drawing allows — arc radii and diagonal endpoints in
+  eight icons don't, and that's accepted rather than snapped.
 - **Stroke:** 1.5px, `stroke-linecap: butt`, `stroke-linejoin: miter`, `fill: none`.
   **No rounded caps anywhere** — that is the identity of the set, not a detail.
 - **Two inks:** the glyph is `currentColor`, so it inherits `text-muted-foreground` /
@@ -314,11 +316,15 @@ Mobile has no `currentColor`, so its binding takes an explicit `color` prop inst
 
 ### Adding an icon
 
-Draw it on the 24 grid, give it **exactly one** orange detail, add the entry to
-`ICON_GEOMETRY`, then export a thin component from both
-`client/src/components/icons/index.tsx` and `mobile/components/icons/index.tsx`. The
-`IconName` union makes a missing binding a compile error. `src/components/icons/smoke.test.tsx`
-asserts every icon renders its parts and honours `ink`.
+Draw it on the 24 grid, give it **exactly one** orange detail — one accent
+*part*, so a two-element detail like an arrow goes in a single element as
+separate subpaths — add the entry to `ICON_GEOMETRY`, then export a thin
+component from both `client/src/components/icons/index.tsx` and
+`mobile/components/icons/index.tsx`. The `IconName` union makes a missing
+binding a compile error. `smoke.test.tsx` asserts every icon renders its parts
+and paints exactly one accent (none under `ink="inherit"`);
+`geometry.contract.test.ts` asserts the live area and the one-accent rule
+against the shared data, which is the only coverage the mobile bindings get.
 
 Note `client/src/components/icons/**` must stay **components- and types-only** —
 `react-refresh/only-export-components` runs as a warning under `--max-warnings 0`, so an
@@ -333,6 +339,14 @@ exported map or constant there fails lint.
 
 Every product surface is on the Paypr set. Drawing those four is what removes the
 dependency entirely.
+
+> **Auditing this is not a `lucide-react` grep.** Three glyphs were missed on the
+> first pass because they were hand-written `<svg>` in the page — the search icon
+> in the Subscriptions empty state, and the check and cross on the verify-email
+> result pages — so no import search could see them, and all three carried the
+> `stroke-linecap="round"` the set exists to avoid. Grep for `<svg` and for
+> `strokeLinecap` too; `PayprMark`, `Logo` and `LoadingScreen` are the only
+> legitimate inline SVGs left, and they are artwork rather than icons.
 
 ## State Management
 
