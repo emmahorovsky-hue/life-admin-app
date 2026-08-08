@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { resendVerification } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { IconClose } from '@/components/icons';
 
 const errorMessages: Record<string, { headline: string; body: string; showResend: boolean }> = {
   invalid: {
@@ -56,19 +57,9 @@ const VerifyEmailError: React.FC = () => {
       <div className="max-w-md w-full bg-card border rounded-lg p-8 text-center">
         <div className="mb-4">
           <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
-            <svg
-              className="w-8 h-8 text-destructive"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            {/* ink="inherit": already tinted destructive-red, so the accent
+                falls back rather than putting orange inside a red glyph. */}
+            <IconClose className="w-8 h-8 text-destructive" ink="inherit" aria-hidden="true" />
           </div>
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-2">{errorInfo.headline}</h1>

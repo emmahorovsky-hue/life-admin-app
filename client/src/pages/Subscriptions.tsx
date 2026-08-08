@@ -15,6 +15,7 @@ import { Select } from '@/components/ui/select';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
 import { PaperSheet } from '@/components/PaperSheet';
 import { EmptyState } from '@/components/EmptyState';
+import { IconSearch } from '@/components/icons';
 import { PAPER_TINTS, PAPER_RULING } from '@/lib/paper';
 import AddSubscriptionDialog from '@/components/AddSubscriptionDialog';
 import EditSubscriptionDialog from '@/components/EditSubscriptionDialog';
@@ -206,17 +207,7 @@ export default function Subscriptions() {
           <EmptyState
             icon={
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-foreground/[0.06]">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                  className="text-muted-foreground"
-                >
-                  <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="2" />
-                  <path d="M15.5 15.5L21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
+                <IconSearch className="h-[22px] w-[22px] text-muted-foreground" aria-hidden="true" />
               </span>
             }
             kicker="No matches"
