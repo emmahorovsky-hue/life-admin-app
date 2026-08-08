@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { format } from 'date-fns';
 import {
   Subscription,
@@ -41,8 +42,11 @@ import { colors, fonts, textStyles } from '../../lib/theme';
 import { ROW_LOGO, SCREEN_PAD, quiet } from '../../lib/quiet';
 import { useTabBarInset } from '../../lib/useTabBarInset';
 
-/** Gutter between the two columns, and between grid rows. */
+/** Gutter between the columns, and between grid rows. */
 const GRID_GAP = 12;
+/** Fixed at build time, so the FlatList needs no `key` to force the remount RN
+ *  requires when numColumns changes. Make this dynamic and it will. */
+const GRID_COLUMNS = 2;
 
 export default function SubscriptionsScreen() {
   const router = useRouter();
@@ -50,7 +54,8 @@ export default function SubscriptionsScreen() {
   // Cards are sized explicitly rather than flex:1. A last row holding a single
   // card would otherwise stretch it to the full width and break the grid.
   const { width: windowWidth } = useWindowDimensions();
-  const cardWidth = (windowWidth - SCREEN_PAD * 2 - GRID_GAP) / 2;
+  const cardWidth =
+    (windowWidth - SCREEN_PAD * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
   const { openAdd } = useLocalSearchParams<{ openAdd?: string }>();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,12 +148,21 @@ export default function SubscriptionsScreen() {
         accessibilityLabel={`${sub.name}, ${price}, ${meta}`}
         // A half-width card has no room for a swipe-out action, so delete moves
         // to long-press — and to a VoiceOver action, which the swipe never had.
+        // Delete also stays reachable the slow way (card → Edit → Delete in
+        // SubscriptionFormSheet), so this gesture is a shortcut, not the only path.
+        accessibilityHint="Long press to delete"
         accessibilityActions={[{ name: 'delete', label: 'Delete subscription' }]}
         onAccessibilityAction={(e) => {
           if (e.nativeEvent.actionName === 'delete') handleDelete(sub);
         }}
         onPress={() => sheetRef.current?.openDetail(sub)}
-        onLongPress={() => handleDelete(sub)}
+        onLongPress={() => {
+          // The gesture has no on-screen affordance, so the tap-back is the only
+          // thing confirming it fired — without it the 500ms before the Alert
+          // reads as lag.
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          handleDelete(sub);
+        }}
       >
         <SubscriptionLogo
           name={sub.name}
@@ -244,13 +258,12 @@ export default function SubscriptionsScreen() {
           <ActivityIndicator size="large" color={colors.brandOrange} />
         </View>
       ) : (
-        // Two columns (LIF-249). columnWrapperStyle owns the gutter between the
-        // pair; the row gap is the cards' own marginBottom, so the empty state
-        // — which renders as a single full-width child — is unaffected.
+        // A grid (LIF-249). columnWrapperStyle owns the gutter between the pair;
+        // the row gap is the cards' own marginBottom, so the empty state — which
+        // renders as a single full-width child — is unaffected.
         <FlatList
           data={filtered}
-          key="grid-2"
-          numColumns={2}
+          numColumns={GRID_COLUMNS}
           columnWrapperStyle={styles.column}
           keyExtractor={(sub) => sub.id}
           renderItem={renderItem}
@@ -381,8 +394,13 @@ const styles = StyleSheet.create({
   cardEnded: { opacity: 0.55 },
   logo: { borderRadius: 8, marginBottom: 10 },
 
-  // The figures close the card, held apart from the meta line above them.
-  cardPrice: { marginTop: 10 },
+  // The figures close the card, pinned to its bottom edge rather than following
+  // the meta line. columnWrapperStyle stretches both cards in a pair to the
+  // taller one's height, so top-flowed figures sit at different heights when one
+  // name wraps to two lines and its neighbour doesn't — on the screen you open
+  // to compare what you're paying, of all places. `auto` pushes them down; the
+  // padding keeps the gap a plain marginTop was buying.
+  cardPrice: { marginTop: 'auto', paddingTop: 10 },
   rowPrice: { color: colors.foreground, fontSize: 15 },
   rowAnnual: { color: colors.softMuted, marginTop: 2 },
 
