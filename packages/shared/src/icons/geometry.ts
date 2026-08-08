@@ -10,8 +10,15 @@
 //   - 24×24 viewBox, live area 2.5–21.5
 //   - 1.5px stroke, `butt` caps, `miter` joins, `fill: none`
 //     NO ROUNDED CAPS ANYWHERE. That is the whole point.
-//   - every coordinate on a 0.25 grid; straight lines and 45° over curves
-//   - exactly one brand-orange detail per icon; everything else inherits
+//   - straight lines and 45° over curves; coordinates on a 0.25 grid wherever
+//     the drawing allows. Eight icons (subscriptions, cloud, gaming, edit,
+//     warning, theme, user) carry off-grid values at arc radii and diagonal
+//     endpoints where snapping would visibly distort the glyph — this is a
+//     preference, not a law, and `geometry.contract.test.ts` does not assert it
+//   - exactly one brand-orange detail per icon; everything else inherits.
+//     One accent *part*, not one accent region — an arrow whose shaft and head
+//     are separate elements counts as two. Put them in one element as separate
+//     subpaths; the rendering is identical under butt caps and miter joins
 //
 // Adding an icon: draw on the 24 grid, give it exactly one `accent` part, and
 // add it here — both platforms pick it up from the `IconName` union.
@@ -69,8 +76,12 @@ export const ICON_GEOMETRY = {
   ],
   logout: [
     { el: 'path', d: 'M14.5 3.75H4.5v16.5h10' },
-    { el: 'path', d: 'M10.5 12h9.5', stroke: 'accent' },
-    { el: 'polyline', points: '17 8.75 20.25 12 17 15.25', stroke: 'accent' },
+    // Shaft and head are two subpaths of one element, not two elements. The
+    // arrow is a single accent detail, and splitting it made the set's
+    // one-accent-per-glyph rule read as broken by an icon that never broke it.
+    // Pixel-identical: with butt caps and miter joins a subpath break draws
+    // exactly like an element break.
+    { el: 'path', d: 'M10.5 12h9.5M17 8.75L20.25 12L17 15.25', stroke: 'accent' },
   ],
 
   // ── Categories (the CATEGORY_ICONS map on both platforms) ────────────
