@@ -14,13 +14,15 @@
 //
 // A single currency (the overwhelmingly common case) renders as a plain block
 // with no scroll view and no dots — byte-for-byte the layout that shipped before
-// this existed.
+// this existed, eyebrow included.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -36,6 +38,13 @@ import * as Haptics from 'expo-haptics';
 import { AppText } from './ui';
 import { Sparkline } from './Sparkline';
 import { colors, fonts } from '../lib/theme';
+import { SCREEN_PAD, quiet } from '../lib/quiet';
+
+// The eyebrow this hero has always carried. On a multi-currency account each
+// page appends its own code ("Spent this month · USD"): the figure below drops
+// the trailing code it used to carry, and this is the label the eye is already
+// on, so it is the cheapest place to say which currency a page is showing.
+const EYEBROW = 'Spent this month';
 
 /** One currency's worth of hero. The screen owns the money formatting — it has
  *  the shared currency utils and the no-exchange-rate rule to uphold — so this
@@ -66,11 +75,14 @@ function splitAmount(formatted: string): [head: string, decimals: string] {
   return m ? [m[1], m[2]] : [formatted, ''];
 }
 
-function Page({ page, width }: { page: SpendPage; width: number }) {
+function Page({ page, width, named }: { page: SpendPage; width: number; named: boolean }) {
   const [head, decimals] = splitAmount(page.amount);
   return (
     <View style={[styles.page, { width }]}>
       <View>
+        <AppText style={[quiet.eyebrow, styles.eyebrowSpacing]}>
+          {named ? `${EYEBROW} · ${page.currency}` : EYEBROW}
+        </AppText>
         {/* adjustsFontSizeToFit: amounts carry no thousands separators, so a
             five-figure line overruns the content width at 54px — shrink it
             rather than ellipsizing money. */}
@@ -101,43 +113,89 @@ function Page({ page, width }: { page: SpendPage; width: number }) {
   );
 }
 
-/** Position marker for one page. Driven straight off the scroll offset rather
- *  than off a page index in React state, so it tracks the finger continuously
- *  and reverses with it mid-swipe instead of snapping when the gesture ends. */
+/** Position marker for one page, and a way to reach it. The mark is driven
+ *  straight off the scroll offset rather than off a page index in React state,
+ *  so it tracks the finger continuously and reverses with it mid-swipe instead
+ *  of snapping when the gesture ends.
+ *
+ *  Tappable, like the identical dots on the onboarding carousel: sharing their
+ *  look while dropping their affordance would teach one thing and then do
+ *  another. It is also the only way to change page without a swipe, which is
+ *  what Switch Control and VoiceOver have. */
 function Dot({
   index,
   offset,
-  pageWidth,
+  interval,
+  currency,
+  onPress,
 }: {
   index: number;
   offset: SharedValue<number>;
-  pageWidth: number;
+  interval: number;
+  currency: string;
+  onPress: (index: number) => void;
 }) {
   const style = useAnimatedStyle(() => {
     // Distance from this dot's page, in pages: 0 while it is the one on screen,
-    // clamped at 1 so dots further away don't keep changing. `pageWidth` is 0
+    // clamped at 1 so dots further away don't keep changing. `interval` is 0
     // for the frame before layout lands, and 0/0 is NaN, not 0 — floor it.
-    const away = Math.min(Math.abs(offset.value / Math.max(pageWidth, 1) - index), 1);
+    const away = Math.min(Math.abs(offset.value / Math.max(interval, 1) - index), 1);
     return {
       backgroundColor: interpolateColor(away, [0, 1], [colors.brandOrange, colors.border]),
       transform: [{ scale: 1 - away * 0.15 }],
     };
   });
-  return <Animated.View style={[styles.dot, style]} />;
+  return (
+    <Pressable
+      hitSlop={10}
+      onPress={() => onPress(index)}
+      accessibilityRole="button"
+      accessibilityLabel={`Show ${currency} spending`}
+    >
+      <Animated.View style={[styles.dot, style]} />
+    </Pressable>
+  );
 }
 
 export function SpendPager({ pages, width }: { pages: SpendPage[]; width: number }) {
+  // A plain ref, not reanimated's useAnimatedRef: that one exists to be read
+  // from a worklet, and its `.current` does not carry ScrollView's imperative
+  // methods on the JS side — `scrollTo` silently did nothing through it.
+  const scroller = useRef<ScrollView>(null);
   const offset = useSharedValue(0);
   // Which page last settled. A ref, not state: nothing renders off it — the dots
   // read the offset directly — it exists only so the tick fires once per page.
   const settled = useRef(0);
 
+  // The pager runs full-bleed so a swipe started in the screen's own margin is
+  // still a swipe: `pagingEnabled` snaps by the scroll view's frame, so the
+  // frame has to be the whole screen, and each page carries the content
+  // column's padding itself. Anything narrower leaves SCREEN_PAD of dead zone
+  // down each edge, which is exactly where a thumb reaches from.
+  const interval = width + SCREEN_PAD * 2;
+
+  // Refreshing can change the currencies under a parked pager — delete the only
+  // EUR subscription while on the EUR page and the content shrinks beneath the
+  // offset. iOS clamps the offset without necessarily emitting a scroll event,
+  // so `offset` would keep a value past the last page and *every* dot would
+  // read as inactive. Rewind whenever the page list itself changes.
+  const identity = pages.map((p) => p.currency).join(',');
+  useEffect(() => {
+    offset.value = 0;
+    settled.current = 0;
+    scroller.current?.scrollTo({ x: 0, animated: false });
+  }, [identity, offset, scroller]);
+
   const onScroll = useAnimatedScrollHandler((e) => {
     offset.value = e.contentOffset.x;
   });
 
+  // Momentum end is the reliable signal, but a slow drag released with no
+  // velocity doesn't always produce one — hence the drag handler too. Both
+  // round to the page they are heading for and both go through `settled`, so
+  // the pair can't double-tick a single landing.
   const onSettle = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const page = Math.round(e.nativeEvent.contentOffset.x / Math.max(width, 1));
+    const page = Math.round(e.nativeEvent.contentOffset.x / Math.max(interval, 1));
     if (page === settled.current) return;
     settled.current = page;
     // The same selection tick the setup flow and the form sheet use when a
@@ -145,41 +203,58 @@ export function SpendPager({ pages, width }: { pages: SpendPage[]; width: number
     Haptics.selectionAsync().catch(() => {});
   };
 
+  const goTo = (index: number) => {
+    scroller.current?.scrollTo({ x: index * interval, animated: true });
+  };
+
   if (pages.length === 0) return null;
-  if (pages.length === 1) return <Page page={pages[0]} width={width} />;
+  if (pages.length === 1) return <Page page={pages[0]} width={width} named={false} />;
 
   return (
     <View>
       <Animated.ScrollView
+        ref={scroller}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         onMomentumScrollEnd={onSettle}
-        scrollEventThrottle={16}
-        // Pages are exactly the content column wide, so the pager must be too:
-        // `pagingEnabled` snaps by the scroll view's own frame, and any other
-        // width lands the pages off the column.
-        style={{ width }}
+        onScrollEndDrag={onSettle}
+        // Every frame, not every 16ms: the handler runs on the UI thread, and
+        // 16 caps the dots at 60fps on a 120Hz display — the continuous
+        // tracking is the whole reason they read the offset rather than state.
+        scrollEventThrottle={1}
+        style={[styles.pager, { width: interval }]}
       >
         {pages.map((page, i) => (
-          // One accessible element per page: read as three loose scraps of text
+          // One accessible element per page: read as four loose scraps of text
           // otherwise, and VoiceOver can't swipe the pager, so the position has
-          // to be spoken.
+          // to be spoken. The trend is named here too — it is the only thing on
+          // the screen with no text equivalent.
           <View
             key={page.currency}
+            style={styles.frame}
             accessible
-            accessibilityLabel={`${page.currency}, page ${i + 1} of ${pages.length}. Spent this month ${page.amount}. ${page.detail}`}
+            accessibilityLabel={
+              `${page.currency}, page ${i + 1} of ${pages.length}. ${EYEBROW} ${page.amount}. ${page.detail}` +
+              (page.axis ? `. Trend from ${page.axis[0]} to ${page.axis[1]}.` : '')
+            }
           >
-            <Page page={page} width={width} />
+            <Page page={page} width={width} named />
           </View>
         ))}
       </Animated.ScrollView>
 
-      {/* Decorative: every page already announces its own position. */}
-      <View style={styles.dots} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+      <View style={styles.dots}>
         {pages.map((page, i) => (
-          <Dot key={page.currency} index={i} offset={offset} pageWidth={width} />
+          <Dot
+            key={page.currency}
+            index={i}
+            offset={offset}
+            interval={interval}
+            currency={page.currency}
+            onPress={goTo}
+          />
         ))}
       </View>
     </View>
@@ -193,6 +268,13 @@ const styles = StyleSheet.create({
   // The gap the Dashboard's content column used to put between the hero and the
   // trend, now that both live inside one page.
   page: { gap: 34 },
+  eyebrowSpacing: { marginBottom: 12 },
+
+  // Negative margin to escape the screen's horizontal padding — see `interval`.
+  // The padding comes back on each frame, so the pages still line up with the
+  // column even though the scroll view they sit in spans the display.
+  pager: { marginHorizontal: -SCREEN_PAD },
+  frame: { paddingHorizontal: SCREEN_PAD },
 
   hero: {
     fontFamily: fonts.sans.bold,
@@ -220,9 +302,10 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: 6, marginTop: 20 },
   // 6pt squares with a 6pt gap, marked in brand orange when active against
   // `border` when not — exactly the onboarding carousel's pager, so the app has
-  // one page-dot vocabulary rather than two. Square like the logo and the
-  // due-soon marker; the explicit 0 is not a leftover. The colour is set by the
-  // animated style above, which blends between the two as the pager moves; this
-  // is only the shape.
+  // one page-dot vocabulary rather than two (and, since it looks the same, one
+  // that behaves the same: these are tappable too). Square like the logo and
+  // the due-soon marker; the explicit 0 is not a leftover. The colour is set by
+  // the animated style above, which blends between the two as the pager moves;
+  // this is only the shape.
   dot: { width: 6, height: 6, borderRadius: 0 },
 });

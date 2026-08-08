@@ -288,12 +288,10 @@ export default function DashboardScreen() {
       )}
 
       {/* 2 — Hero spend figure and its trend, one currency per page (LIF-251).
-          The eyebrow sits outside the pager: it labels every page equally, and
-          a heading that slid with the figures would just be noise. */}
-      <View>
-        <AppText style={[quiet.eyebrow, styles.eyebrowSpacing]}>Spent this month</AppText>
-        <SpendPager pages={pages} width={heroWidth} />
-      </View>
+          The eyebrow belongs to the pager rather than to this column: on a
+          multi-currency account it names the page's currency, so it has to
+          travel with it. */}
+      <SpendPager pages={pages} width={heroWidth} />
 
       {/* 4 — Divider */}
       <View style={quiet.divider} />
@@ -401,8 +399,6 @@ const styles = StyleSheet.create({
   // a hairline directly above the hero would read as a section divider.
   resumeRow: { borderBottomWidth: 0, paddingVertical: 0 },
   resumeAction: { fontFamily: fonts.sans.medium, fontSize: 13, color: colors.foreground },
-
-  eyebrowSpacing: { marginBottom: 12 },
 
   upcomingTitle: { color: colors.foreground, marginBottom: 4 },
   emptyRenewals: { fontFamily: fonts.sans.regular, fontSize: 13, color: colors.softMuted, paddingVertical: ROW_PAD_V },
