@@ -271,6 +271,83 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 </Table>
 ```
 
+## Icons
+
+The app draws its own set — direction 1a, **"Thermal Line"** — from
+`@/components/icons`. It replaced `lucide-react` everywhere except two flagged
+holdouts (see below).
+
+### The contract
+
+- **Grid:** 24×24 viewBox, live area 2.5–21.5 (enforced). Coordinates sit on a
+  0.25 grid wherever the drawing allows — arc radii and diagonal endpoints in
+  eight icons don't, and that's accepted rather than snapped.
+- **Stroke:** 1.5px, `stroke-linecap: butt`, `stroke-linejoin: miter`, `fill: none`.
+  **No rounded caps anywhere** — that is the identity of the set, not a detail.
+- **Two inks:** the glyph is `currentColor`, so it inherits `text-muted-foreground` /
+  `text-foreground` like lucide did. Exactly **one** detail per icon is brand orange.
+- Straight lines and 45° are preferred over curves.
+
+### The `ink` prop
+
+```tsx
+<IconSettings className="h-5 w-5" />                  {/* orange accent (default) */}
+<IconSettings className="h-5 w-5" ink="inherit" />    {/* one colour throughout */}
+```
+
+Pass `ink="inherit"` wherever the icon is **already tinted** and a second colour would
+fight the first: the active nav row (`text-brand-orange`), a filled `<Button>` or
+`variant="destructive"`, a white-on-orange badge. The accent falls back to
+`currentColor`.
+
+### Geometry is shared with mobile
+
+The coordinates live once, in `packages/shared/src/icons/geometry.ts`, as plain data —
+no React, since the package is consumed by React 18 (web) and React 19 (mobile). Web
+renders it as `<svg>`; mobile renders the same data through `react-native-svg`
+(`mobile/components/icons/`). **A coordinate change lands on both platforms**, which is
+the whole reason it is data rather than 62 hand-written components.
+
+Mobile has no `currentColor`, so its binding takes an explicit `color` prop instead:
+
+```tsx
+<IconSearch size={16} color={colors.mutedForeground} />
+```
+
+### Adding an icon
+
+Draw it on the 24 grid, give it **exactly one** orange detail — one accent
+*part*, so a two-element detail like an arrow goes in a single element as
+separate subpaths — add the entry to `ICON_GEOMETRY`, then export a thin
+component from both `client/src/components/icons/index.tsx` and
+`mobile/components/icons/index.tsx`. The `IconName` union makes a missing
+binding a compile error. `smoke.test.tsx` asserts every icon renders its parts
+and paints exactly one accent (none under `ink="inherit"`);
+`geometry.contract.test.ts` asserts the live area and the one-accent rule
+against the shared data, which is the only coverage the mobile bindings get.
+
+Note `client/src/components/icons/**` must stay **components- and types-only** —
+`react-refresh/only-export-components` runs as a warning under `--max-warnings 0`, so an
+exported map or constant there fails lint.
+
+### Still on lucide
+
+`lucide-react` is deliberately still a dependency, for **one** reason:
+
+- `Users`, `Shield`, `Globe`, `Home` — `pages/Landing.tsx` only. Marketing copy, outside
+  the set's scope, which is the product's own surfaces.
+
+Every product surface is on the Paypr set. Drawing those four is what removes the
+dependency entirely.
+
+> **Auditing this is not a `lucide-react` grep.** Three glyphs were missed on the
+> first pass because they were hand-written `<svg>` in the page — the search icon
+> in the Subscriptions empty state, and the check and cross on the verify-email
+> result pages — so no import search could see them, and all three carried the
+> `stroke-linecap="round"` the set exists to avoid. Grep for `<svg` and for
+> `strokeLinecap` too; `PayprMark`, `Logo` and `LoadingScreen` are the only
+> legitimate inline SVGs left, and they are artwork rather than icons.
+
 ## State Management
 
 ### AuthContext

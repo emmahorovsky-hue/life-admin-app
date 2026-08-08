@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
 import { addDays, addMonths, format } from 'date-fns';
-import { Check } from 'lucide-react';
+import { IconCheck } from '@/components/icons';
 import { AppDialog } from '@/components/ui/AppDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -440,7 +440,7 @@ export function FirstRunWizard({
                       aria-hidden="true"
                       className="absolute -right-px -top-px flex h-[18px] w-[18px] items-center justify-center bg-brand-orange text-white"
                     >
-                      <Check className="h-3 w-3" strokeWidth={3} />
+                      <IconCheck className="h-3 w-3" strokeWidth={3} />
                     </span>
                   )}
                 </button>

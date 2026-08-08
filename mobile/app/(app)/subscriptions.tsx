@@ -11,7 +11,6 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { format } from 'date-fns';
 import {
@@ -37,6 +36,9 @@ import {
   ReceiptScanChooserHandle,
 } from '../../components/ReceiptScanChooser';
 import { EmptyState } from '../../components/EmptyState';
+// IconDelete went with the swipe action (LIF-249): the grid's delete is a
+// long-press straight to the Alert, so nothing on this screen draws the glyph.
+import { IconAdd, IconSearch, IconClose } from '../../components/icons';
 import { AppText, Button, ScreenTitle } from '../../components/ui';
 import { colors, fonts, textStyles } from '../../lib/theme';
 import { ROW_LOGO, SCREEN_PAD, quiet } from '../../lib/quiet';
@@ -203,14 +205,14 @@ export default function SubscriptionsScreen() {
           accessibilityLabel="Add subscription"
           onPress={() => chooserRef.current?.open()}
         >
-          <Ionicons name="add" size={16} color={colors.background} />
+          <IconAdd size={16} color={colors.background} ink="inherit" />
           <AppText style={styles.addButtonText}>Add</AppText>
         </Pressable>
       </View>
 
       {/* Search — a hairline-ruled field, not a bordered card. */}
       <View style={styles.searchBox}>
-        <Ionicons name="search" size={16} color={colors.softMuted} />
+        <IconSearch size={16} color={colors.softMuted} />
         <TextInput
           style={[textStyles.body, styles.searchInput]}
           placeholder="Search subscriptions…"
@@ -221,7 +223,7 @@ export default function SubscriptionsScreen() {
         />
         {searchTerm.length > 0 && (
           <Pressable onPress={() => setSearchTerm('')} hitSlop={8}>
-            <Ionicons name="close-circle" size={16} color={colors.faint} />
+            <IconClose size={16} color={colors.faint} ink="inherit" />
           </Pressable>
         )}
       </View>
@@ -272,7 +274,7 @@ export default function SubscriptionsScreen() {
           ListEmptyComponent={
             searchTerm || categoryFilter !== ALL_CATEGORIES ? (
               <EmptyState
-                iconName="search-outline"
+                icon={IconSearch}
                 iconVariant="muted"
                 kicker="No matches"
                 title="No subscriptions match your filters"

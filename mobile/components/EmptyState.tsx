@@ -1,8 +1,9 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { spacing } from '@life-admin/shared';
 import { colors } from '../lib/theme';
+import * as Icons from './icons';
+import type { PayprIconComponent } from './icons';
 import { AppText, Card } from './ui';
 
 type EmptyStateTone = 'sheet' | 'inline';
@@ -16,10 +17,12 @@ export interface EmptyStateProps {
    */
   tone?: EmptyStateTone;
   /**
-   * Ionicon for the leading disc. Defaults to a receipt glyph; pass a different
-   * name (e.g. `search-outline` for a filtered state) or `null` to omit it.
+   * Paypr icon for the leading disc. Defaults to the receipt glyph; pass a
+   * different component (e.g. `IconSearch` for a filtered state) or `null` to
+   * omit it. Takes a component rather than a name string so a typo is a
+   * compile error, the way the old Ionicons glyph-map union was.
    */
-  iconName?: keyof typeof Ionicons.glyphMap | null;
+  icon?: PayprIconComponent | null;
   iconVariant?: IconVariant;
   /** Space Mono uppercase eyebrow. */
   kicker?: string;
@@ -39,7 +42,7 @@ const BRAND_DISC = `${colors.brandOrange}1A`;
  */
 export function EmptyState({
   tone = 'sheet',
-  iconName = 'receipt-outline',
+  icon: Icon = Icons.IconReceipt,
   iconVariant = 'brand',
   kicker,
   title,
@@ -48,12 +51,14 @@ export function EmptyState({
 }: EmptyStateProps) {
   const body = (
     <View style={styles.body}>
-      {iconName ? (
+      {Icon ? (
         <View style={[styles.disc, iconVariant === 'brand' ? styles.discBrand : styles.discMuted]}>
-          <Ionicons
-            name={iconName}
+          <Icon
             size={24}
             color={iconVariant === 'brand' ? colors.brandOrange : colors.mutedForeground}
+            // The disc already carries the brand tint; a second orange inside
+            // the glyph would be orange on orange.
+            ink={iconVariant === 'brand' ? 'inherit' : 'brand'}
           />
         </View>
       ) : null}

@@ -1,6 +1,6 @@
 import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { radius } from '@life-admin/shared';
+import { IconChevron, IconCheck } from '../icons';
 import { colors } from '../../lib/theme';
 import { AppText } from './AppText';
 
@@ -85,8 +85,8 @@ export function Dropdown({
         >
           {selected?.label ?? value}
         </AppText>
-        <Ionicons
-          name={open ? 'chevron-up' : 'chevron-down'}
+        <IconChevron
+          direction={open ? 'up' : 'down'}
           size={inline ? 12 : 14}
           color={colors.mutedForeground}
         />
@@ -120,7 +120,7 @@ export function Dropdown({
                     {option.meta}
                   </AppText>
                 ) : null}
-                {active && <Ionicons name="checkmark" size={16} color={colors.brandOrange} />}
+                {active && <IconCheck size={16} color={colors.brandOrange} ink="inherit" />}
               </Pressable>
             );
           })}

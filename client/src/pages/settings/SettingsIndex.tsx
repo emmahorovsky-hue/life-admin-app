@@ -1,5 +1,12 @@
 import { Link } from 'react-router-dom';
-import { Bell, ChevronRight, Sun, TriangleAlert, User as UserIcon, type LucideIcon } from 'lucide-react';
+import {
+  IconBell,
+  IconChevron,
+  IconTheme,
+  IconWarning,
+  IconUser,
+  type PayprIconComponent,
+} from '@/components/icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { AvatarTile } from '@/components/settings/AvatarTile';
 import { cn } from '@/lib/utils';
@@ -7,15 +14,15 @@ import { cn } from '@/lib/utils';
 interface MenuItem {
   to: string;
   label: string;
-  icon: LucideIcon;
+  icon: PayprIconComponent;
   orange?: boolean;
 }
 
 const menuItems: MenuItem[] = [
-  { to: '/settings/account', label: 'Account', icon: UserIcon, orange: true },
-  { to: '/settings/notifications', label: 'Notifications', icon: Bell },
-  { to: '/settings/appearance', label: 'Appearance', icon: Sun },
-  { to: '/settings/privacy', label: 'Data & privacy', icon: TriangleAlert, orange: true },
+  { to: '/settings/account', label: 'Account', icon: IconUser, orange: true },
+  { to: '/settings/notifications', label: 'Notifications', icon: IconBell },
+  { to: '/settings/appearance', label: 'Appearance', icon: IconTheme },
+  { to: '/settings/privacy', label: 'Data & privacy', icon: IconWarning, orange: true },
 ];
 
 /** Mobile-only settings index: identity block + drill-down menu list. */
@@ -52,9 +59,14 @@ export default function SettingsIndex() {
               index < menuItems.length - 1 && 'border-b-[1.5px] border-dotted border-border'
             )}
           >
-            <Icon className={cn('h-5 w-5', orange ? 'text-brand-orange' : 'text-muted-foreground')} />
+            {/* Already orange-tinted rows drop the accent to currentColor —
+                see the same reasoning on Layout's active nav row. */}
+            <Icon
+              className={cn('h-5 w-5', orange ? 'text-brand-orange' : 'text-muted-foreground')}
+              ink={orange ? 'inherit' : 'brand'}
+            />
             <span className="flex-1 text-[17px] font-bold">{label}</span>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <IconChevron className="h-5 w-5 text-muted-foreground" />
           </Link>
         ))}
       </nav>

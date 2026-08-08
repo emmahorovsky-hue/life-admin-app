@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Pencil, Upload, Trash2 } from 'lucide-react';
+import { IconEdit, IconCamera, IconUpload, IconDelete } from '@/components/icons';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { avatarUrl, uploadAvatar, deleteAvatar } from '@/lib/api';
@@ -137,9 +137,9 @@ export function AvatarTile({ size = 'lg', className }: AvatarTileProps) {
         )}
       >
         {showImage ? (
-          <Pencil className={s.badgeIcon} strokeWidth={2} />
+          <IconEdit className={s.badgeIcon} strokeWidth={2} ink="inherit" />
         ) : (
-          <Camera className={s.badgeIcon} strokeWidth={2} />
+          <IconCamera className={s.badgeIcon} strokeWidth={2} ink="inherit" />
         )}
       </button>
       <input
@@ -167,7 +167,7 @@ export function AvatarTile({ size = 'lg', className }: AvatarTileProps) {
             disabled={busy}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-secondary disabled:opacity-60"
           >
-            <Upload className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <IconUpload className="h-4 w-4 shrink-0 text-muted-foreground" />
             Upload new photo
           </button>
           <button
@@ -177,7 +177,7 @@ export function AvatarTile({ size = 'lg', className }: AvatarTileProps) {
             disabled={busy}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
           >
-            <Trash2 className="h-4 w-4 shrink-0" />
+            <IconDelete className="h-4 w-4 shrink-0" />
             Remove photo
           </button>
         </div>

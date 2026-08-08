@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { IconChevron } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { SETTINGS_TABS } from './settingsTabs';
 
@@ -66,7 +66,7 @@ export default function SettingsShell() {
             aria-label="Back to settings"
             className="absolute left-0 flex h-11 w-11 items-center justify-center rounded-[2px] text-foreground hover:bg-accent"
           >
-            <ChevronLeft className="h-6 w-6" />
+            <IconChevron direction="left" className="h-6 w-6" />
           </Link>
           <h2 className="text-[17px] font-extrabold">
             {tab.label}

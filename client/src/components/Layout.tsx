@@ -9,15 +9,15 @@ import { getInitials } from '@life-admin/shared';
 import { UnverifiedEmailBanner } from './UnverifiedEmailBanner';
 import { Logo } from './Logo';
 import {
-  Menu,
-  X,
-  LayoutDashboard,
-  CalendarClock,
-  RefreshCw,
-  Settings,
-  LogOut,
-  type LucideIcon,
-} from 'lucide-react';
+  IconMenu,
+  IconClose,
+  IconDashboard,
+  IconTimeline,
+  IconSubscriptions,
+  IconSettings,
+  IconLogout,
+  type PayprIconComponent,
+} from '@/components/icons';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -37,14 +37,14 @@ interface LayoutProps {
 interface NavItem {
   path: string;
   label: string;
-  icon: LucideIcon;
+  icon: PayprIconComponent;
 }
 
 const navItems: NavItem[] = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/timeline', label: 'Timeline', icon: CalendarClock },
-  { path: '/subscriptions', label: 'Subscriptions', icon: RefreshCw },
-  { path: '/settings', label: 'Settings', icon: Settings },
+  { path: '/dashboard', label: 'Dashboard', icon: IconDashboard },
+  { path: '/timeline', label: 'Timeline', icon: IconTimeline },
+  { path: '/subscriptions', label: 'Subscriptions', icon: IconSubscriptions },
+  { path: '/settings', label: 'Settings', icon: IconSettings },
 ];
 
 type SidebarSize = 'sidebar' | 'overlay';
@@ -126,7 +126,7 @@ function SidebarContent({ currentPath, user, size, onNav, onLogout, onClose }: S
         </h1>
         {onClose && (
           <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Close navigation" onClick={onClose}>
-            <X className="h-5 w-5" />
+            <IconClose className="h-5 w-5" />
           </Button>
         )}
       </div>
@@ -161,7 +161,13 @@ function SidebarContent({ currentPath, user, size, onNav, onLogout, onClose }: S
                   className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-brand-orange"
                 />
               )}
-              <Icon className={active ? `${s.icon} text-brand-orange` : `${s.icon} text-muted-foreground`} />
+              {/* The active row is already tinted orange, so the accent detail
+                  has to fall back to currentColor — otherwise it's orange on
+                  orange and the glyph loses its internal contrast. */}
+              <Icon
+                className={active ? `${s.icon} text-brand-orange` : `${s.icon} text-muted-foreground`}
+                ink={active ? 'inherit' : 'brand'}
+              />
               {item.label}
             </button>
           );
@@ -183,7 +189,7 @@ function SidebarContent({ currentPath, user, size, onNav, onLogout, onClose }: S
             aria-label="Log out"
             onClick={onLogout}
           >
-            <LogOut className={s.logoutIcon} />
+            <IconLogout className={s.logoutIcon} />
           </Button>
         </div>
       </div>
@@ -251,7 +257,7 @@ export default function Layout({ children }: LayoutProps) {
               <Logo height={24} />
             </h1>
             <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Open navigation" onClick={() => setMobileOpen(true)}>
-              <Menu className="h-5 w-5" />
+              <IconMenu className="h-5 w-5" />
             </Button>
           </header>
 

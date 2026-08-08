@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef } from 'react';
-import { X } from 'lucide-react';
+import { IconClose } from '@/components/icons';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -138,7 +138,7 @@ export function AppDialog({
           aria-label="Close"
           onClick={close}
         >
-          <X className="h-4 w-4" />
+          <IconClose className="h-4 w-4" />
         </Button>
       </div>
       {subheader}

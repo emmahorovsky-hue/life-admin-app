@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { IconCheck } from '@/components/icons';
 
 const VerifyEmailSuccess: React.FC = () => {
   // Most people land here from an email link in a logged-out browser, where
@@ -12,19 +13,9 @@ const VerifyEmailSuccess: React.FC = () => {
       <div className="max-w-md w-full bg-card border rounded-lg p-8 text-center">
         <div className="mb-4">
           <div className="mx-auto w-16 h-16 bg-accent rounded-full flex items-center justify-center">
-            <svg
-              className="w-8 h-8 text-success"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+            {/* ink="inherit": the glyph is already tinted success-green, and a
+                brand-orange accent inside it would read as a second state. */}
+            <IconCheck className="w-8 h-8 text-success" ink="inherit" aria-hidden="true" />
           </div>
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-2">Email verified</h1>

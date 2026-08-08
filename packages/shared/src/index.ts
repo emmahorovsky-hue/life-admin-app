@@ -7,6 +7,7 @@ export * from './constants/extraction';
 export * from './constants/services';
 export * from './constants/subscriptions';
 export * from './tokens';
+export * from './icons/geometry';
 export * from './utils/currency';
 export * from './utils/dashboard';
 export * from './utils/timeline';
