@@ -6,19 +6,23 @@ import { updateProfile } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/utils';
 
 /**
- * Notifications panel (LIF-185). One control by design: the global renewal
- * reminders toggle. Timing is cycle-aware on the server (weekly 1d … annual
- * 14d — see docs/design/renewal-reminders-strategy.md), so there is no
- * user-set "remind me N days" here; per-subscription mutes live in the
- * subscription edit dialog.
+ * Notifications panel (LIF-185). One control per delivery channel: renewal
+ * reminders by email, and the same heads-up as a push notification on the
+ * mobile app. Timing is cycle-aware on the server (weekly 1d … annual 14d —
+ * see docs/design/renewal-reminders-strategy.md), so there is no user-set
+ * "remind me N days" here; per-subscription mutes live in the subscription
+ * edit dialog.
+ *
+ * The channels are independent — neither is a fallback for the other.
  */
 export default function NotificationsPanel() {
   const { user, updateUser } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  // The switch reflects server state and only moves once the save succeeds,
+  // The switches reflect server state and only move once the save succeeds,
   // so a failed request needs no rollback.
   const enabled = user?.reminderEmailsEnabled ?? true;
+  const pushEnabled = user?.reminderPushEnabled ?? true;
 
   const handleToggle = async (next: boolean) => {
     setSaving(true);
@@ -26,6 +30,19 @@ export default function NotificationsPanel() {
       const res = await updateProfile({ reminderEmailsEnabled: next });
       updateUser(res.data.user);
       toast.success(next ? 'Renewal reminders turned on.' : 'Renewal reminders turned off.');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to update reminder settings. Please try again.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePushToggle = async (next: boolean) => {
+    setSaving(true);
+    try {
+      const res = await updateProfile({ reminderPushEnabled: next });
+      updateUser(res.data.user);
+      toast.success(next ? 'Push notifications turned on.' : 'Push notifications turned off.');
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Failed to update reminder settings. Please try again.'));
     } finally {
@@ -48,6 +65,22 @@ export default function NotificationsPanel() {
           id="renewal-reminders"
           checked={enabled}
           onCheckedChange={handleToggle}
+          disabled={saving}
+        />
+      </div>
+      <div className="leader-dots flex items-center justify-between gap-4 py-4">
+        <div className="min-w-0">
+          <label htmlFor="renewal-push" className="text-base font-bold">
+            Push notifications
+          </label>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            The same heads-up on the Paypr mobile app.
+          </p>
+        </div>
+        <Switch
+          id="renewal-push"
+          checked={pushEnabled}
+          onCheckedChange={handlePushToggle}
           disabled={saving}
         />
       </div>

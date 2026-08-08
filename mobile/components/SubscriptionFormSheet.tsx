@@ -54,6 +54,7 @@ import {
   FieldLabel,
   GlassSheetBackground,
   SheetAmountInput,
+  Switch,
 } from './ui';
 import { colors, fonts, textStyles } from '../lib/theme';
 import { SHEET_BACKDROP_OPACITY, SHEET_HANDLE } from '../lib/quiet';
@@ -123,6 +124,9 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
       [user?.defaultCurrency],
     );
     const [editing, setEditing] = useState<Subscription | null>(null);
+    // Kept outside `values` because SubscriptionFormValues is the shared
+    // create/update shape and this is an edit-only property of an existing row.
+    const [remindersMuted, setRemindersMuted] = useState(false);
     const [values, setValues] = useState<SubscriptionFormValues>(blankValues);
     // Cost is kept as raw text so partial input ("12.") doesn't fight the keyboard.
     const [costText, setCostText] = useState('');
@@ -173,9 +177,11 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
             notes: subscription.notes ?? '',
           });
           setCostText(parseFloat(subscription.cost).toString());
+          setRemindersMuted(subscription.remindersMuted);
         } else {
           setValues(blankValues());
           setCostText('');
+          setRemindersMuted(false);
         }
         setUncertainFields([]);
         setError('');
@@ -190,6 +196,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
         const prefill = candidateToFormPrefill(candidate);
         setValues({ ...blankValues(), ...prefill.values });
         setCostText(prefill.costText);
+        setRemindersMuted(false);
         setUncertainFields(prefill.uncertainFields);
         setError('');
         setSuggestionsOpen(false);
@@ -238,7 +245,8 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
           notes: values.notes.trim() || undefined,
         };
         if (editing) {
-          await subscriptionApi.update(editing.id, data);
+          // Edit-only: a subscription that doesn't exist yet has nothing to mute.
+          await subscriptionApi.update(editing.id, { ...data, remindersMuted });
         } else {
           await subscriptionApi.create(data);
         }
@@ -537,6 +545,25 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
             onChangeText={(notes) => patch({ notes })}
           />
 
+          {/* Renewal reminders — edit only, mirroring web's EditSubscriptionDialog.
+              Framed positively ("reminders on") rather than as a mute, so the
+              switch reads the same way round as every other one in the app. */}
+          {mode === 'edit' && (
+            <View style={styles.reminderRow}>
+              <View style={styles.reminderText}>
+                <FieldLabel style={styles.fieldLabel}>RENEWAL REMINDERS</FieldLabel>
+                <AppText variant="footnote" style={styles.reminderHint}>
+                  Include this subscription in reminders before it renews.
+                </AppText>
+              </View>
+              <Switch
+                checked={!remindersMuted}
+                disabled={loading}
+                onCheckedChange={(enabled) => setRemindersMuted(!enabled)}
+              />
+            </View>
+          )}
+
           {error ? <AppText variant="footnote" style={styles.error}>{error}</AppText> : null}
 
           <Button
@@ -739,6 +766,12 @@ const styles = StyleSheet.create({
     color: colors.foreground,
     textAlignVertical: 'top',
   },
+
+  // The label carries its own marginTop (fieldLabel), so the row aligns the
+  // switch to the block as a whole rather than adding vertical space of its own.
+  reminderRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 16 },
+  reminderText: { flex: 1, minWidth: 0 },
+  reminderHint: { marginTop: 4, color: colors.mutedForeground },
 
   error: { color: colors.destructive, marginTop: 16 },
 

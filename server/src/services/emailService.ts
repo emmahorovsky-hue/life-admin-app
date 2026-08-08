@@ -182,7 +182,8 @@ export type DigestItem = {
   daysUntil: number;
 };
 
-function daysUntilLabel(days: number): string {
+// Exported so the push channel phrases the countdown identically (pushService).
+export function daysUntilLabel(days: number): string {
   if (days === 0) return 'today';
   if (days === 1) return 'tomorrow';
   return `in ${days} days`;
