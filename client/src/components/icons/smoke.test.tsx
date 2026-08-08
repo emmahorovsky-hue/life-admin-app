@@ -34,7 +34,10 @@ describe('icon smoke', () => {
       const C = Icons[comp as keyof typeof Icons] as React.ComponentType<{ ink?: 'brand' | 'inherit' }>;
       const brand = render(<C />);
       const orange = brand.container.querySelectorAll('[stroke="hsl(var(--brand-orange))"],[fill="hsl(var(--brand-orange))"]');
-      expect(orange.length, `${name} brand`).toBeGreaterThan(0);
+      // Exactly one, not merely at least one. `toBeGreaterThan(0)` let an icon
+      // carry a second accent part without failing, which is how a rule that
+      // exists only in prose stops describing the set it governs.
+      expect(orange.length, `${name} brand`).toBe(1);
       brand.unmount();
 
       const inherit = render(<C ink="inherit" />);
