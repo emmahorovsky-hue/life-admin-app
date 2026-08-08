@@ -17,11 +17,22 @@ const expo = new Expo(
   process.env.EXPO_ACCESS_TOKEN ? { accessToken: process.env.EXPO_ACCESS_TOKEN } : {}
 );
 
-// "Netflix", "Netflix and Spotify", "Netflix, Spotify and Figma" — a push body
-// has no room for a table, so the names run as prose.
+// A push body has no room for a table, so the names run as prose — and no room
+// for an unbounded list either. Past three the body has stopped being readable
+// long before it approaches Expo's 4KB payload ceiling, and a digest that trips
+// MessageTooBig fails every run forever: the error is not token-level, so
+// nothing gets pruned and the failed log never dedups the retry.
+const MAX_NAMES_IN_BODY = 3;
+
+// "Netflix", "Netflix and Spotify", "Netflix, Spotify and Figma",
+// "Netflix, Spotify, Figma and 2 more".
 function joinNames(names: string[]): string {
   if (names.length === 1) return names[0];
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  if (names.length <= MAX_NAMES_IN_BODY) {
+    return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  }
+  const shown = names.slice(0, MAX_NAMES_IN_BODY);
+  return `${shown.join(', ')} and ${names.length - MAX_NAMES_IN_BODY} more`;
 }
 
 // Mirrors the subject/heading logic in sendRenewalReminderDigest so the two
@@ -105,6 +116,8 @@ export async function sendRenewalPushDigest({
   }
 
   const invalidTokens = [...malformed];
+  const otherErrors: string[] = [];
+  let firstMessage = '';
   let delivered = 0;
   tickets.forEach((ticket, i) => {
     if (ticket.status !== 'error') {
@@ -117,15 +130,27 @@ export async function sendRenewalPushDigest({
       return;
     }
     // Everything else — MessageTooBig, MessageRateExceeded, and above all
-    // InvalidCredentials — is not actionable per-token, but silence here is
-    // worse than noise: InvalidCredentials means the project's push credentials
-    // are broken and *every* notification is failing, which is otherwise
-    // indistinguishable from complete success in both Sentry and the cron log.
-    reportServerError(
-      `[push] Expo rejected a renewal digest (${ticket.details?.error ?? 'unspecified'})`,
-      new Error(ticket.message)
-    );
+    // InvalidCredentials — is not actionable per-token.
+    if (!firstMessage) firstMessage = ticket.message;
+    otherErrors.push(ticket.details?.error ?? 'unspecified');
   });
+
+  // Reported once per digest rather than once per ticket. One message is sent
+  // per device, so a project-wide fault — InvalidCredentials above all — errors
+  // *every* ticket, and a per-ticket report multiplies a single incident by the
+  // user's device count, on every run of a job that will never stop retrying it.
+  // Silence is still worse than noise (broken push credentials are otherwise
+  // indistinguishable from complete success in both Sentry and the cron log), so
+  // the report stays — just once, with the codes tallied.
+  if (otherErrors.length > 0) {
+    const tally = [...new Set(otherErrors)]
+      .map((code) => `${code} ×${otherErrors.filter((c) => c === code).length}`)
+      .join(', ');
+    reportServerError(
+      `[push] Expo rejected ${otherErrors.length}/${valid.length} renewal digest messages (${tally})`,
+      new Error(firstMessage || 'Expo returned an error ticket with no message')
+    );
+  }
 
   return { invalidTokens, delivered };
 }
