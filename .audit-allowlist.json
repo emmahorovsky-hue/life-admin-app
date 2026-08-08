@@ -13,28 +13,46 @@
   ],
   "allow": [
     {
-      "id": "GHSA-qwww-vcr4-c8h2",
-      "package": "react-router / react-router-dom",
-      "title": "React Router: RSC Mode CSRF Bypass Allows Action Execution Before 400 Response",
-      "url": "https://github.com/advisories/GHSA-qwww-vcr4-c8h2",
-      "expires": "2026-11-01",
+      "id": "GHSA-w3rx-r6r6-pgpr",
+      "package": "image-size",
+      "title": "image-size: ICNS parser allows denial of service through an infinite loop",
+      "url": "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr",
+      "expires": "2026-11-08",
       "reason": [
-        "No published fix exists. The advisory names 8.3.0 as the first patched",
-        "version, but react-router-dom has never published ANY 8.x release —",
-        "latest is 7.18.2 across all dist-tags (checked 2026-08-01). There is",
-        "nothing to upgrade to and nothing to pin via `overrides`. npm's only",
-        "proposal is a downgrade to 7.11.0, which discards seven minors of fixes.",
+        "No published fix exists. The advisory's vulnerable range is `<= 2.0.2`",
+        "and 2.0.2 IS the latest published version (April 2025); the GitHub",
+        "advisory record carries no first_patched_version at all. There is",
+        "nothing to upgrade to and nothing to pin via `overrides`. npm's",
+        "`fixAvailable` proposes downgrading expo 57 to 53, which is a two-major",
+        "downgrade of the whole mobile app and does not even remove image-size.",
         "",
-        "The vulnerable code path is unreachable here. The advisory is in RSC",
-        "server-action handling; this client is a plain SPA — client/src/App.tsx",
-        "uses BrowserRouter, and there is no @react-router/dev, @react-router/node",
-        "or @react-router/serve anywhere, no RSC mode, no server actions, no",
-        "framework mode. The version matcher flags us on range alone.",
+        "Reachability: image-size is a transitive dependency of metro (the React",
+        "Native bundler) via expo — `metro/src/Assets.js` imports it to read the",
+        "dimensions of image assets at bundle time. It parses files that are in",
+        "this repository, on a developer machine or an EAS builder; it never sees",
+        "user-supplied input, and it ships in no runtime artifact — not the server",
+        "bundle, not the web bundle, not the app binary. A malformed ICNS would",
+        "hang our own build, not a user.",
         "",
-        "Review on expiry: if react-router 8.3.0 has shipped, upgrade and delete",
-        "this entry (that is a semver-major with breaking route-API changes — see",
-        "LIF-215). If it still has not, re-confirm the SPA-only assumption above",
-        "still holds and extend."
+        "Review on expiry: check whether image-size has published a fix (2.0.3+)",
+        "or metro has moved off it; if so, upgrade or override and delete this",
+        "entry. Otherwise re-confirm the build-time-only assumption and extend."
+      ]
+    },
+    {
+      "id": "GHSA-5p2g-fcmc-qvqq",
+      "package": "image-size",
+      "title": "image-size: JXL and HEIF parsers allow denial of service through infinite loops",
+      "url": "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq",
+      "expires": "2026-11-08",
+      "reason": [
+        "Same package, same range (`<= 2.0.2`), same absent fix and same",
+        "build-time-only reachability as GHSA-w3rx-r6r6-pgpr above — see that",
+        "entry. Different parsers (JXL/HEIF rather than ICNS), so npm reports it",
+        "as a second advisory and the gate needs it named separately.",
+        "",
+        "Review both entries together on expiry: one image-size release clears",
+        "them at once."
       ]
     }
   ]
