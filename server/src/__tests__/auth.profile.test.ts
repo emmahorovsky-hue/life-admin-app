@@ -121,6 +121,40 @@ describe('Auth Profile Endpoints', () => {
       expect(updated!.timezone).toBe('Asia/Singapore');
     });
 
+    // reminderPushEnabled shipped in Phase 1 with no write path at all — it was
+    // absent from both the validator chain and the controller's destructure, so
+    // the column could never be set from the day it was added. Asserting the
+    // round-trip, not just the response, is what would have caught that.
+    it('updates the push reminder toggle independently of the email one', async () => {
+      const user = await createUser();
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ reminderPushEnabled: false });
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.reminderPushEnabled).toBe(false);
+      // Independent channels: neither toggle is a proxy for the other.
+      expect(res.body.user.reminderEmailsEnabled).toBe(true);
+
+      const updated = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(updated!.reminderPushEnabled).toBe(false);
+      expect(updated!.reminderEmailsEnabled).toBe(true);
+    });
+
+    it('rejects a non-boolean reminderPushEnabled', async () => {
+      const user = await createUser();
+
+      const res = await request(app)
+        .patch('/api/auth/profile')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ reminderPushEnabled: 'yes' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
     it('leaves reminder settings untouched when only other fields are sent', async () => {
       const user = await createUser();
 
@@ -131,6 +165,7 @@ describe('Auth Profile Endpoints', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.user.reminderEmailsEnabled).toBe(true);
+      expect(res.body.user.reminderPushEnabled).toBe(true);
       expect(res.body.user.timezone).toBe('UTC');
     });
 
