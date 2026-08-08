@@ -345,6 +345,41 @@ describe('sendRenewalReminders', () => {
   describe('push channel', () => {
     const TOKEN = 'ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]';
 
+    // The channel ships dark behind ENABLE_PUSH_REMINDERS (see the note in
+    // renewalReminderService). Everything below describes behaviour once the
+    // rollout flag is on; the one case that asserts the gate itself clears it.
+    const flagBefore = process.env.ENABLE_PUSH_REMINDERS;
+    beforeAll(() => { process.env.ENABLE_PUSH_REMINDERS = 'true'; });
+    afterAll(() => {
+      if (flagBefore === undefined) delete process.env.ENABLE_PUSH_REMINDERS;
+      else process.env.ENABLE_PUSH_REMINDERS = flagBefore;
+    });
+
+    it('sends nothing on the push channel while the rollout flag is off', async () => {
+      delete process.env.ENABLE_PUSH_REMINDERS;
+      try {
+        await createUserAndSubscription({
+          renewalDate: utcMidnight(3),
+          deviceTokens: [TOKEN],
+        });
+
+        const result = await sendRenewalReminders(now);
+
+        // The email is unaffected — the gate is on the push channel alone.
+        expect(result.email.sent).toBe(1);
+        expect(result.push.sent).toBe(0);
+        expect(result.push.failed).toBe(0);
+        expect(mockSendRenewalPushDigest).not.toHaveBeenCalled();
+
+        // Nothing logged either, so turning the flag on later still delivers
+        // this occurrence rather than finding it already deduped away.
+        const logs = await prisma.notificationLog.findMany({ where: { channel: 'push' } });
+        expect(logs).toHaveLength(0);
+      } finally {
+        process.env.ENABLE_PUSH_REMINDERS = 'true';
+      }
+    });
+
     it('sends a push alongside the email when both channels are on', async () => {
       const { subscription } = await createUserAndSubscription({
         renewalDate: utcMidnight(3),

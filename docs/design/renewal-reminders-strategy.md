@@ -115,6 +115,16 @@ Built as designed; no migration was needed, since `reminderPushEnabled` and
 - Push toggles revealed on both web and mobile; mobile also shows an "open Settings" path
   when OS permission is denied, rather than a switch that cannot work.
 
+**The channel ships dark.** `ENABLE_PUSH_REMINDERS` gates the whole push path,
+independently of the per-user toggle, and defaults to off. `reminderPushEnabled`
+defaults to `true` and tokens have been registered since LIF-115, so an ungated
+deploy notifies every existing user at once — from the build they already have,
+which carries neither the in-app toggle nor a foreground handler. The server and
+that build cannot ship together because App Store review sits between them.
+Sequence: deploy the server (flag off) → ship the mobile build → set the flag.
+Nothing is logged while the flag is off, so the first run after flipping it still
+delivers the current renewal occurrence rather than finding it deduped away.
+
 Two deliberate deviations from the design above:
 
 - **No receipts pass.** Ticket-level `DeviceNotRegistered` pruning covers the common case;
@@ -135,7 +145,8 @@ dedup, token pruning, partial failure — which is where the logic lives.
    `emailVerified` filter, timezone capture, strategy doc.
 2. **Next:** mobile profile settings section, timezone override dropdown on web, hourly
    cron delivering at 09:00 local time.
-3. **Done:** push channel as above; push toggles revealed on web + mobile.
+3. **Built, not yet live:** push channel as above; push toggles revealed on web +
+   mobile. Dark behind `ENABLE_PUSH_REMINDERS` until the mobile build ships.
 
 ## Rollback
 
