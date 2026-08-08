@@ -32,13 +32,15 @@ GitHub Repository (main branch)
 - PostgreSQL 15+ (locally for testing)
 - Git
 
-> **Node 24 is a hard requirement, not a recommendation.** `expo-server-sdk` v6 is
-> pure ESM (`"type": "module"`) and the server compiles to CommonJS, so the interop
-> relies on Node's `require()` of a synchronous ESM graph — unflagged from Node 22.12
-> onwards. On an older runtime this does not degrade the push channel: `pushService`
-> is imported transitively from the server entrypoint, so the process throws
-> `ERR_REQUIRE_ESM` **at startup** and nothing serves at all. If you are provisioning
-> a new environment, confirm the resolved Node version before deploying.
+> **Node 22.12+ is required for the push channel; we pin 24.** `expo-server-sdk` v6
+> is pure ESM (`"type": "module"`) and the server compiles to CommonJS, so the
+> interop relies on Node's `require()` of a synchronous ESM graph — unflagged from
+> Node 22.12 onwards. `pushService` loads the SDK on first send rather than at
+> import (see the note in that file), so an older runtime fails renewal *pushes* —
+> logged, retried, and invisible to every other route — instead of throwing
+> `ERR_REQUIRE_ESM` at startup and taking the whole API down with it. Still confirm
+> the resolved Node version when provisioning: a silently push-less deploy is not
+> much better than a loud one.
 
 ### Environment Files
 
@@ -95,15 +97,17 @@ Settings → Source → Root Directory must be `/` (the repo root) — **not**
 `packages/shared/**` must stay in the watch paths: the server consumes that
 package's built `dist/`, so a shared-only change has to redeploy the API.
 
-> **Node version — verify this, it is a boot requirement (LIF-250).** Railpack
-> resolves the runtime from `.nvmrc` / the root `engines` field, both of which
-> pin **24**. That pin stopped being advisory when the push channel landed:
-> `expo-server-sdk` v6 is pure ESM, and `require()`-ing it from our CommonJS
-> build only works on Node 22.12+. A service that resolves to an older runtime
-> does not lose push — it fails to start, because `pushService` is imported
-> transitively from the entrypoint. The row is absent from the table above
-> because it was not part of the 2026-07-19 API snapshot; confirm it in the
-> dashboard (or with `node -v` in a deploy log) before trusting it.
+> **Node version — worth verifying (LIF-250).** Railpack resolves the runtime
+> from `.nvmrc` / the root `engines` field, both of which pin **24**. The push
+> channel needs 22.12+: `expo-server-sdk` v6 is pure ESM, and `require()`-ing it
+> from our CommonJS build only works from that version on. A service that
+> resolves to an older runtime loses renewal pushes and nothing else — the SDK is
+> loaded on first send, not at import, precisely so a runtime mismatch cannot
+> take the API down over an optional channel. The failure is therefore quiet:
+> `[renewal-reminders] Failed to send push digest…` in Sentry, with every route
+> still serving. The row is absent from the table above because it was not part
+> of the 2026-07-19 API snapshot; confirm it in the dashboard (or with `node -v`
+> in a deploy log) before trusting it.
 
 > **Migrating to config-as-code (optional, not done).** Versioning this in the
 > repo is reasonable, but do it deliberately: the file must declare

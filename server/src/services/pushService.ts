@@ -1,21 +1,46 @@
-import { Expo, ExpoPushMessage, ExpoPushTicket } from 'expo-server-sdk';
+// Type-only, so nothing here reaches the compiled output. The SDK is loaded at
+// send time instead — see loadExpo below.
+import type { Expo, ExpoPushMessage, ExpoPushTicket } from 'expo-server-sdk';
 import { DigestItem, daysUntilLabel } from './emailService';
 import { reportServerError } from '../utils/reportError';
 
-// expo-server-sdk v6 is pure ESM ("type": "module") while this server compiles
-// to CommonJS. Node 24 (see .nvmrc) supports require() of a synchronous ESM
-// graph, so the interop works at runtime — but jest's CJS module registry does
-// not, which is why the test setup mocks this module wholesale rather than
-// letting it load. Keep the SDK import confined to this file: everything that
-// imports pushService stays testable without it.
-//
-// EXPO_ACCESS_TOKEN is optional. It is only required once "enhanced push
-// security" is switched on for the Expo project, and sending works without it
-// today — but setting it costs nothing and is what stops a leaked push token
-// from letting anyone else notify our users.
-const expo = new Expo(
-  process.env.EXPO_ACCESS_TOKEN ? { accessToken: process.env.EXPO_ACCESS_TOKEN } : {}
-);
+type ExpoSdk = typeof import('expo-server-sdk');
+
+let loaded: Promise<{ ExpoClass: ExpoSdk['Expo']; client: Expo }> | null = null;
+
+/**
+ * Loads the SDK on first send rather than at import.
+ *
+ * expo-server-sdk v6 is pure ESM (`"type": "module"`) while this server compiles
+ * to CommonJS, so consuming it means Node's `require()` of a synchronous ESM
+ * graph — unflagged only from Node 22.12. Loading it at module scope made that a
+ * **boot** requirement: pushService is reachable from the entrypoint via
+ * jobs/index.ts, so an older runtime threw ERR_REQUIRE_ESM at startup and the
+ * whole API failed to serve, over a channel that might be switched off anyway.
+ *
+ * Deferring it scopes the blast radius to the feature: a runtime that cannot
+ * load the SDK now fails this digest, gets logged and retried, and leaves every
+ * other route alone. It also means importing this module no longer drags the SDK
+ * into jest's CommonJS registry, so the pure helpers above are unit-testable
+ * without mocking the module wholesale.
+ *
+ * Memoised — one client for the process, not one per digest.
+ *
+ * EXPO_ACCESS_TOKEN is optional. It is only required once "enhanced push
+ * security" is switched on for the Expo project, and sending works without it
+ * today — but setting it costs nothing and is what stops a leaked push token
+ * from letting anyone else notify our users. Read here rather than at module
+ * load, so setting it takes effect without a restart.
+ */
+function loadExpo(): Promise<{ ExpoClass: ExpoSdk['Expo']; client: Expo }> {
+  loaded ??= import('expo-server-sdk').then(({ Expo: ExpoClass }) => ({
+    ExpoClass,
+    client: new ExpoClass(
+      process.env.EXPO_ACCESS_TOKEN ? { accessToken: process.env.EXPO_ACCESS_TOKEN } : {}
+    ),
+  }));
+  return loaded;
+}
 
 // A push body has no room for a table, so the names run as prose — and no room
 // for an unbounded list either. Past three the body has stopped being readable
@@ -76,6 +101,8 @@ export async function sendRenewalPushDigest({
   tokens: string[];
   items: DigestItem[];
 }): Promise<{ invalidTokens: string[]; delivered: number }> {
+  const { ExpoClass, client } = await loadExpo();
+
   // A malformed row (hand-edited, or a native token that reached the column by
   // mistake) would make Expo reject the whole request, taking the valid devices
   // down with it. Drop it here and treat it as unregistered so it gets cleaned up.
@@ -84,7 +111,7 @@ export async function sendRenewalPushDigest({
   const valid: string[] = [];
   const malformed: string[] = [];
   for (const token of tokens) {
-    (Expo.isExpoPushToken(token) ? valid : malformed).push(token);
+    (ExpoClass.isExpoPushToken(token) ? valid : malformed).push(token);
   }
 
   if (valid.length === 0) return { invalidTokens: malformed, delivered: 0 };
@@ -111,8 +138,8 @@ export async function sendRenewalPushDigest({
   // re-notifying the devices that already got it. That needs >100 devices on a
   // single account to happen at all, which is why it is accepted rather than
   // tracked with partial-progress state.
-  for (const chunk of expo.chunkPushNotifications(messages)) {
-    tickets.push(...(await expo.sendPushNotificationsAsync(chunk)));
+  for (const chunk of client.chunkPushNotifications(messages)) {
+    tickets.push(...(await client.sendPushNotificationsAsync(chunk)));
   }
 
   const invalidTokens = [...malformed];
