@@ -48,6 +48,22 @@ function emptyResult(): ChannelResult {
   return { sent: 0, skipped: 0, failed: 0 };
 }
 
+// The push channel ships dark, gated separately from the per-user toggle.
+//
+// `reminderPushEnabled` defaults to true and device tokens have been collected
+// (with the OS permission prompt) since LIF-115, so without this flag the first
+// deploy of this service starts notifying every existing user — from whatever
+// app build they happen to have installed, which has neither the in-app toggle
+// nor a foreground notification handler. App Store review sits between the
+// server deploy and the build that carries both, so "ship them together" is not
+// something the release process can actually offer.
+//
+// Turn it on once that build is live. Read per call rather than at module load
+// so a flip doesn't need a restart to take effect — and so tests can set it.
+function pushChannelEnabled(): boolean {
+  return process.env.ENABLE_PUSH_REMINDERS === 'true';
+}
+
 // Dedup identity: one renewal occurrence of one subscription on one channel.
 function dedupKey(subscriptionId: string, renewalDate: Date, channel: string): string {
   return `${subscriptionId}|${renewalDate.toISOString()}|${channel}`;
@@ -138,7 +154,7 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<Remi
     await deliverChannel({
       channel: 'push',
       // No registered device is not a failure — there is simply nowhere to send.
-      eligible: user.reminderPushEnabled && tokens.length > 0,
+      eligible: pushChannelEnabled() && user.reminderPushEnabled && tokens.length > 0,
       group,
       userId,
       now,
