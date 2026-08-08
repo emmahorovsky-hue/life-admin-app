@@ -24,6 +24,7 @@ import { BiometricLockScreen } from '../components/BiometricLockScreen';
 import { PrivacyCover } from '../components/PrivacyCover';
 import { useAppActive } from '../lib/useAppActive';
 import { initSentry, navigationIntegration } from '../lib/sentry';
+import { configureNotificationHandler, useNotificationRouting } from '../lib/notificationRouting';
 import { colors } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -31,6 +32,11 @@ SplashScreen.preventAutoHideAsync();
 // Module scope, above every component, so an error thrown while the tree is
 // first rendering is still reported. A no-op without a DSN.
 initSentry();
+
+// Also module scope, and for the same shape of reason: a notification can
+// arrive before any component has mounted, and without a handler registered by
+// then iOS shows nothing while the app is foregrounded.
+configureNotificationHandler();
 
 /**
  * How long the app may sit in the background before biometric quick-unlock
@@ -44,6 +50,12 @@ function RootLayoutNav() {
   const router = useRouter();
   const { user, loading, relock } = useAuth();
   const [splashDone, setSplashDone] = useState(false);
+
+  // Tapping a renewal reminder opens the subscriptions tab. Gated on a
+  // signed-in user so the deep link waits for auth instead of being thrown away
+  // by the `(app)` group's gate; not gated on `locked`, since routing beneath
+  // the lock screen just means the right tab is waiting once they unlock.
+  useNotificationRouting(!!user);
 
   // The web app's typefaces (LIF-197): Archivo for sans, Space Mono for the
   // receipt-style mono. One family per weight — RN static fonts don't

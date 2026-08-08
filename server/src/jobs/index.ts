@@ -41,8 +41,12 @@ export function startCronJobs(): void {
     RENEWAL_SCHEDULE,
     async () => {
       try {
-        const { sent, skipped, failed } = await sendRenewalReminders();
-        console.log(`[cron] renewal-reminders: sent=${sent} skipped=${skipped} failed=${failed}`);
+        const { email, push } = await sendRenewalReminders();
+        console.log(
+          `[cron] renewal-reminders: ` +
+          `email(sent=${email.sent} skipped=${email.skipped} failed=${email.failed}) ` +
+          `push(sent=${push.sent} skipped=${push.skipped} failed=${push.failed})`
+        );
       } catch (err) {
         reportServerError('[cron] renewal-reminders failed', err);
       }
