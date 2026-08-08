@@ -134,10 +134,14 @@ Two deliberate deviations from the design above:
   only monochrome asset in the repo is still the pre-rebrand chevron. Belongs to LIF-234
   along with FCM credentials; iOS is unaffected and uses the app icon.
 
-Known gap: `pushService.ts` has no unit test. `expo-server-sdk` v6 is pure ESM and jest's
-CommonJS registry cannot load it, so `src/__tests__/setup.ts` mocks the module wholesale.
-What the suite covers is the orchestration around it — channel eligibility, per-channel
-dedup, token pruning, partial failure — which is where the logic lives.
+Known gap: `pushService.ts` has no unit test. `src/__tests__/setup.ts` mocks the module
+wholesale, so what the suite covers is the orchestration around it — channel eligibility,
+per-channel dedup, token pruning, partial failure — which is where the logic lives.
+
+The reason for the wholesale mock has since gone: `pushService` now loads `expo-server-sdk`
+on first send rather than at import, so importing the module no longer drags pure ESM into
+jest's CommonJS registry. The helpers that shape what a user actually reads — `joinNames`,
+`buildContent` — can be exported and tested directly whenever someone wants them covered.
 
 ## Phases
 
