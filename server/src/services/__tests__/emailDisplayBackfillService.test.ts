@@ -3,6 +3,7 @@ import { emailFields } from '../../utils/email';
 import {
   restoreEmailDisplayForms,
   findInconsistentUsers,
+  repairCanonicalKeys,
 } from '../emailDisplayBackfillService';
 import { issueEmailVerificationToken, consumeEmailVerificationToken } from '../emailVerificationService';
 
@@ -144,6 +145,134 @@ describe('emailDisplayBackfillService', () => {
           expected: 'moved@example.com',
         },
       ]);
+    });
+  });
+
+  // The other half of the deploy window: --verify only reports, this fixes.
+  // Note the direction — `email` is the truth and `emailCanonical` moves to
+  // match it. Every assertion below checks `email` is untouched, because the
+  // failure this replaced was a "repair" that rewrote `email` back to the old
+  // address and called it success.
+  describe('repairCanonicalKeys', () => {
+    // A row as the pre-deploy code could leave it: verify-email-change wrote the
+    // confirmed new address into `email` alone and left the identity key on the
+    // inbox the user no longer has.
+    const seedStaleKey = async (from: string, to: string) => {
+      const user = await prisma.user.create({
+        data: { ...emailFields(from), password: 'hashed' },
+      });
+      await prisma.$executeRaw`UPDATE "User" SET "email" = ${to} WHERE "id" = ${user.id}`;
+      return user;
+    };
+
+    it('repoints the identity key at the address the user actually confirmed', async () => {
+      const user = await seedStaleKey('firstlast@gmail.com', 'moved@example.com');
+
+      const { outcomes } = await repairCanonicalKeys();
+
+      expect(outcomes).toEqual([
+        {
+          status: 'repaired',
+          userId: user.id,
+          email: 'moved@example.com',
+          from: 'firstlast@gmail.com',
+          to: 'moved@example.com',
+        },
+      ]);
+
+      const repaired = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(repaired!.email).toBe('moved@example.com');
+      expect(repaired!.emailCanonical).toBe('moved@example.com');
+      // The audit that sent you here now comes back clean.
+      expect(await findInconsistentUsers()).toEqual([]);
+    });
+
+    it('does nothing at all to a healthy table', async () => {
+      const flattened = await seedFlattened();
+      const other = await prisma.user.create({
+        data: { ...emailFields('someone@example.com'), password: 'hashed' },
+      });
+
+      const { outcomes } = await repairCanonicalKeys();
+
+      expect(outcomes).toEqual([]);
+      const after = await prisma.user.findMany({ orderBy: { id: 'asc' } });
+      expect(after.map((u) => [u.id, u.email, u.emailCanonical, u.updatedAt])).toEqual(
+        [flattened, other]
+          .sort((a, b) => a.id.localeCompare(b.id))
+          .map((u) => [u.id, u.email, u.emailCanonical, u.updatedAt]),
+      );
+    });
+
+    it('reports the planned repair under --dry-run without writing', async () => {
+      const user = await seedStaleKey('firstlast@gmail.com', 'moved@example.com');
+
+      const { dryRun, outcomes } = await repairCanonicalKeys({ dryRun: true });
+
+      expect(dryRun).toBe(true);
+      expect(outcomes).toEqual([
+        {
+          status: 'repaired',
+          userId: user.id,
+          email: 'moved@example.com',
+          from: 'firstlast@gmail.com',
+          to: 'moved@example.com',
+        },
+      ]);
+
+      const untouched = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(untouched!.emailCanonical).toBe('firstlast@gmail.com');
+    });
+
+    // Two accounts for one inbox is a merge decision, not something a job may
+    // make. The point of the pre-check is that the operator gets both user ids
+    // and an intact database instead of a raw P2002 out of Prisma.
+    it('refuses a repair that would collide with another account, without throwing', async () => {
+      const holder = await prisma.user.create({
+        data: { ...emailFields('taken@gmail.com'), password: 'hashed' },
+      });
+      // Dots make this a different string in `email` but the same inbox once
+      // canonicalized — so the repair target is a key `holder` already owns.
+      const conflicted = await seedStaleKey('old@example.com', 'ta.ken@gmail.com');
+
+      const { outcomes } = await repairCanonicalKeys();
+
+      expect(outcomes).toEqual([
+        {
+          status: 'blocked',
+          userId: conflicted.id,
+          email: 'ta.ken@gmail.com',
+          from: 'old@example.com',
+          to: 'taken@gmail.com',
+          heldBy: holder.id,
+        },
+      ]);
+
+      const stillBroken = await prisma.user.findUnique({ where: { id: conflicted.id } });
+      expect(stillBroken!.emailCanonical).toBe('old@example.com');
+      const bystander = await prisma.user.findUnique({ where: { id: holder.id } });
+      expect(bystander!.emailCanonical).toBe('taken@gmail.com');
+    });
+
+    // A blocked row must not cost the rows that are fine — an incident is
+    // exactly when you want the repairable majority repaired.
+    it('repairs the rows it can even when another is blocked', async () => {
+      await prisma.user.create({
+        data: { ...emailFields('taken@gmail.com'), password: 'hashed' },
+      });
+      await seedStaleKey('old@example.com', 'ta.ken@gmail.com');
+      const repairable = await seedStaleKey('firstlast@gmail.com', 'moved@example.com');
+
+      const { outcomes } = await repairCanonicalKeys();
+
+      expect(outcomes).toHaveLength(2);
+      expect(outcomes).toContainEqual(
+        expect.objectContaining({ status: 'repaired', userId: repairable.id, to: 'moved@example.com' }),
+      );
+      expect(outcomes).toContainEqual(expect.objectContaining({ status: 'blocked' }));
+
+      const fixed = await prisma.user.findUnique({ where: { id: repairable.id } });
+      expect(fixed!.emailCanonical).toBe('moved@example.com');
     });
   });
 });
