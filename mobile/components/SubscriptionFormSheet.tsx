@@ -274,13 +274,21 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
 
     const confirmCancelRenewal = () => {
       if (!editing) return;
+      // Paypr is a tracker: this only sets `cancelledAt` on our own row, and there
+      // is no payment or merchant integration anywhere in the product. The copy
+      // used to read "Paypr will stop renewing X", which states that Paypr acts on
+      // the real subscription — a user could tap through it, believe they had
+      // cancelled, and keep being billed. Say what actually changes, and say who
+      // still has to do the cancelling. The reminder half is load-bearing and
+      // verified: renewalReminderService filters due candidates on
+      // `cancelledAt: null`, so a cancelled row stops generating email and push.
       Alert.alert(
-        'Cancel subscription?',
-        `Paypr will stop renewing ${values.name || 'this subscription'}. It stays active until the period end.`,
+        'Mark as cancelled?',
+        `Paypr will track ${values.name || 'this subscription'} as cancelled and stop reminding you about it. You'll still need to cancel with the provider yourself.`,
         [
-          { text: 'Keep it', style: 'cancel' },
+          { text: 'Not yet', style: 'cancel' },
           {
-            text: 'Yes, cancel it',
+            text: 'Mark cancelled',
             style: 'destructive',
             onPress: () =>
               runAction(() => subscriptionApi.cancel(editing.id), 'Failed to cancel subscription.'),
