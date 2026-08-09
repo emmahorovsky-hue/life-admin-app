@@ -40,7 +40,7 @@
     "cors": "^2.8.5",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
-    "expo-server-sdk": "^6.1.0",
+    "expo-server-sdk": "^7.0.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.1",
     "express-validator": "^7.2.1",
