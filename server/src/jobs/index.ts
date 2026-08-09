@@ -8,8 +8,15 @@ import { reportServerError } from '../utils/reportError';
 // delete those already warned long enough ago.
 const CLEANUP_SCHEDULE = process.env.CLEANUP_CRON ?? '0 3 * * *';
 
-// Daily at 09:00 UTC — send renewal reminder emails for subscriptions due soon.
-const RENEWAL_SCHEDULE = process.env.RENEWAL_CRON ?? '0 9 * * *';
+// Hourly — send renewal reminders for subscriptions due soon.
+//
+// Hourly rather than daily because delivery is per user in their own timezone
+// (LIF-252): the job wakes every hour and each run notifies only the users for
+// whom it is currently daytime, so nobody is woken at 2am by a server that
+// happens to run on UTC. Most runs send nothing. Exactly-once is guaranteed by
+// per-occurrence dedup in the service, not by the schedule, so running 24x more
+// often does not send 24x more mail.
+const RENEWAL_SCHEDULE = process.env.RENEWAL_CRON ?? '0 * * * *';
 
 export function startCronJobs(): void {
   cron.schedule(
@@ -42,11 +49,17 @@ export function startCronJobs(): void {
     async () => {
       try {
         const { email, push } = await sendRenewalReminders();
-        console.log(
-          `[cron] renewal-reminders: ` +
-          `email(sent=${email.sent} skipped=${email.skipped} failed=${email.failed}) ` +
-          `push(sent=${push.sent} skipped=${push.skipped} failed=${push.failed})`
-        );
+        // Quiet on a no-op run. Now that this fires hourly, logging every pass
+        // would bury the ~1 run a day that actually sent something under 23
+        // lines of zeros.
+        const touched = [email, push].some((c) => c.sent + c.skipped + c.failed > 0);
+        if (touched) {
+          console.log(
+            `[cron] renewal-reminders: ` +
+            `email(sent=${email.sent} skipped=${email.skipped} failed=${email.failed}) ` +
+            `push(sent=${push.sent} skipped=${push.skipped} failed=${push.failed})`
+          );
+        }
       } catch (err) {
         reportServerError('[cron] renewal-reminders failed', err);
       }

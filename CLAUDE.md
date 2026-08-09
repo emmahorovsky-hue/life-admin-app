@@ -131,6 +131,7 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `MOBILE_URL`    | Deep link scheme the verify-email/email-change endpoints redirect *to* when `?platform=mobile` (default `lifeadmin://`). Never put it in an email body — mail clients can't open a custom scheme and no Universal Links are configured (LIF-244) |
 | `SENTRY_RELEASE`| Tags Sentry errors by deploy (optional; set in CI/CD)                |
 | `ENABLE_CRON`   | Set to `false` to skip scheduling background jobs (default enabled)  |
+| `RENEWAL_CRON`  | Schedule for the renewal-reminder job (default `0 * * * *` — **hourly**, not daily). Delivery is per user in their own timezone (LIF-252): each run notifies only users whose local time is inside the 09:00–21:00 window, so most runs send nothing and the job logs only when it did something. Exactly-once comes from per-occurrence dedup in `NotificationLog`, not from the schedule — which is what makes an hourly job safe, and a DST fall-back's repeated hour a non-event. Don't set this back to a daily schedule: at `0 9 * * *` only users whose local 09:00–21:00 window contains 09:00 UTC would ever be reminded |
 | `CLEANUP_CRON`  | Cron schedule for unverified-account cleanup (default `0 3 * * *` UTC) |
 | `GRACE_PERIOD_DAYS` | Days an account may stay unverified before deletion (default 7)  |
 | `WARNING_LEAD_HOURS`| Hours before the deadline the warning email is sent (default 24) |
