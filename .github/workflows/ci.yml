@@ -156,6 +156,10 @@ jobs:
       ENABLE_CRON: 'false'
       API_URL: http://localhost:3001
       CLIENT_URL: http://127.0.0.1:4173
+      # Deliberately a dummy, and deliberately still set: NODE_ENV=test makes
+      # emailService refuse to construct a client regardless of this value, so
+      # leaving it here keeps that guard exercised on every run. Removing it
+      # would make the guard dead code in CI and let a regression pass unnoticed.
       RESEND_API_KEY: test-dummy-key
 
     steps:

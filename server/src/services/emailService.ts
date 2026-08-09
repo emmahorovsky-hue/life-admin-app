@@ -1,7 +1,21 @@
 import { Resend } from 'resend';
 import { clientUrl } from '../utils/urls';
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+// `NODE_ENV === 'test'` disables sending outright, whatever the key says. Jest
+// mocks every sender in __tests__/setup.ts, but e2e runs the real server as a
+// separate process where those mocks do not apply — and CI hands it a dummy
+// RESEND_API_KEY, which was enough to construct a live client and put a real
+// HTTPS call to api.resend.com inside the registration request. Registration
+// awaits that send, so it went from ~0.5s to ~2.5s and regularly blew
+// Playwright's 5s assertion timeout, failing a different test on each run
+// (the symptom is always "expected /dashboard, got /register").
+//
+// This also closes the hole __tests__/setup.ts warns about from the other side:
+// a real send is no longer "one env var away" for anything running under test.
+const resend =
+  process.env.RESEND_API_KEY && process.env.NODE_ENV !== 'test'
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null;
 const FROM = process.env.EMAIL_FROM ?? 'noreply@paypr.live';
 
 // The URLs in these emails carry raw single-use tokens, so they must never
