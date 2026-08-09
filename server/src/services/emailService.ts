@@ -1,19 +1,50 @@
 import { Resend } from 'resend';
 import { clientUrl } from '../utils/urls';
 
-// `NODE_ENV === 'test'` disables sending outright, whatever the key says. Jest
-// mocks every sender in __tests__/setup.ts, but e2e runs the real server as a
-// separate process where those mocks do not apply — and CI hands it a dummy
-// RESEND_API_KEY, which was enough to construct a live client and put a real
+// Two ways to disable sending outright, whatever the key says. Jest mocks every
+// sender in __tests__/setup.ts, but e2e runs the real server as a separate
+// process where those mocks do not apply, and that process is handed a
+// RESEND_API_KEY — a dummy in CI, a real one in `server/.env` for anyone who has
+// worked on email. Either was enough to construct a live client and put a real
 // HTTPS call to api.resend.com inside the registration request. Registration
 // awaits that send, so it went from ~0.5s to ~2.5s and regularly blew
-// Playwright's 5s assertion timeout, failing a different test on each run
-// (the symptom is always "expected /dashboard, got /register").
+// Playwright's 5s assertion timeout, failing a different test on each run (the
+// symptom is always "expected /dashboard, got /register"). With a real key it
+// also mailed ~20 `user<ts>@example.com` addresses per run — RFC 2606 reserves
+// that domain precisely so nothing can receive there, so every one hard-bounces
+// and eats into the sender reputation of the domain real verification mail
+// leaves from.
 //
-// This also closes the hole __tests__/setup.ts warns about from the other side:
-// a real send is no longer "one env var away" for anything running under test.
+// `NODE_ENV === 'test'` covers CI, which sets it for the whole e2e job, and
+// closes the hole __tests__/setup.ts warns about from the other side: a real
+// send is no longer "one env var away" under test. It does *not* cover the local
+// e2e backend, which CLAUDE.md starts with `npm run dev` — that command now
+// exports NODE_ENV=test the same way CI does, so the documented path is safe
+// without anyone having to remember a flag.
+//
+// DISABLE_EMAIL_SENDING is for the case that leaves behind: a genuine
+// development-mode server (CSRF on, real rate limiters, Sentry tagged
+// `development`) that still must not mail anyone. Like DISABLE_RATE_LIMIT in
+// middleware/rateLimit.ts it is honoured only outside production, so a leaked
+// env var cannot silently stop verification and password-reset mail. Production
+// is therefore unchanged: it sends whenever RESEND_API_KEY is set.
+const emailSendingDisabled =
+  process.env.NODE_ENV === 'test' ||
+  (process.env.DISABLE_EMAIL_SENDING === 'true' && process.env.NODE_ENV !== 'production');
+
+// Only the ignored-in-production case is worth a line at boot. Disabling sending
+// outside production is already self-announcing — logEmailNotSent prints every
+// skipped message — whereas a flag that is set but deliberately not honoured is
+// invisible until someone wonders why mail is still going out.
+if (process.env.DISABLE_EMAIL_SENDING === 'true' && process.env.NODE_ENV === 'production') {
+  console.warn(
+    '[Email Service] WARNING: DISABLE_EMAIL_SENDING=true was IGNORED because NODE_ENV is ' +
+    '"production". Email sending remains enabled. Unset this variable in production environments.'
+  );
+}
+
 const resend =
-  process.env.RESEND_API_KEY && process.env.NODE_ENV !== 'test'
+  process.env.RESEND_API_KEY && !emailSendingDisabled
     ? new Resend(process.env.RESEND_API_KEY)
     : null;
 const FROM = process.env.EMAIL_FROM ?? 'noreply@paypr.live';

@@ -16,31 +16,113 @@ describe('email service mock coverage', () => {
   });
 
   // The mocks above only cover jest. E2E runs the real server as a separate
-  // process where they do not apply, and CI sets a dummy RESEND_API_KEY — which
-  // was enough to construct a live client and put a real HTTPS call to
-  // api.resend.com inside registration, slowing it ~5x and flaking the suite.
-  // Asserted against the *actual* module, since the mock would hide the bug.
-  it('refuses to send under NODE_ENV=test even when RESEND_API_KEY is set', async () => {
-    const previous = process.env.RESEND_API_KEY;
-    process.env.RESEND_API_KEY = 'test-dummy-key';
-
-    try {
-      await jest.isolateModulesAsync(async () => {
-        const actual = jest.requireActual('../services/emailService');
-
-        // The skip path returns this sentinel; a constructed client would
-        // instead attempt a send and reject on the invalid key.
-        await expect(
-          actual.sendVerificationEmail({
-            to: 'nobody@example.com',
-            verifyUrl: 'http://localhost:3001/verify',
-            expiresInHours: 24,
-          }),
-        ).resolves.toEqual({ id: 'mock-email-id' });
+  // process where they do not apply, and it is handed a RESEND_API_KEY (a dummy
+  // in CI, a real one in a developer's server/.env) — which was enough to
+  // construct a live client and put a real HTTPS call to api.resend.com inside
+  // registration, slowing it ~5x and flaking the suite. The tests below are the
+  // only thing that catches a regression here: the e2e job asserts nothing about
+  // email, so there it would resurface as latency, which `retries: 2` absorbs.
+  //
+  // All three assert against the *actual* module, since the mock would hide the
+  // bug, and each re-imports it in isolation because the guard is evaluated once
+  // at module load.
+  describe('real emailService send guard', () => {
+    // Restores exactly what was there, including "was not set at all" — a stray
+    // RESEND_API_KEY or NODE_ENV leaking out of here would change how every
+    // later suite behaves.
+    function withEnv(overrides: Record<string, string | undefined>, run: () => Promise<void>) {
+      const previous = Object.fromEntries(
+        Object.keys(overrides).map((key) => [key, process.env[key]]),
+      );
+      Object.entries(overrides).forEach(([key, value]) => {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
       });
-    } finally {
-      if (previous === undefined) delete process.env.RESEND_API_KEY;
-      else process.env.RESEND_API_KEY = previous;
+      return run().finally(() => {
+        Object.entries(previous).forEach(([key, value]) => {
+          if (value === undefined) delete process.env[key];
+          else process.env[key] = value;
+        });
+      });
     }
+
+    // The skip path returns this sentinel; a constructed client would instead
+    // attempt a send.
+    const SKIPPED = { id: 'mock-email-id' };
+
+    const verification = {
+      to: 'nobody@example.com',
+      verifyUrl: 'http://localhost:3001/verify',
+      expiresInHours: 24,
+    };
+
+    it('refuses to send under NODE_ENV=test even when RESEND_API_KEY is set', async () => {
+      await withEnv({ NODE_ENV: 'test', RESEND_API_KEY: 'test-dummy-key' }, async () => {
+        await jest.isolateModulesAsync(async () => {
+          const actual = jest.requireActual('../services/emailService');
+          await expect(actual.sendVerificationEmail(verification)).resolves.toEqual(SKIPPED);
+        });
+      });
+    });
+
+    // The local e2e backend is started with `npm run dev`, which leaves NODE_ENV
+    // unset. CLAUDE.md's command now exports NODE_ENV=test, but this flag is the
+    // escape hatch for a run that wants development semantics everywhere else.
+    it('refuses to send when DISABLE_EMAIL_SENDING=true outside production', async () => {
+      await withEnv(
+        {
+          NODE_ENV: 'development',
+          RESEND_API_KEY: 'test-dummy-key',
+          DISABLE_EMAIL_SENDING: 'true',
+        },
+        async () => {
+          await jest.isolateModulesAsync(async () => {
+            const actual = jest.requireActual('../services/emailService');
+            await expect(actual.sendVerificationEmail(verification)).resolves.toEqual(SKIPPED);
+          });
+        },
+      );
+    });
+
+    // The flag is a dev convenience, so it must not be able to silence
+    // verification and password-reset mail in production if it leaks into the
+    // deployed environment (same treatment as DISABLE_RATE_LIMIT). This is also
+    // what proves the guard above didn't disable sending outright: with the SDK
+    // stubbed, a genuinely intended send still reaches it.
+    it('ignores DISABLE_EMAIL_SENDING in production and still sends', async () => {
+      await withEnv(
+        {
+          NODE_ENV: 'production',
+          RESEND_API_KEY: 'test-dummy-key',
+          DISABLE_EMAIL_SENDING: 'true',
+        },
+        async () => {
+          const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+          const send = jest.fn().mockResolvedValue({ data: { id: 'real-send-id' }, error: null });
+
+          try {
+            await jest.isolateModulesAsync(async () => {
+              // Stub the SDK rather than the service: the guard decides whether
+              // a client is constructed at all, so only the transport can be
+              // replaced without testing something other than the guard.
+              jest.doMock('resend', () => ({
+                Resend: jest.fn().mockImplementation(() => ({ emails: { send } })),
+              }));
+
+              const actual = jest.requireActual('../services/emailService');
+              await expect(actual.sendVerificationEmail(verification)).resolves.toEqual({
+                id: 'real-send-id',
+              });
+            });
+
+            expect(send).toHaveBeenCalledTimes(1);
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('DISABLE_EMAIL_SENDING'));
+          } finally {
+            jest.dontMock('resend');
+            warn.mockRestore();
+          }
+        },
+      );
+    });
   });
 });
