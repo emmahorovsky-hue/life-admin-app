@@ -358,7 +358,15 @@ const styles = StyleSheet.create({
   // Don't grow this margin to space the grid off the filters — the chip row is a
   // horizontal ScrollView with no fixed height, and taking height off it here
   // clips the pills. The gap lives in listContent's paddingTop instead.
-  chips: { flexGrow: 0, marginTop: 18, marginBottom: 4 },
+  //
+  // flexShrink: 0 is load-bearing for the same reason. A ScrollView's flex basis
+  // is its content height, so the grid below asks for the height of *every* card;
+  // once that overflows the screen Yoga shrinks the flexible siblings, and the
+  // chip row (flexShrink: 1 by default) gives up the pt or two that chops the
+  // descenders off "Streaming". It only showed under All — narrowing the filter
+  // shortened the grid enough to clear the overflow. The grid is the one that
+  // should absorb it: it scrolls, the chip row doesn't.
+  chips: { flexGrow: 0, flexShrink: 0, marginTop: 18, marginBottom: 4 },
   chipsContent: { paddingHorizontal: SCREEN_PAD, gap: 8, alignItems: 'center' },
   // Inactive chips are plain text; only the active one takes a surface, so the
   // filter row reads as a line of words rather than a wall of bordered boxes.
