@@ -212,6 +212,33 @@ railway run npm run prisma:migrate:deploy
 railway run npm run seed
 ```
 
+**A migration that fails here blocks every later deploy.** Prisma records the
+attempt as a FAILED row in `_prisma_migrations` and then refuses to apply
+anything at all until someone clears it with `prisma migrate resolve`. That is
+why a migration whose success depends on the shape of production data carries a
+pre-deploy check in its own header comment — read the header of any new
+migration before shipping it.
+
+#### One-off: before the first deploy carrying `20260809143000_add_user_email_canonical`
+
+That migration derives `User.emailCanonical` from `User.email` and puts a unique
+index on it. Two accounts that are really one Gmail inbox (`firstlast@` and
+`first.last@`, the second registered during the LIF-80 window) collapse onto one
+value and abort the index. Confirm production has no such pair — an empty result
+means go:
+
+```sql
+SELECT CASE WHEN split_part(lower("email"),'@',2) IN ('gmail.com','googlemail.com')
+         THEN replace(split_part(split_part(lower("email"),'@',1),'+',1),'.','') || '@gmail.com'
+         ELSE lower("email") END AS canonical,
+       count(*), array_agg("id" || ' ' || "email")
+FROM "User" GROUP BY 1 HAVING count(*) > 1;
+```
+
+Any row returned is a merge decision for a human, not something to automate.
+Full context and the recovery steps live in the migration file itself; delete
+this subsection once the migration is applied in production.
+
 ### 2.3 Verify Database
 
 1. Go to PostgreSQL service in Railway

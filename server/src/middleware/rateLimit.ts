@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { verifyToken } from '../utils/jwt';
 import { getRequestToken } from '../utils/requestToken';
 import { logSecurityEvent } from '../utils/securityLog';
+import { canonicalEmail } from '../utils/email';
 import type { AuthRequest } from './auth';
 
 // General API rate limit (LIF-24). Auth endpoints keep their own much tighter
@@ -157,6 +158,27 @@ export const authenticatedUserKey = (req: Request): string => {
   const userId = (req as AuthRequest).user?.userId;
   if (userId) return `user:${userId}`;
   return `ip:${ipKeyGenerator(req.ip ?? '')}`;
+};
+
+/**
+ * Bucket key for the unauthenticated per-email limiters on `/auth/forgot-password`
+ * and `/auth/resend-verification`.
+ *
+ * Keys on the *canonical* address, not the typed one. Gmail ignores dots, so
+ * `first.last@` and `firstlast@` reach one inbox and must share one budget —
+ * keying on the raw string let anyone bypass the 1/min and 5/hour caps by
+ * sprinkling dots, turning a per-email throttle into an unmetered mail bomb
+ * aimed at a known address.
+ *
+ * These limiters are mounted *before* the validation chain, so this sees an
+ * arbitrary request body: `canonicalEmail` takes `unknown` and answers null
+ * rather than throwing, which is what stops `{"email": 123}` from becoming an
+ * unauthenticated 500. Namespaced so a crafted address can never collide with
+ * the IP fallback's key space.
+ */
+export const emailOrIpKey = (req: Request): string => {
+  const canonical = canonicalEmail(req.body?.email);
+  return canonical ? `email:${canonical}` : `ip:${ipKeyGenerator(req.ip ?? '')}`;
 };
 
 /**

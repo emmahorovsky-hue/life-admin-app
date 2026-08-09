@@ -5,6 +5,7 @@ import {
   runUnverifiedAccountCleanup,
 } from '../accountCleanupService';
 import { sendDeletionWarningEmail } from '../emailService';
+import { emailFields } from '../../utils/email';
 
 const warnMock = sendDeletionWarningEmail as jest.Mock;
 
@@ -25,7 +26,7 @@ interface UserOpts {
 async function createUser(opts: UserOpts) {
   return prisma.user.create({
     data: {
-      email: opts.email,
+      ...emailFields(opts.email),
       password: 'hashedpassword',
       emailVerified: opts.emailVerified ?? false,
       createdAt: opts.createdAt ?? new Date(),

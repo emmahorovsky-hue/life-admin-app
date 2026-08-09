@@ -7,6 +7,7 @@ import cors from 'cors';
 import authRoutes from '../routes/auth';
 import prisma from '../utils/db';
 import * as emailService from '../services/emailService';
+import { emailFields } from '../utils/email';
 
 // ts-jest compiles named exports to read-only getters, so spyOn() can't replace
 // them. Mock the module instead (keeping the real impls we don't override).
@@ -68,7 +69,7 @@ describe('Auth Password Reset Endpoints', () => {
 
   async function createUser(email = 'reset@example.com', password = 'OldPass123!') {
     return prisma.user.create({
-      data: { email, password: await bcrypt.hash(password, 10), name: 'Reset User' },
+      data: { ...emailFields(email), password: await bcrypt.hash(password, 10), name: 'Reset User' },
     });
   }
 

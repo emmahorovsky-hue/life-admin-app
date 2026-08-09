@@ -3,6 +3,7 @@ import { sendRenewalReminders } from '../services/renewalReminderService';
 import { computeNextRenewal } from '../utils/renewal';
 import * as emailService from '../services/emailService';
 import * as pushService from '../services/pushService';
+import { emailFields } from '../utils/email';
 
 // setup.ts mocks every sender, so no local override is needed here.
 const mockSendRenewalReminderDigest = emailService.sendRenewalReminderDigest as jest.MockedFunction<typeof emailService.sendRenewalReminderDigest>;
@@ -50,7 +51,7 @@ async function createUserAndSubscription({
 
   const user = await prisma.user.create({
     data: {
-      email,
+      ...emailFields(email),
       password: 'hashed-password',
       emailVerified,
       reminderEmailsEnabled,
@@ -306,7 +307,7 @@ describe('sendRenewalReminders', () => {
 
   it('bundles multiple due subscriptions for the same user into one digest email', async () => {
     const user = await prisma.user.create({
-      data: { email: `multi-${Date.now()}@example.com`, password: 'hashed', emailVerified: true },
+      data: { ...emailFields(`multi-${Date.now()}@example.com`), password: 'hashed', emailVerified: true },
     });
 
     await prisma.subscription.createMany({
@@ -611,7 +612,7 @@ describe('sendRenewalReminders', () => {
     it('bundles a user’s due subscriptions into one push', async () => {
       const user = await prisma.user.create({
         data: {
-          email: `push-multi-${Date.now()}@example.com`,
+          ...emailFields(`push-multi-${Date.now()}@example.com`),
           password: 'hashed',
           emailVerified: true,
           deviceTokens: { create: [{ token: TOKEN, platform: 'ios' }] },

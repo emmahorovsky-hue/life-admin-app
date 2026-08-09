@@ -4,6 +4,7 @@
 import 'dotenv/config';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { emailFields } from '../src/utils/email';
 import bcrypt from 'bcryptjs';
 
 // pg falls back to libpq defaults (unix socket, database named after the OS
@@ -26,7 +27,7 @@ async function main() {
     where: { email: 'test@example.com' },
     update: {},
     create: {
-      email: 'test@example.com',
+      ...emailFields('test@example.com'),
       password: hashedPassword,
       name: 'Test User',
     },

@@ -6,6 +6,7 @@ import subscriptionRoutes from '../routes/subscriptions';
 import dashboardRoutes from '../routes/dashboard';
 import { generateToken } from '../utils/jwt';
 import prisma from '../utils/db';
+import { emailFields } from '../utils/email';
 
 const createTestApp = () => {
   const app = express();
@@ -24,7 +25,7 @@ function authCookie(userId: string, email: string): string {
 // few months in the past so computeNextRenewal rolls it forward to a future date.
 async function seedUserWithSubscription(overrides: { renewalDate?: Date } = {}) {
   const user = await prisma.user.create({
-    data: { email: `cancel-${Date.now()}-${Math.random()}@example.com`, password: 'hashed' },
+    data: { ...emailFields(`cancel-${Date.now()}-${Math.random()}@example.com`), password: 'hashed' },
   });
   const renewalDate =
     overrides.renewalDate ?? new Date(Date.now() - 1000 * 60 * 60 * 24 * 70); // ~70 days ago

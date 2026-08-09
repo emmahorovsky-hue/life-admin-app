@@ -11,7 +11,17 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
+  // The address as the user typed it: trimmed and lowercased, nothing else.
+  // DISPLAY ONLY — never look an account up by this. Kept @unique as a
+  // DB-level tripwire against code that writes one email column without the
+  // other; canonical is a function of display, so it can never fire on its own.
   email     String   @unique
+  // The identity key: normalizeEmail() default form (Gmail dots and +tags
+  // stripped, etc). Carries every lookup and uniqueness check, so one Gmail
+  // inbox is one account however it is spelled. Never returned to clients.
+  // See utils/email.ts, and LIF-80 / its revert 87e886d for why the two are
+  // separate columns rather than one.
+  emailCanonical String @unique
   password      String   // bcrypt hashed
   name          String?
   surname       String?
