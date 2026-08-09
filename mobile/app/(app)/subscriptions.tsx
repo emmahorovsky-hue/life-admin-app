@@ -264,6 +264,7 @@ export default function SubscriptionsScreen() {
         // the row gap is the cards' own marginBottom, so the empty state — which
         // renders as a single full-width child — is unaffected.
         <FlatList
+          style={styles.grid}
           data={filtered}
           numColumns={GRID_COLUMNS}
           columnWrapperStyle={styles.column}
@@ -359,13 +360,18 @@ const styles = StyleSheet.create({
   // horizontal ScrollView with no fixed height, and taking height off it here
   // clips the pills. The gap lives in listContent's paddingTop instead.
   //
-  // flexShrink: 0 is load-bearing for the same reason. A ScrollView's flex basis
-  // is its content height, so the grid below asks for the height of *every* card;
-  // once that overflows the screen Yoga shrinks the flexible siblings, and the
-  // chip row (flexShrink: 1 by default) gives up the pt or two that chops the
-  // descenders off "Streaming". It only showed under All — narrowing the filter
-  // shortened the grid enough to clear the overflow. The grid is the one that
-  // should absorb it: it scrolls, the chip row doesn't.
+  // flexShrink: 0 is belt-and-braces against the same failure. Note it is *not*
+  // restating a default: RN defaults flexShrink to 0 (Yoga's DefaultFlexShrink —
+  // web's 1 needs useWebDefaults, which RN never sets). The 1 comes from
+  // ScrollView itself, which composes a `baseHorizontal` of
+  // `{ flexGrow: 1, flexShrink: 1 }` under our style — so the flexGrow: 0 above
+  // took and the shrink silently didn't. That made this row, and only this row,
+  // give up the pt or two that chopped the descenders off "Streaming": the
+  // sibling header and search box are plain Views, already at 0.
+  //
+  // The overflow that drove it is gone at source now (styles.grid pins the grid
+  // with flex: 1), but any horizontal ScrollView here inherits the same
+  // baseHorizontal, so leave this pinned.
   chips: { flexGrow: 0, flexShrink: 0, marginTop: 18, marginBottom: 4 },
   chipsContent: { paddingHorizontal: SCREEN_PAD, gap: 8, alignItems: 'center' },
   // Inactive chips are plain text; only the active one takes a surface, so the
@@ -380,6 +386,17 @@ const styles = StyleSheet.create({
     marginHorizontal: SCREEN_PAD,
     marginBottom: 8,
   },
+
+  // flex: 1 rather than ScrollView's own `baseVertical`, which is flexGrow: 1 /
+  // flexShrink: 1 over a flex basis of `auto` — i.e. the height of every card.
+  // That basis is what overflows the screen and leaves Yoga taking the
+  // difference back out of the flexible siblings (see `chips`). flex: 1 is
+  // flexBasis: 0 in RN, so there is no oversized basis and no negative free
+  // space to redistribute. The grid renders identically either way — it fills
+  // when short and fits when long — this only stops it squeezing its siblings.
+  // Every other scrolling list in the app is pinned the same way (timeline via
+  // quiet.screen, onboarding, setup).
+  grid: { flex: 1 },
 
   // paddingBottom is applied dynamically via useTabBarInset to clear the glass tab bar.
   // paddingTop + the chip row's 4pt margin puts 18pt above the first row of cards:
