@@ -143,6 +143,8 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `TRUST_PROXY_HOPS` | Reverse-proxy hops in front of Express, i.e. how much of `X-Forwarded-For` to unwind for `req.ip` (default 2 in production for Vercel → Railway, else 1). Wrong values silently poison rate-limit buckets and the security audit log — see LIF-240 |
 | `LOG_PROXY_DIAGNOSTIC` | Set to `true` to log the raw `x-forwarded-for` next to the resolved `req.ip` for the first 20 requests, to verify `TRUST_PROXY_HOPS` against the real edge chain |
 | `VITE_API_URL`  | Frontend axios baseURL (defaults to `/api` for same-origin proxy)    |
+| `VITE_SENTRY_DSN` | The web client's half of `SENTRY_DSN` (`client/src/main.tsx`), and gated the same way — no DSN means Sentry never initialises, so a production build without it reports nothing. Publishable, like the logo.dev token below. **Inlined by Vite at build time**, so setting it in the Vercel dashboard does nothing until the next deploy — unlike the server vars, which apply on a plain redeploy |
+| `VITE_SENTRY_RELEASE` | Tags web errors by deploy — the client-side twin of `SENTRY_RELEASE` (optional; set in CI/CD, e.g. to the git SHA) |
 | `VITE_LOGO_DEV_TOKEN` | Brand logos on subscription rows via logo.dev (optional; rows fall back to category icons without it). Publishable client-side token. |
 
 Mobile reads its own env at build time in `mobile/app.config.ts`, which surfaces the
