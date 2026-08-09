@@ -27,6 +27,35 @@ describe('email service mock coverage', () => {
   // bug, and each re-imports it in isolation because the guard is evaluated once
   // at module load.
   describe('real emailService send guard', () => {
+    // Stubs the SDK so the only thing the guard actually decides — whether a
+    // client gets constructed at all — is directly observable, and so a
+    // regressed guard fails on an assertion instead of by reaching
+    // api.resend.com. It matters: with the guard removed and the SDK live,
+    // this file took 4.7s instead of 0.3s, and all of that gap was real HTTPS
+    // traffic from a unit test.
+    //
+    // The stub is installed inside the isolated registry because the module
+    // reads the environment and constructs its client once, at load.
+    function withStubbedResend(
+      run: (
+        emailService: typeof import('../services/emailService'),
+        stub: { Resend: jest.Mock; send: jest.Mock },
+      ) => Promise<void>,
+    ): Promise<void> {
+      const send = jest.fn().mockResolvedValue({ data: { id: 'real-send-id' }, error: null });
+      const Resend = jest.fn().mockImplementation(() => ({ emails: { send } }));
+
+      return jest
+        .isolateModulesAsync(async () => {
+          jest.doMock('resend', () => ({ Resend }));
+          const actual = jest.requireActual<typeof import('../services/emailService')>(
+            '../services/emailService',
+          );
+          await run(actual, { Resend, send });
+        })
+        .finally(() => jest.dontMock('resend'));
+    }
+
     // Restores exactly what was there, including "was not set at all" — a stray
     // RESEND_API_KEY or NODE_ENV leaking out of here would change how every
     // later suite behaves.
@@ -57,12 +86,13 @@ describe('email service mock coverage', () => {
     };
 
     it('refuses to send under NODE_ENV=test even when RESEND_API_KEY is set', async () => {
-      await withEnv({ NODE_ENV: 'test', RESEND_API_KEY: 'test-dummy-key' }, async () => {
-        await jest.isolateModulesAsync(async () => {
-          const actual = jest.requireActual('../services/emailService');
-          await expect(actual.sendVerificationEmail(verification)).resolves.toEqual(SKIPPED);
-        });
-      });
+      await withEnv({ NODE_ENV: 'test', RESEND_API_KEY: 'test-dummy-key' }, () =>
+        withStubbedResend(async (emailService, { Resend, send }) => {
+          await expect(emailService.sendVerificationEmail(verification)).resolves.toEqual(SKIPPED);
+          expect(Resend).not.toHaveBeenCalled();
+          expect(send).not.toHaveBeenCalled();
+        }),
+      );
     });
 
     // The local e2e backend is started with `npm run dev`, which leaves NODE_ENV
@@ -75,12 +105,12 @@ describe('email service mock coverage', () => {
           RESEND_API_KEY: 'test-dummy-key',
           DISABLE_EMAIL_SENDING: 'true',
         },
-        async () => {
-          await jest.isolateModulesAsync(async () => {
-            const actual = jest.requireActual('../services/emailService');
-            await expect(actual.sendVerificationEmail(verification)).resolves.toEqual(SKIPPED);
-          });
-        },
+        () =>
+          withStubbedResend(async (emailService, { Resend, send }) => {
+            await expect(emailService.sendVerificationEmail(verification)).resolves.toEqual(SKIPPED);
+            expect(Resend).not.toHaveBeenCalled();
+            expect(send).not.toHaveBeenCalled();
+          }),
       );
     });
 
@@ -98,27 +128,18 @@ describe('email service mock coverage', () => {
         },
         async () => {
           const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-          const send = jest.fn().mockResolvedValue({ data: { id: 'real-send-id' }, error: null });
 
           try {
-            await jest.isolateModulesAsync(async () => {
-              // Stub the SDK rather than the service: the guard decides whether
-              // a client is constructed at all, so only the transport can be
-              // replaced without testing something other than the guard.
-              jest.doMock('resend', () => ({
-                Resend: jest.fn().mockImplementation(() => ({ emails: { send } })),
-              }));
-
-              const actual = jest.requireActual('../services/emailService');
-              await expect(actual.sendVerificationEmail(verification)).resolves.toEqual({
+            await withStubbedResend(async (emailService, { Resend, send }) => {
+              await expect(emailService.sendVerificationEmail(verification)).resolves.toEqual({
                 id: 'real-send-id',
               });
+              expect(Resend).toHaveBeenCalledWith('test-dummy-key');
+              expect(send).toHaveBeenCalledTimes(1);
             });
 
-            expect(send).toHaveBeenCalledTimes(1);
             expect(warn).toHaveBeenCalledWith(expect.stringContaining('DISABLE_EMAIL_SENDING'));
           } finally {
-            jest.dontMock('resend');
             warn.mockRestore();
           }
         },
