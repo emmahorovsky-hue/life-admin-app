@@ -2,7 +2,8 @@
 
 **Author:** Claude (with Anna, product decisions)
 **Date:** 2026-07-13
-**Status:** Approved — Phases 1 and 3 shipped; Phase 2 (local-time delivery) outstanding
+**Status:** Approved — all three phases shipped. Local-time delivery landed in LIF-252,
+which is also what unblocked turning the push channel on.
 **Supersedes:** `LIF-42-email-reminder-system.md` (pre-implementation design; LIF-11 shipped a different MVP)
 
 ---
@@ -58,10 +59,24 @@ Semantics kept from LIF-11: due when `0 ≤ daysUntil(nextRenewal) ≤ window`, 
 renewal occurrence. That means exactly one reminder per renewal, and a subscription added
 mid-window still gets its reminder at the next daily run instead of being missed.
 
-Delivery time: 09:00 UTC daily (Phase 1). `User.timezone` (IANA, auto-detected by the web
-client) is captured from day one; Phase 2 switches the cron to hourly and delivers to each
-user at 09:00 *their* time — the per-occurrence dedup makes that change safe with no
-duplicate risk.
+Delivery time: **09:00 in the user's own timezone** (LIF-252). The cron runs hourly and
+each run delivers only to the users for whom it is currently daytime; `User.timezone`
+(IANA, auto-detected by the web client) is what decides. Per-occurrence dedup is what makes
+an hourly job safe — exactly-once comes from the log, not from the schedule.
+
+Two details worth keeping:
+
+- The window is **09:00–21:00 local, not the single 09:00 hour** this doc originally
+  specified. With an hourly job a one-hour window means a deploy or restart spanning that
+  hour drops the whole day, and for a weekly subscription (1-day notice) the reminder is
+  then never sent at all. The wide window plus dedup delivers at 09:00 local normally and
+  self-heals otherwise. It also makes the repeated hour of a DST fall-back a non-event.
+- `daysUntil` is counted from the user's **local calendar day**, not the server's.
+  Otherwise a user in UTC+13 reads "renews in 2 days" while their own calendar says
+  tomorrow, and the boundary picks the wrong occurrence outright.
+
+Until LIF-252 this was 09:00 UTC for everyone — 02:00 in California. Survivable while email
+was the only channel; not survivable for push, which is why it gated the rollout.
 
 ## Settings model
 
@@ -147,10 +162,16 @@ jest's CommonJS registry. The helpers that shape what a user actually reads — 
 
 1. **Now (this PR):** settings (schema + API + web UI), cycle-aware windows, digest email,
    `emailVerified` filter, timezone capture, strategy doc.
-2. **Next:** mobile profile settings section, timezone override dropdown on web, hourly
-   cron delivering at 09:00 local time.
-3. **Built, not yet live:** push channel as above; push toggles revealed on web +
-   mobile. Dark behind `ENABLE_PUSH_REMINDERS` until the mobile build ships.
+2. **Shipped (LIF-252):** hourly cron delivering at 09:00 local time, plus timezone sync on
+   **mobile** — which the plan had missed. Only the web client synced a zone, so an
+   app-only user sat on the `"UTC"` default and would have been pushed at 09:00 UTC no
+   matter where they live; local-time delivery would have been inert for exactly the
+   population that receives push. The manual override dropdown is still *not* built, so
+   the ⚠️ above stands, and now applies to two auto-syncing clients rather than one:
+   whoever adds it owes it a `timezoneSetManually` marker.
+3. **Live:** push channel as above; push toggles revealed on web + mobile.
+   `ENABLE_PUSH_REMINDERS` turned on once LIF-252's two prerequisites were in — local-time
+   delivery, and unregistering device tokens on logout.
 
 ## Rollback
 

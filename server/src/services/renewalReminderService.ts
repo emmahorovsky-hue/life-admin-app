@@ -4,6 +4,7 @@ import { sendRenewalReminderDigest, DigestItem } from './emailService';
 import { sendRenewalPushDigest } from './pushService';
 import { reportServerError } from '../utils/reportError';
 import { computeNextRenewal, daysUntil } from '../utils/renewal';
+import { zonedNow } from '../utils/zonedTime';
 
 // One reminder per renewal occurrence, timed to the billing cycle: short cycles
 // get short notice (a 7-day heads-up for a weekly sub would land the day the
@@ -15,6 +16,29 @@ const REMINDER_WINDOW_DAYS: Record<string, number> = {
   annual: 14,
   yearly: 14,
 };
+
+// Delivery happens in the user's own timezone, not the server's (LIF-252).
+//
+// The job used to run once daily at 09:00 UTC for everyone, which is 02:00 in
+// California and 04:00 in New York. That was survivable while email was the only
+// channel — an inbox does not buzz at 2am — and stopped being survivable the
+// moment push went live.
+//
+// So the cron runs hourly and each user is delivered to only while it is daytime
+// where they are. The window is deliberately wider than the single 09:00 hour
+// the strategy doc specified: with an hourly job, a one-hour window means a
+// deploy or restart spanning that hour silently drops the whole day, and for a
+// weekly subscription (1-day notice) the reminder is then never sent at all. A
+// window plus per-occurrence dedup delivers at 09:00 local in the normal case
+// and self-heals in the abnormal one, because dedup — not the schedule — is what
+// guarantees exactly-once. That same dedup is what makes the repeated hour of a
+// DST fall-back harmless.
+const DELIVERY_START_HOUR = 9;
+const DELIVERY_END_HOUR = 21;
+
+function withinDeliveryWindow(hour: number): boolean {
+  return hour >= DELIVERY_START_HOUR && hour < DELIVERY_END_HOUR;
+}
 
 // Unknown cycles fall back to monthly, mirroring computeNextRenewal.
 function reminderWindow(billingCycle: string): number {
@@ -34,6 +58,7 @@ const DUE_CANDIDATE_INCLUDE = {
       emailVerified: true,
       reminderEmailsEnabled: true,
       reminderPushEnabled: true,
+      timezone: true,
       deviceTokens: { select: { token: true } },
     },
   },
@@ -93,14 +118,45 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<Remi
     include: DUE_CANDIDATE_INCLUDE,
   });
 
-  const due: DueEntry[] = subscriptions
-    .map((sub) => ({ sub, nextRenewal: computeNextRenewal(sub.renewalDate, sub.billingCycle, now) }))
-    .filter(({ sub, nextRenewal }) => {
-      const days = daysUntil(nextRenewal, now);
-      return days >= 0 && days <= reminderWindow(sub.billingCycle);
-    });
-
   const result: ReminderResult = { email: emptyResult(), push: emptyResult() };
+
+  // Group by owner *before* deciding what is due. Both halves of that decision —
+  // whether it is a reasonable hour to be notified, and which calendar day
+  // "renews tomorrow" is counted from — are properties of the user, not of the
+  // server, so neither can be evaluated on a flat list of subscriptions.
+  const byUser = new Map<string, typeof subscriptions>();
+  for (const sub of subscriptions) {
+    const group = byUser.get(sub.userId) ?? [];
+    group.push(sub);
+    byUser.set(sub.userId, group);
+  }
+
+  // Keeps each user's local day alongside their due entries: the reminder copy
+  // is phrased from it, and re-deriving it later would mean trusting that the
+  // second read lands in the same hour as the first.
+  const dueByUser = new Map<string, { today: Date; entries: DueEntry[] }>();
+  for (const [userId, group] of byUser) {
+    const { hour, dateOnly: today } = zonedNow(now, group[0].user.timezone);
+    if (!withinDeliveryWindow(hour)) continue;
+
+    const entries = group
+      .map((sub) => ({
+        sub,
+        // `today` rather than `now`: for a user in UTC+13 at 09:00 local it is
+        // still the previous day in UTC, so counting from the server's date
+        // would tell them a renewal is "in 2 days" while their calendar says
+        // tomorrow — and would pick the wrong occurrence on the boundary.
+        nextRenewal: computeNextRenewal(sub.renewalDate, sub.billingCycle, today),
+      }))
+      .filter(({ sub, nextRenewal }) => {
+        const days = daysUntil(nextRenewal, today);
+        return days >= 0 && days <= reminderWindow(sub.billingCycle);
+      });
+
+    if (entries.length > 0) dueByUser.set(userId, { today, entries });
+  }
+
+  const due: DueEntry[] = [...dueByUser.values()].flatMap(({ entries }) => entries);
   if (due.length === 0) return result;
 
   // One grouped dedup query covering both channels. Only successful sends count
@@ -121,16 +177,9 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<Remi
     priorSends.map((log) => dedupKey(log.subscriptionId, log.renewalDate!, log.channel))
   );
 
-  // Group per user so each user gets a single digest per channel covering
-  // everything due, instead of one message per subscription.
-  const byUser = new Map<string, DueEntry[]>();
-  for (const entry of due) {
-    const group = byUser.get(entry.sub.userId) ?? [];
-    group.push(entry);
-    byUser.set(entry.sub.userId, group);
-  }
-
-  for (const [userId, group] of byUser) {
+  // One digest per channel per user covering everything due, instead of one
+  // message per subscription.
+  for (const [userId, { today, entries: group }] of dueByUser) {
     const user = group[0].sub.user;
     const tokens = user.deviceTokens.map((t) => t.token);
 
@@ -143,7 +192,7 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<Remi
       eligible: user.reminderEmailsEnabled && user.emailVerified,
       group,
       userId,
-      now,
+      today,
       alreadySent,
       counters: result.email,
       send: async (items) => {
@@ -157,7 +206,7 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<Remi
       eligible: pushChannelEnabled() && user.reminderPushEnabled && tokens.length > 0,
       group,
       userId,
-      now,
+      today,
       alreadySent,
       counters: result.push,
       send: async (items) => {
@@ -196,7 +245,7 @@ async function deliverChannel({
   eligible,
   group,
   userId,
-  now,
+  today,
   alreadySent,
   counters,
   send,
@@ -205,7 +254,8 @@ async function deliverChannel({
   eligible: boolean;
   group: DueEntry[];
   userId: string;
-  now: Date;
+  /** The user's local calendar day — what the countdown is phrased against. */
+  today: Date;
   alreadySent: Set<string>;
   counters: ChannelResult;
   send: (items: DigestItem[]) => Promise<void>;
@@ -228,7 +278,7 @@ async function deliverChannel({
     currency: sub.currency,
     billingCycle: sub.billingCycle,
     renewalDate: nextRenewal,
-    daysUntil: daysUntil(nextRenewal, now),
+    daysUntil: daysUntil(nextRenewal, today),
   }));
 
   let status: 'sent' | 'failed' = 'sent';

@@ -27,6 +27,7 @@ async function createUserAndSubscription({
   emailVerified = true,
   reminderPushEnabled = true,
   deviceTokens = [] as string[],
+  timezone = 'UTC',
 }: {
   renewalDate: Date;
   billingCycle?: string;
@@ -40,6 +41,10 @@ async function createUserAndSubscription({
   // reminderPushEnabled defaults to true in the schema, but a user with no
   // registered device has nowhere to push to.
   deviceTokens?: string[];
+  // Matches the schema default. `now` in these tests is 09:00 UTC, which is
+  // inside the delivery window for a UTC user, so the existing expectations
+  // hold unchanged.
+  timezone?: string;
 }) {
   const email = `test-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`;
 
@@ -50,6 +55,7 @@ async function createUserAndSubscription({
       emailVerified,
       reminderEmailsEnabled,
       reminderPushEnabled,
+      timezone,
       deviceTokens: {
         create: deviceTokens.map((token) => ({ token, platform: 'ios' })),
       },
@@ -589,6 +595,105 @@ describe('sendRenewalReminders', () => {
       expect(mockSendRenewalPushDigest).toHaveBeenCalledTimes(1);
       const call = mockSendRenewalPushDigest.mock.calls[0][0];
       expect(call.items.map((i) => i.name).sort()).toEqual(['Gym', 'Netflix']);
+    });
+  });
+
+  // LIF-252. The job now runs hourly and each run delivers only to the users for
+  // whom it is currently daytime. `now` throughout this file is 09:00 UTC.
+  describe('local-time delivery', () => {
+    it('delivers to a user for whom it is 09:00 local', async () => {
+      await createUserAndSubscription({ renewalDate: utcMidnight(3), timezone: 'UTC' });
+
+      const result = await sendRenewalReminders(now);
+
+      expect(result.email.sent).toBe(1);
+    });
+
+    it('holds back a user for whom it is the middle of the night', async () => {
+      // 09:00 UTC is 02:00 in Los Angeles — the case that made a daily 09:00 UTC
+      // push unacceptable. The reminder is not lost, just not sent on this run.
+      await createUserAndSubscription({
+        renewalDate: utcMidnight(3),
+        timezone: 'America/Los_Angeles',
+      });
+
+      const result = await sendRenewalReminders(now);
+
+      expect(result.email.sent).toBe(0);
+      expect(mockSendRenewalReminderDigest).not.toHaveBeenCalled();
+    });
+
+    it('delivers to that same user on the run that lands in their morning', async () => {
+      // 17:00 UTC is 10:00 in Los Angeles.
+      const { subscription } = await createUserAndSubscription({
+        renewalDate: utcMidnight(3),
+        timezone: 'America/Los_Angeles',
+      });
+
+      const result = await sendRenewalReminders(new Date('2026-06-21T17:00:00.000Z'));
+
+      expect(result.email.sent).toBe(1);
+      const log = await prisma.notificationLog.findFirst({ where: { subscriptionId: subscription.id } });
+      expect(log!.status).toBe('sent');
+    });
+
+    it('holds back a user for whom it is late evening', async () => {
+      // 09:00 UTC is 22:00 in Auckland — past the window's end, so it waits for
+      // the morning rather than buzzing at bedtime.
+      await createUserAndSubscription({
+        renewalDate: utcMidnight(3),
+        timezone: 'Pacific/Auckland',
+      });
+
+      const result = await sendRenewalReminders(now);
+
+      expect(result.email.sent).toBe(0);
+    });
+
+    it('sends only once across the hours of a single local day', async () => {
+      // The delivery window spans several hours so a missed run self-heals, and
+      // per-occurrence dedup — not the schedule — is what keeps that to one
+      // message. This also covers the repeated hour of a DST fall-back.
+      await createUserAndSubscription({ renewalDate: utcMidnight(3), timezone: 'UTC' });
+
+      const first = await sendRenewalReminders(new Date('2026-06-21T09:00:00.000Z'));
+      const second = await sendRenewalReminders(new Date('2026-06-21T10:00:00.000Z'));
+      const third = await sendRenewalReminders(new Date('2026-06-21T11:00:00.000Z'));
+
+      expect(first.email.sent).toBe(1);
+      expect(second.email.sent).toBe(0);
+      expect(second.email.skipped).toBe(1);
+      expect(third.email.skipped).toBe(1);
+      expect(mockSendRenewalReminderDigest).toHaveBeenCalledTimes(1);
+    });
+
+    it('counts the days from the user\'s calendar day, not the server\'s', async () => {
+      // 22:00 UTC on the 20th is already 10:00 on the 21st in Auckland (UTC+12
+      // in June — the southern winter, so no DST). A renewal on the 24th is
+      // 4 days out by the server's calendar but 3 by the user's — and 3 is both
+      // what their calendar says and what puts it inside the monthly window at
+      // all.
+      await createUserAndSubscription({
+        renewalDate: new Date(Date.UTC(2026, 5, 24)),
+        timezone: 'Pacific/Auckland',
+      });
+
+      const result = await sendRenewalReminders(new Date('2026-06-20T22:00:00.000Z'));
+
+      expect(result.email.sent).toBe(1);
+      expect(mockSendRenewalReminderDigest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [expect.objectContaining({ daysUntil: 3 })],
+        })
+      );
+    });
+
+    it('treats an unrecognised timezone as UTC rather than dropping the user', async () => {
+      await createUserAndSubscription({ renewalDate: utcMidnight(3), timezone: 'Mars/Olympus_Mons' });
+
+      const result = await sendRenewalReminders(now);
+
+      expect(result.email.sent).toBe(1);
     });
   });
 });
