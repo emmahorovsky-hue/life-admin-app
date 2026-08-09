@@ -7,6 +7,7 @@ import sharp from 'sharp';
 import accountRoutes from '../routes/account';
 import prisma from '../utils/db';
 import { generateToken } from '../utils/jwt';
+import { emailFields } from '../utils/email';
 
 const createTestApp = () => {
   const app = express();
@@ -46,7 +47,7 @@ describe('Account Avatar Endpoints', () => {
 
   async function createUser(email = 'me@example.com') {
     return prisma.user.create({
-      data: { email, password: await bcrypt.hash('Password123!', 10), emailVerified: true },
+      data: { ...emailFields(email), password: await bcrypt.hash('Password123!', 10), emailVerified: true },
     });
   }
 

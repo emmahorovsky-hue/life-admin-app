@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import dashboardRoutes from '../routes/dashboard';
 import { generateToken } from '../utils/jwt';
 import prisma from '../utils/db';
+import { emailFields } from '../utils/email';
 
 const createTestApp = () => {
   const app = express();
@@ -24,7 +25,7 @@ describe('dashboard renewals (compute-on-read)', () => {
 
   beforeEach(async () => {
     const user = await prisma.user.create({
-      data: { email: 'dash@example.com', password: 'x', name: 'Dash', emailVerified: true },
+      data: { ...emailFields('dash@example.com'), password: 'x', name: 'Dash', emailVerified: true },
     });
     userId = user.id;
     cookie = authCookie(user.id, user.email);

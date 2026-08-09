@@ -4,6 +4,11 @@ import { Prisma } from '@prisma/client';
 // (register / login / getMe / updateProfile) plus the account endpoints.
 // Mirrors the shared `User` type in packages/shared/src/types/user.ts — extend
 // both together, and add the new field to toPublicUser below (LIF-132).
+//
+// `emailCanonical` is deliberately absent: it is an internal identity key, and
+// shipping it invites a client to render or compare against it, which is how
+// the dot-stripping bug reached the UI in the first place. `email` is the
+// display form and the only address a client should ever see.
 export const PUBLIC_USER_SELECT = {
   id: true,
   email: true,

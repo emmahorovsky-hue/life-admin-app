@@ -5,6 +5,7 @@
 import crypto from 'crypto';
 import prisma from '../utils/db';
 import { deleteStaleTokens } from '../services/tokenCleanupService';
+import { emailFields } from '../utils/email';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const hash = (raw: string) => crypto.createHash('sha256').update(raw).digest('hex');
@@ -14,7 +15,7 @@ describe('Stale token sweep (LIF-151)', () => {
 
   beforeEach(async () => {
     const user = await prisma.user.create({
-      data: { email: `tokensweep-${crypto.randomUUID()}@example.com`, password: 'x' },
+      data: { ...emailFields(`tokensweep-${crypto.randomUUID()}@example.com`), password: 'x' },
     });
     userId = user.id;
   });

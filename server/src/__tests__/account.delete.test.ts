@@ -7,6 +7,7 @@ import accountRoutes from '../routes/account';
 import prisma from '../utils/db';
 import { generateToken } from '../utils/jwt';
 import * as emailService from '../services/emailService';
+import { emailFields } from '../utils/email';
 
 // Mocked globally in setup.ts; grab the mock to assert on / override per test.
 const sendAccountDeletedEmail = emailService.sendAccountDeletedEmail as jest.Mock;
@@ -44,7 +45,7 @@ describe('DELETE /api/account', () => {
   // A user with one of everything, so the cascade assertions mean something.
   async function createUserWithData(email = 'doomed@example.com') {
     const user = await prisma.user.create({
-      data: { email, password: await bcrypt.hash(PASSWORD, 10), emailVerified: true },
+      data: { ...emailFields(email), password: await bcrypt.hash(PASSWORD, 10), emailVerified: true },
     });
     const subscription = await prisma.subscription.create({
       data: {
