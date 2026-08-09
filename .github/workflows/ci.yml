@@ -156,6 +156,14 @@ jobs:
       ENABLE_CRON: 'false'
       API_URL: http://localhost:3001
       CLIENT_URL: http://127.0.0.1:4173
+      # Deliberately a dummy, and deliberately still set: it reproduces the
+      # shape that broke — a key present, which is what let emailService build a
+      # live client and put an api.resend.com round-trip inside registration.
+      # This job does NOT detect a regressed guard, though: nothing here asserts
+      # anything about email, so the only symptom would be extra latency, and
+      # `retries: 2` in playwright.config.ts is designed to absorb exactly that.
+      # Revert the guard and this job would very likely still go green. The
+      # regression is caught by `emailMock.test.ts` in the backend job instead.
       RESEND_API_KEY: test-dummy-key
 
     steps:

@@ -1,17 +1,74 @@
 import { Resend } from 'resend';
 import { clientUrl } from '../utils/urls';
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+// Two ways to disable sending outright, whatever the key says. Jest mocks every
+// sender in __tests__/setup.ts, but e2e runs the real server as a separate
+// process where those mocks do not apply, and that process is handed a
+// RESEND_API_KEY — a dummy in CI, a real one in `server/.env` for anyone who has
+// worked on email. Either was enough to construct a live client and put a real
+// HTTPS call to api.resend.com inside the registration request. Registration
+// awaits that send, so it went from ~0.5s to ~2.5s and regularly blew
+// Playwright's 5s assertion timeout, failing a different test on each run (the
+// symptom is always "expected /dashboard, got /register"). With a real key it
+// also mailed ~20 `user<ts>@example.com` addresses per run — RFC 2606 reserves
+// that domain precisely so nothing can receive there, so every one hard-bounces
+// and eats into the sender reputation of the domain real verification mail
+// leaves from.
+//
+// `NODE_ENV === 'test'` covers CI, which sets it for the whole e2e job, and
+// closes the hole __tests__/setup.ts warns about from the other side: a real
+// send is no longer "one env var away" under test. It does *not* cover the local
+// e2e backend, which CLAUDE.md starts with `npm run dev` — that command now
+// exports NODE_ENV=test the same way CI does, so the documented path is safe
+// without anyone having to remember a flag.
+//
+// DISABLE_EMAIL_SENDING is for the case that leaves behind: a genuine
+// development-mode server (CSRF on, real rate limiters, Sentry tagged
+// `development`) that still must not mail anyone. Like DISABLE_RATE_LIMIT in
+// middleware/rateLimit.ts it is honoured only outside production, so a leaked
+// env var cannot silently stop verification and password-reset mail. Production
+// is therefore unchanged: it sends whenever RESEND_API_KEY is set.
+const emailSendingDisabled =
+  process.env.NODE_ENV === 'test' ||
+  (process.env.DISABLE_EMAIL_SENDING === 'true' && process.env.NODE_ENV !== 'production');
+
+// Only the ignored-in-production case is worth a line at boot. Disabling sending
+// outside production is already self-announcing — logEmailNotSent prints every
+// skipped message — whereas a flag that is set but deliberately not honoured is
+// invisible until someone wonders why mail is still going out.
+if (process.env.DISABLE_EMAIL_SENDING === 'true' && process.env.NODE_ENV === 'production') {
+  console.warn(
+    '[Email Service] WARNING: DISABLE_EMAIL_SENDING=true was IGNORED because NODE_ENV is ' +
+    '"production". Email sending remains enabled. Unset this variable in production environments.'
+  );
+}
+
+const resend =
+  process.env.RESEND_API_KEY && !emailSendingDisabled
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null;
 const FROM = process.env.EMAIL_FROM ?? 'noreply@paypr.live';
+
+// Why `resend` is null, named as the thing the reader would have to change.
+// The skip lines below are the only feedback anyone gets when mail silently
+// doesn't go out, and they used to say "not configured" unconditionally — which
+// sends someone who disabled sending on purpose off to check a RESEND_API_KEY
+// that was set all along. Read only on the skip path; the key-unset case comes
+// first because it is the one that stays true whatever else is set.
+const emailSkipReason = !process.env.RESEND_API_KEY
+  ? 'RESEND_API_KEY unset'
+  : process.env.NODE_ENV === 'test'
+    ? 'NODE_ENV=test'
+    : 'DISABLE_EMAIL_SENDING=true';
 
 // The URLs in these emails carry raw single-use tokens, so they must never
 // reach production logs — only echo them to stdout in local dev (LIF-148).
 function logEmailNotSent(description: string, to: string, urlLabel: string, url: string): void {
   if (process.env.NODE_ENV === 'production') {
-    console.log(`[Email Service] ${description} skipped: RESEND_API_KEY unset`);
+    console.log(`[Email Service] ${description} skipped: ${emailSkipReason}`);
     return;
   }
-  console.log(`[Email Service] Resend not configured. Would send ${description} to:`, to);
+  console.log(`[Email Service] Sending disabled (${emailSkipReason}). Would send ${description} to:`, to);
   console.log(`[Email Service] ${urlLabel}:`, url);
 }
 
@@ -142,7 +199,7 @@ export async function sendEmailChangeVerificationEmail({ to, verifyUrl, expiresI
 
 export async function sendEmailChangedNoticeEmail({ to, newEmail }: { to: string; newEmail: string }) {
   if (!resend) {
-    console.log('[Email Service] Resend not configured. Would send email-changed notice to:', to);
+    console.log(`[Email Service] Sending disabled (${emailSkipReason}). Would send email-changed notice to:`, to);
     console.log('[Email Service] New email:', newEmail);
     return { id: 'mock-email-id' };
   }
@@ -201,7 +258,7 @@ export async function sendRenewalReminderDigest({ to, items }: { to: string; ite
     : `${items.length} subscriptions renew soon`;
 
   if (!resend) {
-    console.log('[Email Service] Resend not configured. Would send renewal reminder digest to:', to);
+    console.log(`[Email Service] Sending disabled (${emailSkipReason}). Would send renewal reminder digest to:`, to);
     console.log('[Email Service] Subscriptions:', items.map((i) => `${i.name} (${formatDate(i.renewalDate)})`).join(', '));
     return { id: 'mock-email-id' };
   }
