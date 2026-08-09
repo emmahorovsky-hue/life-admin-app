@@ -9,7 +9,7 @@
     "@gorhom/bottom-sheet": "^5.2.14",
     "@life-admin/shared": "*",
     "@react-native-community/datetimepicker": "9.1.0",
-    "@sentry/react-native": "~7.11.0",
+    "@sentry/react-native": "~8.21.0",
     "@shopify/react-native-skia": "2.10.1",
     "axios": "^1.19.0",
     "date-fns": "^4.4.0",
