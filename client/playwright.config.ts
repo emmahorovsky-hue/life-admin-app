@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Compared against the string rather than tested for truthiness: `CI=false` and
+// `CI=0` are both truthy strings, so a developer exporting either to opt *out*
+// of CI behaviour would silently get everything below that keys off this.
+const isCI = !!process.env.CI && process.env.CI !== 'false' && process.env.CI !== '0';
+
 export default defineConfig({
   testDir: 'e2e',
   timeout: 30_000,
@@ -11,7 +16,7 @@ export default defineConfig({
   // (a live Resend call inside registration) is fixed in emailService, but a
   // shared CI runner still has no latency guarantee. Kept at 0 locally so a
   // flake a developer introduces is visible immediately rather than retried away.
-  retries: process.env.CI ? 2 : 0,
+  retries: isCI ? 2 : 0,
   use: {
     baseURL: 'http://127.0.0.1:4173',
     headless: true,
