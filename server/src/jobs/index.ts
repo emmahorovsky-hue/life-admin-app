@@ -49,11 +49,15 @@ export function startCronJobs(): void {
     async () => {
       try {
         const { email, push } = await sendRenewalReminders();
-        // Quiet on a no-op run. Now that this fires hourly, logging every pass
-        // would bury the ~1 run a day that actually sent something under 23
-        // lines of zeros.
-        const touched = [email, push].some((c) => c.sent + c.skipped + c.failed > 0);
-        if (touched) {
+        // Quiet unless something was actually delivered or attempted. Now that
+        // this fires hourly, logging every pass would bury the ~1 run a day
+        // that sent something under 23 lines of zeros — and `skipped` is not
+        // the line between them: a user stays due for the whole delivery
+        // window, so every remaining in-window hour of their day reports the
+        // same already-sent subscription as skipped. Only sent/failed mark a
+        // run that did work.
+        const delivered = [email, push].some((c) => c.sent + c.failed > 0);
+        if (delivered) {
           console.log(
             `[cron] renewal-reminders: ` +
             `email(sent=${email.sent} skipped=${email.skipped} failed=${email.failed}) ` +

@@ -206,7 +206,7 @@ describe('sendRenewalReminders', () => {
     );
   });
 
-  it('retries after a failed send (failed logs do not dedup)', async () => {
+  it('retries a send that failed on an earlier day', async () => {
     const { user, subscription } = await createUserAndSubscription({ renewalDate: utcMidnight(3) });
 
     await prisma.notificationLog.create({
@@ -226,6 +226,32 @@ describe('sendRenewalReminders', () => {
     expect(result.email.sent).toBe(1);
     expect(result.email.skipped).toBe(0);
     expect(mockSendRenewalReminderDigest).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry a send that failed earlier the same day', async () => {
+    // Nothing here is transactional, so a send that threw may still have gone
+    // out — Resend can time out after accepting the mail. With an hourly cron a
+    // failure that retries immediately means a dozen of those a day, where the
+    // old daily one cost at most one. Failures wait for tomorrow.
+    const { user, subscription } = await createUserAndSubscription({ renewalDate: utcMidnight(3) });
+
+    await prisma.notificationLog.create({
+      data: {
+        userId: user.id,
+        subscriptionId: subscription.id,
+        type: 'renewal_reminder',
+        channel: 'email',
+        status: 'failed',
+        sentAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
+        renewalDate: utcMidnight(3),
+      },
+    });
+
+    const result = await sendRenewalReminders(now);
+
+    expect(result.email.sent).toBe(0);
+    expect(result.email.skipped).toBe(1);
+    expect(mockSendRenewalReminderDigest).not.toHaveBeenCalled();
   });
 
   it('skips inactive subscriptions', async () => {
@@ -525,10 +551,20 @@ describe('sendRenewalReminders', () => {
       expect(push!.status).toBe('failed');
       expect(logs.find((l) => l.channel === 'email')!.status).toBe('sent');
 
-      // A failed log does not dedup, so a second run tries again.
+      // Not on the next hourly run, though — a failure is held for the rest of
+      // the user's day, since the send may have landed despite throwing. No
+      // mock is queued for this run because nothing should reach the sender.
+      const sameDay = await sendRenewalReminders(new Date('2026-06-21T10:00:00.000Z'));
+      expect(sameDay.push.sent).toBe(0);
+      expect(sameDay.push.skipped).toBe(1);
+      expect(mockSendRenewalPushDigest).toHaveBeenCalledTimes(1);
+
+      // Tomorrow it retries: the subscription is still 2 days out, so it is the
+      // same renewal occurrence and the same dedup key.
       mockSendRenewalPushDigest.mockResolvedValueOnce({ invalidTokens: [], delivered: 1 });
-      const second = await sendRenewalReminders(now);
-      expect(second.push.sent).toBe(1);
+      const nextDay = await sendRenewalReminders(new Date('2026-06-22T09:00:00.000Z'));
+      expect(nextDay.push.sent).toBe(1);
+      expect(nextDay.email.sent).toBe(0); // already delivered, suppressed for good
     });
 
     it('records a failure when Expo accepts none of the tokens, and prunes them', async () => {
@@ -686,6 +722,40 @@ describe('sendRenewalReminders', () => {
           items: [expect.objectContaining({ daysUntil: 3 })],
         })
       );
+    });
+
+    it('splits one run between users in different zones', async () => {
+      // The production shape: a single run holds some users and delivers to
+      // others. Grouping happens before the due filter, so a bug there would
+      // leak one user's window decision onto another's subscriptions.
+      const { user: awake } = await createUserAndSubscription({
+        renewalDate: utcMidnight(3),
+        timezone: 'UTC',
+      });
+      await createUserAndSubscription({
+        renewalDate: utcMidnight(3),
+        timezone: 'America/Los_Angeles',
+      });
+
+      const result = await sendRenewalReminders(now);
+
+      expect(result.email.sent).toBe(1);
+      expect(mockSendRenewalReminderDigest).toHaveBeenCalledTimes(1);
+      expect(mockSendRenewalReminderDigest).toHaveBeenCalledWith(
+        expect.objectContaining({ to: awake.email })
+      );
+    });
+
+    it('delivers in the window\'s last hour and holds at its end', async () => {
+      await createUserAndSubscription({ renewalDate: utcMidnight(3), timezone: 'UTC' });
+
+      const lastHour = await sendRenewalReminders(new Date('2026-06-21T20:00:00.000Z'));
+      expect(lastHour.email.sent).toBe(1);
+
+      await createUserAndSubscription({ renewalDate: utcMidnight(3), timezone: 'UTC' });
+
+      const past = await sendRenewalReminders(new Date('2026-06-21T21:00:00.000Z'));
+      expect(past.email.sent).toBe(0);
     });
 
     it('treats an unrecognised timezone as UTC rather than dropping the user', async () => {
