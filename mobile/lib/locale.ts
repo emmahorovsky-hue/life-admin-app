@@ -17,3 +17,26 @@ export function detectLocale(): string | null {
     return null;
   }
 }
+
+/**
+ * The device's IANA timezone ("America/Los_Angeles"), or null when it can't be
+ * read.
+ *
+ * Unlike `detectLocale` this is not a prefill — it decides *when the server
+ * sends renewal reminders* (LIF-252). The web client has synced this since
+ * LIF-11; mobile never did, so an app-only user sat on the `"UTC"` column
+ * default and was delivered to at 09:00 UTC, which is 02:00 in California. That
+ * is survivable for email and not for push, and push users are precisely the
+ * ones who never touch the web client.
+ *
+ * `Intl` for the same reason as above — Hermes answers this without a native
+ * module. A null here is not a fallback to UTC; it means "don't touch what the
+ * server already has", which may be a good zone synced from the web.
+ */
+export function detectTimeZone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+}
