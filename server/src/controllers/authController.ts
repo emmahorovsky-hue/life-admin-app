@@ -232,6 +232,28 @@ export const logout = async (req: AuthRequest, res: Response): Promise<void> => 
         where: { id: userId },
         data: { sessionsValidFrom: sessionsValidFromNow() },
       });
+
+      // Drop the account's push registrations too (LIF-252). Revoking the
+      // session does nothing to the DeviceToken rows, so without this a signed
+      // out phone keeps receiving renewal pushes — naming the subscriptions of
+      // someone who is no longer signed in, on a lock screen they may have
+      // handed to somebody else.
+      //
+      // Account-wide, matching the revocation immediately above: every session
+      // just died, so no device is signed in and none should be notified. Each
+      // one re-registers its token at the next login (the upsert is keyed on the
+      // token, so the row comes back owned by whoever signs in).
+      //
+      // Separate try/catch, because the priority order is the reverse of the
+      // usual: revocation is the security-critical half and has already
+      // succeeded by this point. A failure to clean up tokens must not mask
+      // that, nor stop the response.
+      try {
+        await prisma.deviceToken.deleteMany({ where: { userId } });
+      } catch (error) {
+        reportServerError('Logout device-token cleanup failed', error);
+      }
+
       logSecurityEvent('auth.logout', req, { userId });
     } catch (error) {
       // P2025 = user already deleted; their tokens die with the row, so there is

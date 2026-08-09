@@ -7,6 +7,8 @@ export const updateProfile = async (data: {
   defaultCurrency?: string;
   reminderEmailsEnabled?: boolean;
   reminderPushEnabled?: boolean;
+  /** IANA name. Drives when renewal reminders are delivered — see lib/locale.ts. */
+  timezone?: string;
 }) => {
   return api.patch<{ user: User }>('/auth/profile', data);
 };
