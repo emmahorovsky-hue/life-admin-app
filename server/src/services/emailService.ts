@@ -49,14 +49,26 @@ const resend =
     : null;
 const FROM = process.env.EMAIL_FROM ?? 'noreply@paypr.live';
 
+// Why `resend` is null, named as the thing the reader would have to change.
+// The skip lines below are the only feedback anyone gets when mail silently
+// doesn't go out, and they used to say "not configured" unconditionally — which
+// sends someone who disabled sending on purpose off to check a RESEND_API_KEY
+// that was set all along. Read only on the skip path; the key-unset case comes
+// first because it is the one that stays true whatever else is set.
+const emailSkipReason = !process.env.RESEND_API_KEY
+  ? 'RESEND_API_KEY unset'
+  : process.env.NODE_ENV === 'test'
+    ? 'NODE_ENV=test'
+    : 'DISABLE_EMAIL_SENDING=true';
+
 // The URLs in these emails carry raw single-use tokens, so they must never
 // reach production logs — only echo them to stdout in local dev (LIF-148).
 function logEmailNotSent(description: string, to: string, urlLabel: string, url: string): void {
   if (process.env.NODE_ENV === 'production') {
-    console.log(`[Email Service] ${description} skipped: RESEND_API_KEY unset`);
+    console.log(`[Email Service] ${description} skipped: ${emailSkipReason}`);
     return;
   }
-  console.log(`[Email Service] Resend not configured. Would send ${description} to:`, to);
+  console.log(`[Email Service] Sending disabled (${emailSkipReason}). Would send ${description} to:`, to);
   console.log(`[Email Service] ${urlLabel}:`, url);
 }
 
@@ -187,7 +199,7 @@ export async function sendEmailChangeVerificationEmail({ to, verifyUrl, expiresI
 
 export async function sendEmailChangedNoticeEmail({ to, newEmail }: { to: string; newEmail: string }) {
   if (!resend) {
-    console.log('[Email Service] Resend not configured. Would send email-changed notice to:', to);
+    console.log(`[Email Service] Sending disabled (${emailSkipReason}). Would send email-changed notice to:`, to);
     console.log('[Email Service] New email:', newEmail);
     return { id: 'mock-email-id' };
   }
@@ -246,7 +258,7 @@ export async function sendRenewalReminderDigest({ to, items }: { to: string; ite
     : `${items.length} subscriptions renew soon`;
 
   if (!resend) {
-    console.log('[Email Service] Resend not configured. Would send renewal reminder digest to:', to);
+    console.log(`[Email Service] Sending disabled (${emailSkipReason}). Would send renewal reminder digest to:`, to);
     console.log('[Email Service] Subscriptions:', items.map((i) => `${i.name} (${formatDate(i.renewalDate)})`).join(', '));
     return { id: 'mock-email-id' };
   }

@@ -85,13 +85,31 @@ describe('email service mock coverage', () => {
       expiresInHours: 24,
     };
 
+    // Captures what the skip path logs, since with a key set that line is the
+    // only thing telling a developer why no mail arrived. Naming the key here
+    // would send them to fix something that isn't broken.
+    async function expectSkipLoggedAs(reason: string, run: () => Promise<void>) {
+      const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+      try {
+        await run();
+        expect(log).toHaveBeenCalledWith(
+          expect.stringContaining(`Sending disabled (${reason})`),
+          expect.anything(),
+        );
+      } finally {
+        log.mockRestore();
+      }
+    }
+
     it('refuses to send under NODE_ENV=test even when RESEND_API_KEY is set', async () => {
       await withEnv({ NODE_ENV: 'test', RESEND_API_KEY: 'test-dummy-key' }, () =>
-        withStubbedResend(async (emailService, { Resend, send }) => {
-          await expect(emailService.sendVerificationEmail(verification)).resolves.toEqual(SKIPPED);
-          expect(Resend).not.toHaveBeenCalled();
-          expect(send).not.toHaveBeenCalled();
-        }),
+        expectSkipLoggedAs('NODE_ENV=test', () =>
+          withStubbedResend(async (emailService, { Resend, send }) => {
+            await expect(emailService.sendVerificationEmail(verification)).resolves.toEqual(SKIPPED);
+            expect(Resend).not.toHaveBeenCalled();
+            expect(send).not.toHaveBeenCalled();
+          }),
+        ),
       );
     });
 
@@ -106,11 +124,15 @@ describe('email service mock coverage', () => {
           DISABLE_EMAIL_SENDING: 'true',
         },
         () =>
-          withStubbedResend(async (emailService, { Resend, send }) => {
-            await expect(emailService.sendVerificationEmail(verification)).resolves.toEqual(SKIPPED);
-            expect(Resend).not.toHaveBeenCalled();
-            expect(send).not.toHaveBeenCalled();
-          }),
+          expectSkipLoggedAs('DISABLE_EMAIL_SENDING=true', () =>
+            withStubbedResend(async (emailService, { Resend, send }) => {
+              await expect(emailService.sendVerificationEmail(verification)).resolves.toEqual(
+                SKIPPED,
+              );
+              expect(Resend).not.toHaveBeenCalled();
+              expect(send).not.toHaveBeenCalled();
+            }),
+          ),
       );
     });
 
