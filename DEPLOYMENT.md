@@ -387,6 +387,21 @@ API (`SENTRY_DSN` on Railway). Mobile was the one platform with no reporting:
 before this, a crash on a released build was invisible unless a user described
 it.
 
+**The org is `payprlive`, on Sentry's US data region**, with one project per
+platform so issues from different runtimes don't interleave: `paypr-server`
+(Node), `paypr-web` (React), `paypr-mobile` (React Native). `SENTRY_PROJECT` on
+EAS refers to the last of these. The org is named here because nothing else in
+the repo records it — the DSNs live as env vars in Vercel, Railway and EAS, and
+an org slug is not a secret.
+
+The **region is fixed when the org is created and cannot be changed** (Sentry
+supports no migration between US and EU, and projects cannot move between orgs
+in different regions). It matters here for one reason: `sentry-cli` defaults to
+the US host, so being on US means the source-map upload below needs no extra
+configuration. An EU org would additionally require `SENTRY_URL=https://de.sentry.io/`,
+without which the upload fails authentication in a way that reads like a missing
+project rather than a wrong region.
+
 Three pieces of configuration. Only the first affects whether errors are
 reported at all — but the second decides whether the build succeeds:
 
