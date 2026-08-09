@@ -1,7 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
-import * as Notifications from 'expo-notifications';
 import { spacing } from '@life-admin/shared';
 import { SettingsDetailHeader } from '../../../components/settings/SettingsDetailHeader';
 import { AppText, Card, Switch, useToast } from '../../../components/ui';
@@ -9,6 +7,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { updateProfile } from '../../../lib/profile';
 import { colors } from '../../../lib/theme';
 import { getApiErrorMessage } from '../../../lib/utils';
+import { usePushPermission } from '../../../lib/usePushPermission';
 import { SCREEN_PAD } from '../../../lib/quiet';
 
 /**
@@ -28,23 +27,7 @@ export default function NotificationsScreen() {
   const { user, updateUser } = useAuth();
   const toast = useToast();
   const [saving, setSaving] = useState<'email' | 'push' | null>(null);
-  const [osGranted, setOsGranted] = useState<boolean | null>(null);
-
-  // Re-checked on focus, not just on mount: the only way to grant permission
-  // after a denial is the system Settings app, and coming back from it is
-  // exactly a focus event. Without this the screen keeps claiming push is
-  // blocked until the app is restarted.
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      Notifications.getPermissionsAsync()
-        .then(({ granted }) => { if (active) setOsGranted(granted); })
-        // A permissions read that fails should not blank the screen; assume
-        // granted and let the server toggle stand on its own.
-        .catch(() => { if (active) setOsGranted(true); });
-      return () => { active = false; };
-    }, [])
-  );
+  const osGranted = usePushPermission();
 
   // Both switches reflect server state and only move once the save succeeds,
   // so a failed request needs no rollback.
