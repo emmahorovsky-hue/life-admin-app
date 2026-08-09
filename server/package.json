@@ -18,6 +18,7 @@
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "job:cleanup-unverified": "tsx src/bin/run-cleanup.ts",
+    "job:restore-email-dots": "tsx src/bin/restore-email-dots.ts",
     "smoke:extract": "tsx src/bin/extract-receipt.ts",
     "postinstall": "prisma generate"
   },
