@@ -131,6 +131,7 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `MOBILE_URL`    | Deep link scheme the verify-email/email-change endpoints redirect *to* when `?platform=mobile` (default `lifeadmin://`). Never put it in an email body — mail clients can't open a custom scheme and no Universal Links are configured (LIF-244) |
 | `SENTRY_RELEASE`| Tags Sentry errors by deploy (optional; set in CI/CD)                |
 | `ENABLE_CRON`   | Set to `false` to skip scheduling background jobs (default enabled)  |
+| `RENEWAL_CRON`  | Schedule for the renewal-reminder job (default `0 * * * *` — **hourly**, not daily). Delivery is per user in their own timezone (LIF-252): each run notifies only users whose local time is inside the 09:00–21:00 window, so most runs send nothing and the job logs only when it did something. Exactly-once comes from per-occurrence dedup in `NotificationLog`, not from the schedule — which is what makes an hourly job safe, and a DST fall-back's repeated hour a non-event. A **failed** attempt is held for the rest of that user's local day rather than retried the next hour: a send that threw may still have gone out, so hourly retries would turn one Resend timeout into a dozen duplicate emails. Don't set this back to a daily schedule: at `0 9 * * *` only users whose local 09:00–21:00 window contains 09:00 UTC would ever be reminded |
 | `CLEANUP_CRON`  | Cron schedule for unverified-account cleanup (default `0 3 * * *` UTC) |
 | `GRACE_PERIOD_DAYS` | Days an account may stay unverified before deletion (default 7)  |
 | `WARNING_LEAD_HOURS`| Hours before the deadline the warning email is sent (default 24) |
@@ -142,6 +143,8 @@ The server allows: localhost, any `.vercel.app` subdomain, and the configured `C
 | `TRUST_PROXY_HOPS` | Reverse-proxy hops in front of Express, i.e. how much of `X-Forwarded-For` to unwind for `req.ip` (default 2 in production for Vercel → Railway, else 1). Wrong values silently poison rate-limit buckets and the security audit log — see LIF-240 |
 | `LOG_PROXY_DIAGNOSTIC` | Set to `true` to log the raw `x-forwarded-for` next to the resolved `req.ip` for the first 20 requests, to verify `TRUST_PROXY_HOPS` against the real edge chain |
 | `VITE_API_URL`  | Frontend axios baseURL (defaults to `/api` for same-origin proxy)    |
+| `VITE_SENTRY_DSN` | The web client's half of `SENTRY_DSN` (`client/src/main.tsx`), and gated the same way — no DSN means Sentry never initialises, so a production build without it reports nothing. Publishable, like the logo.dev token below. **Inlined by Vite at build time**, so setting it in the Vercel dashboard does nothing until the next deploy — unlike the server vars, which apply on a plain redeploy |
+| `VITE_SENTRY_RELEASE` | Tags web errors by deploy — the client-side twin of `SENTRY_RELEASE` (optional; set in CI/CD, e.g. to the git SHA) |
 | `VITE_LOGO_DEV_TOKEN` | Brand logos on subscription rows via logo.dev (optional; rows fall back to category icons without it). Publishable client-side token. |
 
 Mobile reads its own env at build time in `mobile/app.config.ts`, which surfaces the
