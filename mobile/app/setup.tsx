@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -33,6 +34,7 @@ import { updateProfile } from '../lib/profile';
 import { detectLocale } from '../lib/locale';
 import { formatRetryDelay, getApiErrorMessage, getRetryAfterMs } from '../lib/utils';
 import { SetupStep, useSetupState, writeSetupState } from '../lib/onboarding';
+import { usePushPermission } from '../lib/usePushPermission';
 import { SubscriptionLogo } from '../components/SubscriptionLogo';
 import {
   AmountInput,
@@ -149,7 +151,10 @@ export default function SetupScreen() {
   const [currencyOpen, setCurrencyOpen] = useState(false);
   // Android only — the row whose date picker is open (see the date control).
   const [datePickerFor, setDatePickerFor] = useState<string | null>(null);
-  const [savingReminders, setSavingReminders] = useState(false);
+  // Which reminder channel has a write in flight, if any. Not a boolean: the two
+  // channels are independent, and disabling both switches for one save implies
+  // they are coupled.
+  const [savingReminders, setSavingReminders] = useState<'email' | 'push' | null>(null);
   // Computed once per mount rather than per render: a screen left open overnight
   // must not file yesterday's default.
   const [defaultRenewal] = useState(defaultRenewalDate);
@@ -387,28 +392,45 @@ export default function SetupScreen() {
 
   /**
    * Renewal reminders, on the screen that has just given the user something to
-   * be reminded about — the moment the setting means anything. It is the same
-   * account-wide flag Settings › Notifications toggles (`reminderEmailsEnabled`),
-   * read and written the same way, so the two can never disagree.
+   * be reminded about — the moment the settings mean anything. These are the
+   * same two account-wide flags Settings › Notifications toggles
+   * (`reminderEmailsEnabled`, `reminderPushEnabled`), read and written the same
+   * way, so the two screens can never disagree.
    *
-   * It reads on because the server defaults it on. Shown anyway rather than
-   * hidden: a reminder the user did not ask for arriving in their inbox in a
-   * month's time is worse than a switch they glanced at and left alone.
+   * Both channels appear because the server sends on both and defaults both on;
+   * showing only email here told the user they had opted into an inbox message
+   * and then buzzed their phone. They are independent — neither is a fallback
+   * for the other, so turning one off says nothing about the other.
    *
-   * The switch follows the server, not the tap — it only moves once the write
+   * They read on because the server defaults them on. Shown anyway rather than
+   * hidden: a reminder the user did not ask for arriving in a month's time is
+   * worse than a switch they glanced at and left alone.
+   *
+   * The switches follow the server, not the tap — they only move once the write
    * lands, so a failure needs no rollback. Same as the settings screen.
    */
   const remindersOn = user?.reminderEmailsEnabled ?? true;
+  const pushOn = user?.reminderPushEnabled ?? true;
 
-  const toggleReminders = async (next: boolean) => {
-    setSavingReminders(true);
+  // Permission denied at the OS level means nothing can arrive no matter what
+  // the server thinks, so the switch would be a lie. The prompt itself has
+  // already happened by now — AuthContext registers for push as soon as a
+  // session exists, which is before this screen opens — so this only reports a
+  // decision the user has already made.
+  const pushBlocked = usePushPermission() === false;
+
+  const saveReminder = async (
+    channel: 'email' | 'push',
+    patch: { reminderEmailsEnabled?: boolean; reminderPushEnabled?: boolean }
+  ) => {
+    setSavingReminders(channel);
     try {
-      const res = await updateProfile({ reminderEmailsEnabled: next });
+      const res = await updateProfile(patch);
       updateUser(res.data.user);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Could not change reminders. Try again in Settings.'));
     } finally {
-      setSavingReminders(false);
+      setSavingReminders(null);
     }
   };
 
@@ -611,18 +633,52 @@ export default function SetupScreen() {
           </View>
 
           <View style={styles.reminderBlock}>
+            {/* An eyebrow, not a third row label: with two channel rows under
+                it, a heading in the same weight as the rows reads as a third
+                setting rather than the name of the pair. */}
+            <AppText style={quiet.eyebrow}>Renewal reminders</AppText>
+
             <View style={styles.reminderRow}>
               <View style={styles.reminderText}>
-                <AppText style={quiet.rowName}>Renewal reminders</AppText>
+                <AppText style={quiet.rowName}>Email reminders</AppText>
                 <AppText variant="footnote" style={styles.reminderSub}>
-                  An email before each subscription renews.
+                  A heads-up before a subscription renews.
                 </AppText>
               </View>
+              {/* Only the channel actually in flight locks — greying out the
+                  other implies the two settings are coupled when the whole
+                  point is that they aren't. */}
               <Switch
                 checked={remindersOn}
-                onCheckedChange={toggleReminders}
-                disabled={savingReminders}
+                onCheckedChange={(next) => saveReminder('email', { reminderEmailsEnabled: next })}
+                disabled={savingReminders === 'email'}
               />
+            </View>
+
+            <View style={styles.reminderDivider} />
+
+            <View style={styles.reminderRow}>
+              <View style={styles.reminderText}>
+                <AppText style={quiet.rowName}>Push notifications</AppText>
+                <AppText variant="footnote" style={styles.reminderSub}>
+                  {pushBlocked
+                    ? 'Blocked in your device settings.'
+                    : 'The same heads-up, on this device.'}
+                </AppText>
+              </View>
+              {pushBlocked ? (
+                <Pressable onPress={() => Linking.openSettings()} hitSlop={8}>
+                  <AppText variant="footnote" weight={500} style={styles.reminderSettingsLink}>
+                    Settings
+                  </AppText>
+                </Pressable>
+              ) : (
+                <Switch
+                  checked={pushOn}
+                  onCheckedChange={(next) => saveReminder('push', { reminderPushEnabled: next })}
+                  disabled={savingReminders === 'push'}
+                />
+              )}
             </View>
             {/* The timing is the server's, not a preference — saying so here
                 stops the flow promising a schedule it does not control. */}
@@ -936,6 +992,8 @@ const styles = StyleSheet.create({
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   reminderText: { flex: 1, minWidth: 0, gap: 2 },
   reminderSub: { color: colors.softMuted },
+  reminderDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.hairline },
+  reminderSettingsLink: { color: colors.brandOrange },
   reminderNote: { color: colors.mutedForeground, lineHeight: 18 },
 
   footer: {
