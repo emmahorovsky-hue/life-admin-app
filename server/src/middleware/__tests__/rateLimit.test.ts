@@ -5,9 +5,11 @@ import {
   createApiLimiter,
   apiLimiter,
   authenticatedUserKey,
+  emailOrIpKey,
   __resetRateLimitReporting,
 } from '../rateLimit';
 import { generateToken } from '../../utils/jwt';
+import type { Request } from 'express';
 import type { AuthRequest } from '../auth';
 
 // The report-dedup map is module state shared by every test in this file.
@@ -348,5 +350,72 @@ describe('authenticatedUserKey', () => {
     );
     const asIp = authenticatedUserKey(reqWith({ ip: '203.0.113.9' }));
     expect(asUser).not.toBe(asIp);
+  });
+});
+
+// Unit tests because nothing else can reach this. The per-email limiters that
+// use it are mounted before the validation chain and skipped wholesale under
+// NODE_ENV=test, and express-rate-limit runs `skip` before `keyGenerator` — so
+// an integration test against /auth/forgot-password never executes a line of it.
+describe('emailOrIpKey', () => {
+  const reqWith = (over: Partial<Request>) => over as Request;
+  const ip = '203.0.113.9';
+
+  it('gives every spelling of one Gmail inbox the same bucket', () => {
+    // The bug this fixes: keying on the typed string let a sender walk past the
+    // 1/min and 5/hour caps by re-dotting the address, aiming an unmetered mail
+    // bomb at one known inbox.
+    const spellings = [
+      'first.last@gmail.com',
+      'firstlast@gmail.com',
+      'f.i.r.s.t.last@gmail.com',
+      'firstlast+signup@gmail.com',
+      'first.last@googlemail.com',
+      'First.Last@Gmail.com',
+    ];
+
+    const keys = spellings.map((email) => emailOrIpKey(reqWith({ body: { email }, ip })));
+    expect(new Set(keys)).toEqual(new Set(['email:firstlast@gmail.com']));
+  });
+
+  it('keeps genuinely different inboxes in separate buckets', () => {
+    const a = emailOrIpKey(reqWith({ body: { email: 'first.last@gmail.com' }, ip }));
+    const b = emailOrIpKey(reqWith({ body: { email: 'someone.else@gmail.com' }, ip }));
+    expect(a).not.toBe(b);
+
+    // Dots are only insignificant at Gmail. Folding them everywhere would put
+    // two unrelated accounts on one budget.
+    const c = emailOrIpKey(reqWith({ body: { email: 'a.b@example.com' }, ip }));
+    const d = emailOrIpKey(reqWith({ body: { email: 'ab@example.com' }, ip }));
+    expect(c).not.toBe(d);
+  });
+
+  it.each([
+    ['a number', 123],
+    ['an object', { toString: () => 'x@y.com' }],
+    ['an array', ['x@y.com']],
+    ['null', null],
+    ['a string that is not an address', 'not-an-email'],
+  ])('falls back to the IP bucket when email is %s', (_label, email) => {
+    // This runs before any validator, so the body is whatever was posted. The
+    // fallback is what keeps `{"email": 123}` from being an unauthenticated 500.
+    expect(emailOrIpKey(reqWith({ body: { email }, ip }))).toBe(`ip:${ip}`);
+  });
+
+  it('falls back to the IP bucket when there is no body at all', () => {
+    expect(emailOrIpKey(reqWith({ ip }))).toBe(`ip:${ip}`);
+    expect(emailOrIpKey(reqWith({ body: {}, ip }))).toBe(`ip:${ip}`);
+  });
+
+  it('namespaces email keys so a crafted address cannot land in the IP key space', () => {
+    // Without the prefixes, an attacker who could make the canonical form equal
+    // an IP literal would share — and could exhaust — the bucket every
+    // anonymous caller from that address draws on.
+    const crafted = emailOrIpKey(reqWith({ body: { email: `${ip}@example.com` }, ip: '198.51.100.7' }));
+    const asIp = emailOrIpKey(reqWith({ ip }));
+
+    expect(crafted).not.toBe(asIp);
+    expect(crafted).toMatch(/^email:/);
+    expect(asIp).toMatch(/^ip:/);
   });
 });
