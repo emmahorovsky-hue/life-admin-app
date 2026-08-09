@@ -243,7 +243,14 @@ export function FirstRunWizard({
    * Renewal reminders, on the screen that has just given the user something to
    * be reminded about — the moment the setting means anything. It is the same
    * account-wide flag Settings › Notifications toggles, read and written the
-   * same way, so the two can never disagree. Mirrors mobile's setup step 3.
+   * same way, so the two can never disagree.
+   *
+   * Email only, deliberately. The server also sends this reminder as a push
+   * notification (`reminderPushEnabled`), and mobile's setup step 3 offers both
+   * switches — but a browser cannot receive those pushes, so a control for them
+   * here would be a control for something this device will never show. The copy
+   * below says where that switch lives instead of pretending the channel does
+   * not exist.
    *
    * It reads on because the server defaults it on. Shown anyway rather than
    * hidden: a reminder the user did not ask for arriving in their inbox in a
@@ -562,7 +569,8 @@ export function FirstRunWizard({
                 stops the flow promising a schedule it does not control. */}
             <p className="mt-3 text-sm text-muted-foreground">
               Timing follows each billing cycle — a day before a weekly renewal, two weeks before
-              an annual one. Change this any time in Settings › Notifications.
+              an annual one. The mobile app can send the same heads-up as a push notification;
+              both are in Settings › Notifications, and either can be turned off on its own.
             </p>
           </div>
         </div>
