@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import subscriptionRoutes from '../routes/subscriptions';
 import { generateToken } from '../utils/jwt';
 import prisma from '../utils/db';
+import { emailFields } from '../utils/email';
 
 const createTestApp = () => {
   const app = express();
@@ -22,7 +23,7 @@ function authCookie(userId: string, email: string): string {
 async function seedUserWithDeletedSubscription() {
   const user = await prisma.user.create({
     data: {
-      email: `softdel-${Date.now()}-${Math.random()}@example.com`,
+      ...emailFields(`softdel-${Date.now()}-${Math.random()}@example.com`),
       password: 'hashed',
     },
   });

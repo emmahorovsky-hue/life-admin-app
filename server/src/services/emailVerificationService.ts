@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import prisma from '../utils/db';
 import { sendVerificationEmail } from './emailService'; // from LIF-42
+import { canonicalEmail } from '../utils/email';
 
 const TOKEN_BYTES = 32;
 const EXPIRY_HOURS = 24;
@@ -44,7 +45,17 @@ export async function consumeEmailVerificationToken(rawToken: string): Promise<C
   if (!record) return { ok: false, reason: 'invalid' };
   if (record.usedAt) return { ok: false, reason: 'already_used' };
   if (record.expiresAt < new Date()) return { ok: false, reason: 'expired' };
-  if (record.email !== record.user.email) return { ok: false, reason: 'email_changed' };
+  // Compared on the canonical form, not the displayed one. The guard exists to
+  // stop a token verifying an address the account no longer owns, and ownership
+  // is canonical: the user proved control of an inbox, and a display-only edit
+  // (dots restored by job:restore-email-dots, or the user re-spelling their own
+  // address via change-email) still resolves to that same inbox, so the proof
+  // holds. Comparing display forms would make the backfill silently invalidate
+  // every pending verification link for the accounts it touches.
+  const tokenCanonical = canonicalEmail(record.email);
+  if (!tokenCanonical || tokenCanonical !== record.user.emailCanonical) {
+    return { ok: false, reason: 'email_changed' };
+  }
 
   // Atomically claim the token so two concurrent requests with the same valid
   // token can't both succeed. Only the request whose updateMany flips usedAt

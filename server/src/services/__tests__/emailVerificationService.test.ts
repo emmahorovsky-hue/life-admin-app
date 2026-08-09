@@ -5,6 +5,7 @@ import {
   consumeEmailVerificationToken,
 } from '../emailVerificationService';
 import * as emailService from '../emailService';
+import { emailFields } from '../../utils/email';
 
 // Helper function to hash tokens (same as service)
 function hashToken(raw: string): string {
@@ -22,7 +23,7 @@ describe('emailVerificationService', () => {
     // Create a test user
     testUser = await prisma.user.create({
       data: {
-        email: 'test@example.com',
+        ...emailFields('test@example.com'),
         password: 'hashedpassword',
         name: 'Test User',
       },

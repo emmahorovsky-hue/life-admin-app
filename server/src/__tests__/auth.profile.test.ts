@@ -8,6 +8,7 @@ import authRoutes from '../routes/auth';
 import prisma from '../utils/db';
 import { generateToken } from '../utils/jwt';
 import * as emailService from '../services/emailService';
+import { emailFields } from '../utils/email';
 
 // ts-jest compiles named exports to read-only getters, so spyOn() can't replace
 // them. Mock the module instead (keeping the real impls we don't override).
@@ -73,7 +74,7 @@ describe('Auth Profile Endpoints', () => {
 
   async function createUser(email = 'me@example.com', password = 'OldPass123!') {
     return prisma.user.create({
-      data: { email, password: await bcrypt.hash(password, 10), name: 'Me', emailVerified: true },
+      data: { ...emailFields(email), password: await bcrypt.hash(password, 10), name: 'Me', emailVerified: true },
     });
   }
 
@@ -349,6 +350,25 @@ describe('Auth Profile Endpoints', () => {
       expect(tokens).toHaveLength(0);
       expect(sendEmailChangeVerificationEmail).not.toHaveBeenCalled();
     });
+
+    // Re-spelling your own Gmail address leaves the canonical form identical, so
+    // the "already registered" lookup finds your own row. Treating that as taken
+    // would silently swallow the request — and this flow is the only way a user
+    // can restore the dots the old normalizeEmail() ate, so it has to go through.
+    it('lets a user re-spell their own address, which the taken-check would otherwise swallow', async () => {
+      const user = await createUser('firstlast@gmail.com');
+
+      const res = await request(app)
+        .post('/api/auth/change-email')
+        .set('Cookie', authCookie(user.id, user.email))
+        .send({ email: 'first.last@gmail.com' });
+
+      expect(res.status).toBe(200);
+      const tokens = await prisma.emailChangeToken.findMany({ where: { userId: user.id } });
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].newEmail).toBe('first.last@gmail.com');
+      expect(sendEmailChangeVerificationEmail).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('GET /api/auth/verify-email-change', () => {
@@ -376,6 +396,56 @@ describe('Auth Profile Endpoints', () => {
       expect(sendEmailChangedNoticeEmail).toHaveBeenCalledWith(
         expect.objectContaining({ to: 'old@example.com', newEmail: 'confirmed@example.com' })
       );
+    });
+
+    // Both email columns have to move together. Writing only `email` leaves the
+    // row's identity key pointing at the previous address: the account becomes
+    // unreachable by the address it displays, and still reachable by one the
+    // user has abandoned.
+    it('writes both the display and canonical columns, so login follows the new address', async () => {
+      const user = await createUser('old@example.com');
+      const raw = await seedEmailChangeToken(user.id, 'New.User@Gmail.com');
+
+      await request(app).get(`/api/auth/verify-email-change?token=${raw}`);
+
+      const updated = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(updated!.email).toBe('new.user@gmail.com');
+      expect(updated!.emailCanonical).toBe('newuser@gmail.com');
+
+      // Reachable by the canonical spelling…
+      const login = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'newuser@gmail.com', password: 'OldPass123!' });
+      expect(login.status).toBe(200);
+      expect(login.body.user.email).toBe('new.user@gmail.com');
+
+      // …and no longer by the old address.
+      const stale = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'old@example.com', password: 'OldPass123!' });
+      expect(stale.status).toBe(401);
+    });
+
+    // A dots-only change resolves the uniqueness re-check to this very user.
+    // The self-guard there has to let it through, and the canonical column must
+    // come out byte-identical — the identity never moved, only the spelling.
+    it('completes a dots-only change without moving the identity key', async () => {
+      const user = await createUser('firstlast@gmail.com');
+      const raw = await seedEmailChangeToken(user.id, 'first.last@gmail.com');
+
+      await request(app).get(`/api/auth/verify-email-change?token=${raw}`);
+
+      const updated = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(updated!.email).toBe('first.last@gmail.com');
+      expect(updated!.emailCanonical).toBe('firstlast@gmail.com');
+
+      // Both spellings still sign in, exactly as before the change.
+      for (const email of ['firstlast@gmail.com', 'first.last@gmail.com']) {
+        const login = await request(app)
+          .post('/api/auth/login')
+          .send({ email, password: 'OldPass123!' });
+        expect([email, login.status]).toEqual([email, 200]);
+      }
     });
 
     it('redirects with invalid-token for an expired token', async () => {

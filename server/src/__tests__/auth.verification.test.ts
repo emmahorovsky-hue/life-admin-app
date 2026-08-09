@@ -6,6 +6,7 @@ import cors from 'cors';
 import authRoutes from '../routes/auth';
 import prisma from '../utils/db';
 import * as emailService from '../services/emailService';
+import { emailFields } from '../utils/email';
 
 // Helper to hash tokens
 function hashToken(raw: string): string {
@@ -96,7 +97,7 @@ describe('Auth Verification Endpoints', () => {
     beforeEach(async () => {
       testUser = await prisma.user.create({
         data: {
-          email: 'verify@example.com',
+          ...emailFields('verify@example.com'),
           password: 'hashedpassword',
           name: 'Verify User',
         },
@@ -176,10 +177,13 @@ describe('Auth Verification Endpoints', () => {
     });
 
     it('should show email_changed when user email differs', async () => {
-      // Update user email
+      // Both columns move, as consumeEmailChangeToken does it — the guard is
+      // keyed on the canonical one, since ownership of an inbox is what the
+      // token proves. Updating `email` alone would be the corrupt state that
+      // findInconsistentUsers() exists to catch, not an email change.
       await prisma.user.update({
         where: { id: testUser.id },
-        data: { email: 'newemail@example.com' },
+        data: emailFields('newemail@example.com'),
       });
 
       const response = await request(app)
@@ -205,7 +209,7 @@ describe('Auth Verification Endpoints', () => {
     beforeEach(async () => {
       testUser = await prisma.user.create({
         data: {
-          email: 'resend@example.com',
+          ...emailFields('resend@example.com'),
           password: 'hashedpassword',
           name: 'Resend User',
         },
