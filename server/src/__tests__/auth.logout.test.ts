@@ -149,6 +149,49 @@ describe('Logout revokes the session (LIF-174)', () => {
     expect(setCookie?.some((c) => c.startsWith('token=;'))).toBe(true);
   });
 
+  it('unregisters the account\'s device tokens (LIF-252)', async () => {
+    // Revoking the session leaves DeviceToken rows untouched, so without this
+    // the signed-out phone keeps receiving renewal pushes naming the ex-user's
+    // subscriptions on its lock screen.
+    const email = 'logout-devicetoken@example.com';
+    const token = await registerAndGetToken(email);
+    await request(app)
+      .post('/api/auth/device-token')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ token: 'ExponentPushToken[logout-test-device]', platform: 'ios' })
+      .expect(200);
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    expect(await prisma.deviceToken.count({ where: { userId: user!.id } })).toBe(1);
+
+    await request(app).post('/api/auth/logout').set('Authorization', `Bearer ${token}`).expect(200);
+
+    expect(await prisma.deviceToken.count({ where: { userId: user!.id } })).toBe(0);
+  });
+
+  it('leaves other accounts\' device tokens alone', async () => {
+    // Account-wide, not global: the deleteMany is scoped by userId, and a bug
+    // there would silently unregister every device on the platform.
+    const mine = await registerAndGetToken('logout-devicetoken-mine@example.com');
+    const theirs = await registerAndGetToken('logout-devicetoken-theirs@example.com');
+
+    for (const [session, deviceToken] of [
+      [mine, 'ExponentPushToken[mine]'],
+      [theirs, 'ExponentPushToken[theirs]'],
+    ]) {
+      await request(app)
+        .post('/api/auth/device-token')
+        .set('Authorization', `Bearer ${session}`)
+        .send({ token: deviceToken, platform: 'ios' })
+        .expect(200);
+    }
+
+    await request(app).post('/api/auth/logout').set('Authorization', `Bearer ${mine}`).expect(200);
+
+    expect(await prisma.deviceToken.findUnique({ where: { token: 'ExponentPushToken[mine]' } })).toBeNull();
+    expect(await prisma.deviceToken.findUnique({ where: { token: 'ExponentPushToken[theirs]' } })).not.toBeNull();
+  });
+
   it('leaves passwordChangedAt revocation working', async () => {
     // The two cutoffs are independent; the middleware takes whichever is later.
     // A logout must not mask a password-change invalidation, or vice versa.

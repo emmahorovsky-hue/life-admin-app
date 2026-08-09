@@ -11,6 +11,8 @@ import {
 } from '../lib/pushNotifications';
 import { tokenStorage } from '../lib/storage';
 import { biometricPref, isAvailable as biometricsAvailable } from '../lib/biometrics';
+import { detectTimeZone } from '../lib/locale';
+import { updateProfile } from '../lib/profile';
 
 interface AuthContextType {
   user: User | null;
@@ -276,6 +278,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const subscription = subscribeToPushTokenRotation();
     return () => subscription.remove();
   }, [userId]);
+
+  // Keep the stored timezone in sync with the device's, silently — it decides
+  // what time of day renewal reminders arrive (LIF-252). The web client has done
+  // this since LIF-11 and mobile never did, which left app-only users on the
+  // `"UTC"` column default: 09:00 UTC is 02:00 in California, and those are
+  // exactly the users who get push.
+  //
+  // Re-runs when the zone changes as well as on sign-in, so travelling or moving
+  // is picked up on the next launch rather than at the next web login.
+  //
+  // Best-effort in both directions: an unreadable zone leaves whatever the
+  // server has (possibly a good one synced from web) rather than stamping UTC
+  // over it, and a failed request just means reminders keep using the stored
+  // zone. Neither may surface an error — the user did not ask for this.
+  const userTimezone = user?.timezone;
+  useEffect(() => {
+    if (!userId) return;
+    const detected = detectTimeZone();
+    if (!detected || detected === userTimezone) return;
+    updateProfile({ timezone: detected })
+      .then(({ data }) => setUser(data.user))
+      .catch(() => {});
+  }, [userId, userTimezone]);
 
   const login = async (email: string, password: string) => {
     const { data } = await api.post<AuthResponse & { token: string }>('/auth/login', {
