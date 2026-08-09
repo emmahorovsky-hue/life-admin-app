@@ -10,6 +10,7 @@ import subscriptionRoutes from '../routes/subscriptions';
 import prisma from '../utils/db';
 import { generateToken } from '../utils/jwt';
 import { MAX_NAME_LENGTH, MAX_NOTES_LENGTH } from '../constants/validation';
+import { emailFields } from '../utils/email';
 
 // Mount the router rather than importing ../index, which calls app.listen() —
 // same pattern as the other subscription suites.
@@ -41,7 +42,7 @@ describe('Subscription input validation (LIF-31)', () => {
 
   beforeEach(async () => {
     const user = await prisma.user.create({
-      data: { email: `validation-${Date.now()}@example.com`, password: 'x' },
+      data: { ...emailFields(`validation-${Date.now()}@example.com`), password: 'x' },
     });
     userId = user.id;
     token = generateToken({ userId: user.id, email: user.email });

@@ -17,7 +17,7 @@ import {
   registerDeviceTokenHandler,
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
-import { authenticatedUserKey } from '../middleware/rateLimit';
+import { authenticatedUserKey, emailOrIpKey } from '../middleware/rateLimit';
 import { logSecurityEvent } from '../utils/securityLog';
 import { MAX_NAME_LENGTH } from '../constants/validation';
 import { THEMES } from '@life-admin/shared';
@@ -120,7 +120,7 @@ const forgotPasswordPerEmailLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 1,
   skip: () => skipAuthRateLimit,
-  keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
+  keyGenerator: emailOrIpKey,
   handler: (req, res) => {
     logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req), reason: 'per_email_minute' });
     res.status(200).json(forgotPasswordGenericResponse);
@@ -133,7 +133,7 @@ const forgotPasswordPerEmailHourlyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
   skip: () => skipAuthRateLimit,
-  keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
+  keyGenerator: emailOrIpKey,
   handler: (req, res) => {
     logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req), reason: 'per_email_hourly' });
     res.status(200).json(forgotPasswordGenericResponse);
@@ -158,7 +158,7 @@ const resendPerEmailLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 1,
   skip: () => skipAuthRateLimit,
-  keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
+  keyGenerator: emailOrIpKey,
   handler: (req, res) => {
     logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req), reason: 'per_email_minute' });
     res.status(200).json(genericResponse);
@@ -171,7 +171,7 @@ const resendPerEmailHourlyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
   skip: () => skipAuthRateLimit,
-  keyGenerator: (req) => req.body.email?.toLowerCase() || req.ip,
+  keyGenerator: emailOrIpKey,
   handler: (req, res) => {
     logSecurityEvent('auth.rate_limit.exceeded', req, { route: routePath(req), reason: 'per_email_hourly' });
     res.status(200).json(genericResponse);
@@ -192,12 +192,28 @@ const resendPerIpLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// The email chain repeated on all five routes below. It stores the address as
+// TYPED (bar trim + lowercase) — Gmail dots and +tags are display, not identity.
+// Identity comes from canonicalEmail() in the controller, which is what every
+// lookup and uniqueness check keys on.
+//
+// Do NOT reintroduce .normalizeEmail() here. It strips Gmail dots, and because
+// it is a sanitizer it rewrites req.body.email before the controller runs, so
+// the flattened address is what gets persisted and shown back to the user.
+// Equally, do not "fix" this by only turning gmail_remove_dots off: that was
+// LIF-80 (0b415d7), and it locked out every account registered before it
+// because exact-match login could no longer find their dotless rows. See the
+// revert 87e886d, and utils/email.ts.
+//
+// .trim() cannot change any stored value — a padded address failed isEmail()
+// before — it just stops a mobile keyboard's trailing space 400ing.
+
 // POST /api/auth/register
 router.post(
   '/register',
   registerLimiter,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+    body('email').trim().isEmail().withMessage('Invalid email').toLowerCase(),
     body('password')
       .isStrongPassword({
         minLength: 8,
@@ -220,7 +236,7 @@ router.post(
   '/login',
   loginLimiter,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+    body('email').trim().isEmail().withMessage('Invalid email').toLowerCase(),
     // Login intentionally uses .notEmpty() rather than isStrongPassword() so that
     // users who registered before the strong-password policy was introduced can
     // still log in. Strength enforcement only applies at registration time.
@@ -245,7 +261,7 @@ router.post(
   resendPerEmailHourlyLimiter,
   resendPerIpLimiter,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+    body('email').trim().isEmail().withMessage('Invalid email').toLowerCase(),
   ],
   resendVerification
 );
@@ -257,7 +273,7 @@ router.post(
   forgotPasswordPerEmailHourlyLimiter,
   forgotPasswordPerIpLimiter,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Invalid email'),
+    body('email').trim().isEmail().withMessage('Invalid email').toLowerCase(),
   ],
   forgotPassword
 );
@@ -365,7 +381,7 @@ router.post(
   authenticateToken,
   changeEmailLimiter,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Invalid email address'),
+    body('email').trim().isEmail().withMessage('Invalid email address').toLowerCase(),
   ],
   initiateEmailChangeHandler
 );

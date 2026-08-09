@@ -12,6 +12,7 @@ import { registerDeviceToken } from '../services/deviceTokenService';
 import { reportServerError } from '../utils/reportError';
 import { logSecurityEvent } from '../utils/securityLog';
 import { clientUrl, mobileUrl } from '../utils/urls';
+import { canonicalEmail } from '../utils/email';
 import { PUBLIC_USER_SELECT, toPublicUser } from '../constants/user';
 
 // The frontend (Vercel) and backend (Railway) are served from different sites
@@ -44,11 +45,27 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
       return;
     }
 
+    // `email` is the display form the validator left behind (as typed, trimmed
+    // and lowercased). The canonical form is the identity key — see utils/email.ts.
     const { email, password, name } = req.body;
+    const emailCanonical = canonicalEmail(email);
 
-    // Check if user exists
+    if (!emailCanonical) {
+      // isEmail() already passed, so this is unreachable in practice; fail
+      // closed rather than write a row whose identity key we couldn't derive.
+      res.status(400).json({
+        error: {
+          message: 'Invalid email',
+          code: 'VALIDATION_ERROR',
+        },
+      });
+      return;
+    }
+
+    // Check if user exists. Keyed on canonical, so a second signup from the
+    // same Gmail inbox is caught however it is spelled.
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { emailCanonical },
     });
 
     if (existingUser) {
@@ -68,6 +85,7 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
     const user = await prisma.user.create({
       data: {
         email,
+        emailCanonical,
         password: hashedPassword,
         name,
       },
@@ -141,10 +159,18 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
 
     // Find user — full row (the password hash is needed for the comparison
     // below); toPublicUser picks only the public fields for the response.
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { avatar: { select: { updatedAt: true } } },
-    });
+    //
+    // Keyed on canonical, which is what keeps every spelling of one Gmail inbox
+    // signing into the same account. A null canonical means the address could
+    // not be normalized at all; fall through to the same 401 as an unknown
+    // address rather than 500ing, and without telling the caller which it was.
+    const emailCanonical = canonicalEmail(email);
+    const user = emailCanonical
+      ? await prisma.user.findUnique({
+          where: { emailCanonical },
+          include: { avatar: { select: { updatedAt: true } } },
+        })
+      : null;
 
     if (!user) {
       logSecurityEvent('auth.login.failure', req, { email, reason: 'unknown_email' });
@@ -354,8 +380,14 @@ export const forgotPassword = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
+    // Canonical, so a reset requested with any spelling of a Gmail address
+    // reaches the account that owns that inbox. (The .toLowerCase() this
+    // replaces was already redundant — the validator lowercases.)
     const { email } = req.body;
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const emailCanonical = canonicalEmail(email);
+    const user = emailCanonical
+      ? await prisma.user.findUnique({ where: { emailCanonical } })
+      : null;
 
     if (!user) {
       // Response stays generic (anti-enumeration), but the attempt is still
@@ -580,17 +612,31 @@ export const initiateEmailChangeHandler = async (req: AuthRequest, res: Response
 
     const { email: newEmail } = req.body;
 
+    const emailCanonical = canonicalEmail(newEmail);
+    if (!emailCanonical) {
+      res.status(400).json({ error: { message: 'Invalid email address', code: 'VALIDATION_ERROR' } });
+      return;
+    }
+
     // Anti-enumeration: respond identically whether or not the address is already
     // registered (mirrors forgot-password). Only actually issue a token + send the
     // confirmation link when the address is free; uniqueness is re-checked at
     // consume-time as the authoritative guard.
-    const existing = await prisma.user.findUnique({ where: { email: newEmail } });
+    //
+    // `existing` can legitimately be the caller themselves: re-spelling your own
+    // Gmail address (restoring dots, adding a +tag) leaves the canonical form
+    // identical, so the lookup finds your own row. That is a display-only change
+    // and the only self-service way for a user to get their dots back, so it must
+    // not be swallowed by the taken-address branch. Mirrors the same self-check
+    // in consumeEmailChangeToken.
+    const existing = await prisma.user.findUnique({ where: { emailCanonical } });
+    const takenBySomeoneElse = !!existing && existing.id !== req.user.userId;
     const platform = req.headers['x-platform'] as string | undefined;
     logSecurityEvent('auth.email_change.requested', req, {
       userId: req.user.userId,
-      ...(existing && { reason: 'email_taken' }),
+      ...(takenBySomeoneElse && { reason: 'email_taken' }),
     });
-    if (!existing) {
+    if (!takenBySomeoneElse) {
       await initiateEmailChange(req.user.userId, newEmail, platform);
     }
 
@@ -650,10 +696,11 @@ export const resendVerification = async (req: AuthRequest, res: Response): Promi
 
     const { email } = req.body;
 
-    // Look up user
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+    // Look up user by canonical, so any spelling of the address resolves.
+    const emailCanonical = canonicalEmail(email);
+    const user = emailCanonical
+      ? await prisma.user.findUnique({ where: { emailCanonical } })
+      : null;
 
     // No-op if user not found or already verified
     if (!user || user.emailVerified) {
