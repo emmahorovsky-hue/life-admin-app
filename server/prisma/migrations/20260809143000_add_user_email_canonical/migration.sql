@@ -5,6 +5,44 @@
 -- Written by hand rather than generated: Prisma emits a bare NOT NULL ADD
 -- COLUMN, which cannot execute against a populated table. Nullable first,
 -- backfill, then constrain — so `prisma migrate deploy` is safe in production.
+--
+--
+-- ============================ RUN THIS FIRST ============================
+--
+-- The Gmail re-normalization below can map two existing rows onto one canonical
+-- value: a pre-existing `firstlast@gmail.com` and a `first.last@gmail.com`
+-- registered during the LIF-80 window are the same inbox, and the CREATE UNIQUE
+-- INDEX at the bottom of this file will not have them. Against production data
+-- nobody knows whether that pair exists until it is looked for, so look:
+--
+--   SELECT CASE WHEN split_part(lower("email"),'@',2) IN ('gmail.com','googlemail.com')
+--            THEN replace(split_part(split_part(lower("email"),'@',1),'+',1),'.','') || '@gmail.com'
+--            ELSE lower("email") END AS canonical,
+--          count(*), array_agg("id" || ' ' || "email")
+--   FROM "User" GROUP BY 1 HAVING count(*) > 1;
+--
+-- Zero rows means this migration is safe to deploy. Any row is two accounts for
+-- one inbox and needs a person to decide which survives — merge or delete the
+-- duplicate first, then re-run the query. The CASE is copied verbatim from the
+-- backfill below so the check cannot disagree with what actually runs; keep the
+-- two in step if either is edited.
+--
+-- Skipping the check costs more than a failed deploy. When CREATE UNIQUE INDEX
+-- aborts, Prisma leaves a FAILED row in `_prisma_migrations`, and from that
+-- moment `prisma migrate deploy` refuses to apply *anything* — including
+-- releases that have nothing to do with this column. Railway runs it on every
+-- deploy (see DEPLOYMENT.md 2.2), so one unchecked collision blocks the whole
+-- pipeline until someone with database access intervenes by hand.
+--
+-- To recover: fix the colliding data, then clear the failed row with
+--
+--   npx prisma migrate resolve --rolled-back 20260809143000_add_user_email_canonical
+--
+-- and redeploy. `--rolled-back`, not `--applied`: Postgres has transactional DDL
+-- and Prisma runs each migration file in one transaction, so the failure took
+-- the ADD COLUMN with it and this file has to run again from the top.
+--
+-- =======================================================================
 
 -- AlterTable
 ALTER TABLE "User" ADD COLUMN "emailCanonical" TEXT;
