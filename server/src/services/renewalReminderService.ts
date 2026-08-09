@@ -4,7 +4,7 @@ import { sendRenewalReminderDigest, DigestItem } from './emailService';
 import { sendRenewalPushDigest } from './pushService';
 import { reportServerError } from '../utils/reportError';
 import { computeNextRenewal, daysUntil } from '../utils/renewal';
-import { zonedNow } from '../utils/zonedTime';
+import { isSameLocalDay, zonedNow } from '../utils/zonedTime';
 
 // One reminder per renewal occurrence, timed to the billing cycle: short cycles
 // get short notice (a 7-day heads-up for a weekly sub would land the day the
@@ -32,7 +32,9 @@ const REMINDER_WINDOW_DAYS: Record<string, number> = {
 // window plus per-occurrence dedup delivers at 09:00 local in the normal case
 // and self-heals in the abnormal one, because dedup — not the schedule — is what
 // guarantees exactly-once. That same dedup is what makes the repeated hour of a
-// DST fall-back harmless.
+// DST fall-back harmless. The failure paths dedup cannot see (a send that threw
+// after the mail went out, a log write that failed) are bounded separately, by
+// the same-local-day suppression in sendRenewalReminders.
 const DELIVERY_START_HOUR = 9;
 const DELIVERY_END_HOUR = 21;
 
@@ -159,29 +161,59 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<Remi
   const due: DueEntry[] = [...dueByUser.values()].flatMap(({ entries }) => entries);
   if (due.length === 0) return result;
 
-  // One grouped dedup query covering both channels. Only successful sends count
-  // — a failed attempt must not suppress retries on the next run. Dedup is keyed
-  // to the exact renewal occurrence, so short cycles (e.g. weekly) get a fresh
-  // reminder each cycle instead of being swallowed by a rolling time window,
-  // and to the channel, so a delivered push never suppresses the email.
-  const priorSends = await prisma.notificationLog.findMany({
+  // One grouped dedup query covering both channels and both outcomes. Dedup is
+  // keyed to the exact renewal occurrence, so short cycles (e.g. weekly) get a
+  // fresh reminder each cycle instead of being swallowed by a rolling time
+  // window, and to the channel, so a delivered push never suppresses the email.
+  const priorAttempts = await prisma.notificationLog.findMany({
     where: {
       subscriptionId: { in: due.map(({ sub }) => sub.id) },
       type: 'renewal_reminder',
-      status: 'sent',
       renewalDate: { in: due.map(({ nextRenewal }) => nextRenewal) },
     },
-    select: { subscriptionId: true, renewalDate: true, channel: true },
+    select: { subscriptionId: true, renewalDate: true, channel: true, status: true, sentAt: true },
   });
-  const alreadySent = new Set(
-    priorSends.map((log) => dedupKey(log.subscriptionId, log.renewalDate!, log.channel))
-  );
+  const attemptsByKey = new Map<string, { status: string; sentAt: Date }[]>();
+  for (const log of priorAttempts) {
+    const key = dedupKey(log.subscriptionId, log.renewalDate!, log.channel);
+    const attempts = attemptsByKey.get(key) ?? [];
+    attempts.push({ status: log.status, sentAt: log.sentAt });
+    attemptsByKey.set(key, attempts);
+  }
 
   // One digest per channel per user covering everything due, instead of one
   // message per subscription.
   for (const [userId, { today, entries: group }] of dueByUser) {
     const user = group[0].sub.user;
     const tokens = user.deviceTokens.map((t) => t.token);
+
+    // What this user has already had attempted today, per channel.
+    //
+    // A *successful* send suppresses forever — that is the exactly-once
+    // guarantee. A *failed* one suppresses only for the rest of the user's
+    // local day, which is what keeps the hourly schedule from amplifying the
+    // failure paths: nothing here is transactional, so a Resend timeout after
+    // the mail was accepted, or a log write that failed after a real send,
+    // leaves an occurrence looking un-notified. Under the old daily cron that
+    // cost at most one duplicate a day and 3–4 over a monthly subscription's
+    // window; retrying every hour instead would cost twelve a day and around
+    // fifty over the window. Retrying tomorrow keeps the old ceiling and still
+    // recovers from a genuine outage.
+    const suppressed = new Set<string>();
+    for (const { sub, nextRenewal } of group) {
+      for (const channel of ['email', 'push'] as const) {
+        const key = dedupKey(sub.id, nextRenewal, channel);
+        const attempts = attemptsByKey.get(key);
+        if (!attempts) continue;
+        if (
+          attempts.some(
+            (a) => a.status === 'sent' || isSameLocalDay(a.sentAt, user.timezone, today)
+          )
+        ) {
+          suppressed.add(key);
+        }
+      }
+    }
 
     // Each channel is delivered and logged independently: neither may abort the
     // other, so a Resend outage still lets the push through and vice versa.
@@ -192,8 +224,9 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<Remi
       eligible: user.reminderEmailsEnabled && user.emailVerified,
       group,
       userId,
+      now,
       today,
-      alreadySent,
+      suppressed,
       counters: result.email,
       send: async (items) => {
         await sendRenewalReminderDigest({ to: user.email, items });
@@ -206,8 +239,9 @@ export async function sendRenewalReminders(now: Date = new Date()): Promise<Remi
       eligible: pushChannelEnabled() && user.reminderPushEnabled && tokens.length > 0,
       group,
       userId,
+      now,
       today,
-      alreadySent,
+      suppressed,
       counters: result.push,
       send: async (items) => {
         const { invalidTokens, delivered } = await sendRenewalPushDigest({ tokens, items });
@@ -245,8 +279,9 @@ async function deliverChannel({
   eligible,
   group,
   userId,
+  now,
   today,
-  alreadySent,
+  suppressed,
   counters,
   send,
 }: {
@@ -254,9 +289,12 @@ async function deliverChannel({
   eligible: boolean;
   group: DueEntry[];
   userId: string;
+  /** The instant this run is reasoning about — stamped on the log rows. */
+  now: Date;
   /** The user's local calendar day — what the countdown is phrased against. */
   today: Date;
-  alreadySent: Set<string>;
+  /** Occurrence+channel keys already delivered, or already attempted today. */
+  suppressed: Set<string>;
   counters: ChannelResult;
   send: (items: DigestItem[]) => Promise<void>;
 }): Promise<void> {
@@ -264,7 +302,7 @@ async function deliverChannel({
 
   const pending: typeof group = [];
   for (const entry of group) {
-    if (alreadySent.has(dedupKey(entry.sub.id, entry.nextRenewal, channel))) {
+    if (suppressed.has(dedupKey(entry.sub.id, entry.nextRenewal, channel))) {
       counters.skipped++;
       continue;
     }
@@ -292,9 +330,10 @@ async function deliverChannel({
   }
 
   // A failed log write must not abort the loop — the remaining users should
-  // still get their reminders this run. The cost is at-least-once delivery:
-  // a sent message whose log write failed will be re-sent on the next run
-  // because dedup won't see it.
+  // still get their reminders this run. The cost is at-least-once delivery: a
+  // sent message whose log write failed leaves nothing for dedup to see, so it
+  // is re-sent. The same-local-day suppression above is what bounds that to one
+  // duplicate rather than one per hour for the rest of the delivery window.
   for (const { sub, nextRenewal } of pending) {
     try {
       await prisma.notificationLog.create({
@@ -304,6 +343,11 @@ async function deliverChannel({
           type: 'renewal_reminder',
           channel,
           status,
+          // The run's clock, not the DB's `now()`. They differ by milliseconds
+          // in production, but this row is what the same-local-day suppression
+          // above reads back, and that comparison has to be against the clock
+          // the decision was made with rather than the one the write landed on.
+          sentAt: now,
           renewalDate: nextRenewal,
         },
       });

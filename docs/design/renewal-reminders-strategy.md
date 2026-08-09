@@ -2,8 +2,9 @@
 
 **Author:** Claude (with Anna, product decisions)
 **Date:** 2026-07-13
-**Status:** Approved — all three phases shipped. Local-time delivery landed in LIF-252,
-which is also what unblocked turning the push channel on.
+**Status:** Approved — all three phases built. Local-time delivery landed in LIF-252,
+which unblocked the push channel; the channel itself is still dark behind
+`ENABLE_PUSH_REMINDERS`.
 **Supersedes:** `LIF-42-email-reminder-system.md` (pre-implementation design; LIF-11 shipped a different MVP)
 
 ---
@@ -169,9 +170,10 @@ jest's CommonJS registry. The helpers that shape what a user actually reads — 
    population that receives push. The manual override dropdown is still *not* built, so
    the ⚠️ above stands, and now applies to two auto-syncing clients rather than one:
    whoever adds it owes it a `timezoneSetManually` marker.
-3. **Live:** push channel as above; push toggles revealed on web + mobile.
-   `ENABLE_PUSH_REMINDERS` turned on once LIF-252's two prerequisites were in — local-time
-   delivery, and unregistering device tokens on logout.
+3. **Built and unblocked, still dark:** push channel as above; push toggles revealed on
+   web + mobile. LIF-252 cleared the two prerequisites — local-time delivery, and
+   unregistering device tokens on logout — so the only remaining step is setting
+   `ENABLE_PUSH_REMINDERS=true` on Railway. Until that flip the channel sends nothing.
 
 ## Rollback
 
