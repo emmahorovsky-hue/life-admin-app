@@ -37,7 +37,7 @@ export type PhoneFamily = {
   padBottomFrac: number;
 };
 
-/** home, uploading, push, subscriptions, details-sub. */
+/** The looser crop: ~9% of the canvas height is transparent margin. */
 export const PADDED: PhoneFamily = {
   aspect: 1427 / 760,
   deviceHeightPerWidth: 1294 / 760,
@@ -47,7 +47,7 @@ export const PADDED: PhoneFamily = {
   padBottomFrac: 82 / 1427,
 };
 
-/** timeline, notifications. */
+/** The tight crop: the device fills the canvas edge to edge. */
 export const TIGHT: PhoneFamily = {
   aspect: 1597 / 760,
   deviceHeightPerWidth: 1596 / 760,
@@ -57,9 +57,45 @@ export const TIGHT: PhoneFamily = {
   padBottomFrac: 1 / 1597,
 };
 
-/** Which family an asset belongs to, by filename. */
+/**
+ * Every asset in `public/ios/`, classified. Exhaustive on purpose: this started
+ * as a regex over the filename with `PADDED` as a silent fallback, which meant a
+ * new tight-crop asset whose name didn't happen to contain "timeline" or
+ * "notifications" would render ~23% off — the exact failure this module exists
+ * to prevent, arriving silently.
+ *
+ * `phoneAssets.test.ts` asserts this covers every `public/ios/*.webp`, so adding
+ * a screenshot without classifying it fails a unit test rather than shipping.
+ * Measure a new one off its alpha channel (solid pixels only, so the baked-in
+ * shadow is excluded) before assuming which family it belongs to.
+ */
+export const PHONE_FAMILY_BY_ASSET: Readonly<Record<string, PhoneFamily>> = {
+  'home.webp': PADDED,
+  'uploading.webp': PADDED,
+  'push.webp': PADDED,
+  'subscriptions.webp': PADDED,
+  'details-sub.webp': PADDED,
+  'timeline.webp': TIGHT,
+  'notifications.webp': TIGHT,
+};
+
+/**
+ * Which family an asset belongs to, given a `src` such as `/ios/home.webp`.
+ *
+ * Throws on an unknown asset rather than guessing. A marketing page that fails
+ * loudly in dev and in tests is worth more than one that quietly renders a phone
+ * at the wrong scale in production.
+ */
 export function phoneFamilyFor(src: string): PhoneFamily {
-  return /timeline|notifications/.test(src) ? TIGHT : PADDED;
+  const basename = src.split('/').pop() ?? src;
+  const family = PHONE_FAMILY_BY_ASSET[basename];
+  if (!family) {
+    throw new Error(
+      `Unclassified phone asset "${basename}". Measure its crop and add it to ` +
+        'PHONE_FAMILY_BY_ASSET in lib/phoneAssets.ts.'
+    );
+  }
+  return family;
 }
 
 // Device heights by the role the shot plays. Two shots sharing a row share one
