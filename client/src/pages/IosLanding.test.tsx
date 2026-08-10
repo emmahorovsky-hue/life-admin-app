@@ -40,8 +40,8 @@ describe('IosLanding', () => {
       screen.getByRole('heading', { level: 1, name: /the pocket companion to your paper trail/i })
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /stay on top of every renewal/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /add it anywhere/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /ready wherever you are/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /filed on your phone/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /never miss a renewal/i })).toBeInTheDocument();
   });
 
   it('gives every image a descriptive alt text', () => {

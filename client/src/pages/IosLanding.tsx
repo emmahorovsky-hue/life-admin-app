@@ -400,7 +400,8 @@ export default function IosLanding() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.22, duration: 0.5, ease: 'easeOut' }}
             >
-              Every renewal in compact form. Coming soon for iPhone, always in sync with the web.
+              Catch a receipt the moment it lands. Coming soon for iPhone, always in sync with
+              the web.
             </motion.p>
             <motion.div
               className="mt-9"
@@ -446,9 +447,9 @@ export default function IosLanding() {
               className="mx-auto max-w-[52ch] text-center text-[20px] font-semibold leading-[1.45] tracking-[-0.01em] sm:text-[24px]"
               style={{ color: 'rgba(250,250,248,0.85)' }}
             >
-              Built for the moments away from your desk. {APP_NAME} for iPhone is purpose-designed for
-              the quick jobs that keep your paper trail current — a powerful sidekick, always in your
-              pocket.
+              Paper turns up when you are nowhere near a desk — a receipt at the till, a renewal
+              notice on the train. {APP_NAME} for iPhone is for filing those where you stand, so
+              nothing waits until you get home and nothing gets forgotten on the way.
             </p>
           </Reveal>
           <div className="mt-14 grid grid-cols-1 gap-7 md:grid-cols-2">
@@ -456,7 +457,7 @@ export default function IosLanding() {
               <FeatureCard
                 eyebrow="On the spot"
                 title="Snap any receipt"
-                body={`Photograph a receipt or invoice and ${APP_NAME} reads every line, then files the renewal for you.`}
+                body={`Photograph a receipt or invoice and ${APP_NAME} reads off the merchant, amount, cycle and renewal date. You glance at it and confirm.`}
                 titleClass="text-[22px] sm:text-[26px] tracking-[-0.02em]"
               >
                 <PhoneShot
@@ -472,7 +473,7 @@ export default function IosLanding() {
               <FeatureCard
                 eyebrow="Right on time"
                 title="A nudge before it charges"
-                body="Push reminders land days ahead of every renewal, timed to each billing cycle."
+                body="A push before the money leaves, timed to the cycle: a day before a weekly, a fortnight before an annual."
                 titleClass="text-[22px] sm:text-[26px] tracking-[-0.02em]"
               >
                 <PhoneShot
@@ -511,8 +512,8 @@ export default function IosLanding() {
                 className="m-0 mx-auto max-w-[38ch] text-[17px] leading-[1.55]"
                 style={{ color: TEXT_MUTED }}
               >
-                The timeline keeps what&rsquo;s due next in front of you. Tap to review, edit in place,
-                or mute what you don&rsquo;t want to hear about.
+                What&rsquo;s due next sits at the top, everything behind it in date order. Tap any
+                row for the detail, or edit it without leaving the list.
               </p>
             </div>
           </Reveal>
@@ -544,7 +545,7 @@ export default function IosLanding() {
             <Reveal delay={0.08} className="h-full">
               <FeatureCard
                 title="Tune every reminder"
-                body="Email, push, or both — with timing that adapts to weekly, monthly and annual cycles."
+                body="Email, push, or both — and mute any subscription you would rather not hear about."
                 titleClass="text-[20px] sm:text-[22px] tracking-[-0.01em]"
               >
                 {/* Same DEVICE_SUBCARD as its neighbour — a tight-family asset,
@@ -575,16 +576,16 @@ export default function IosLanding() {
                   lineHeight: 1.05,
                 }}
               >
-                Add it anywhere.
+                Filed on your phone.
                 <br />
-                It&rsquo;s everywhere.
+                Waiting on the web.
               </h2>
               <p
                 className="m-0 mx-auto max-w-[40ch] text-[17px] leading-[1.55]"
                 style={{ color: TEXT_MUTED }}
               >
-                Everything you add on the phone is waiting on the web — one account, one paper trail,
-                every screen in sync.
+                One account, one paper trail. File something at the checkout and it is on your
+                dashboard before you are home.
               </p>
             </div>
           </Reveal>
@@ -620,29 +621,29 @@ export default function IosLanding() {
                     lineHeight: 1.06,
                   }}
                 >
-                  Available 24/7.
+                  Before the charge.
                   <br />
-                  Or just 9&ndash;5.
+                  Never at 3am.
                 </h2>
                 <div className="flex flex-col gap-[22px]">
                   <div>
-                    <p className="m-0 mb-1 text-[16px] font-bold">Realtime reminders</p>
+                    <p className="m-0 mb-1 text-[16px] font-bold">Timed to the cycle</p>
                     <p
                       className="m-0 max-w-[42ch] text-[14.5px] leading-[1.55]"
                       style={{ color: 'rgba(250,250,248,0.58)' }}
                     >
-                      Stay ahead of every renewal and take action the moment something needs you —
-                      wherever you are.
+                      A day before a weekly renewal, three before a monthly, a fortnight before an
+                      annual one — enough warning to cancel if you would rather not pay it again.
                     </p>
                   </div>
                   <div>
-                    <p className="m-0 mb-1 text-[16px] font-bold">On your schedule</p>
+                    <p className="m-0 mb-1 text-[16px] font-bold">In your own timezone</p>
                     <p
                       className="m-0 max-w-[42ch] text-[14.5px] leading-[1.55]"
                       style={{ color: 'rgba(250,250,248,0.58)' }}
                     >
-                      Pick email, push, or both, and mute individual subscriptions when you don&rsquo;t
-                      want the heads-up.
+                      Reminders go out during your waking hours, wherever you happen to be — never
+                      in the middle of your night because a server somewhere hit 9am.
                     </p>
                   </div>
                 </div>
@@ -678,7 +679,7 @@ export default function IosLanding() {
                 lineHeight: 1,
               }}
             >
-              Ready wherever you are
+              Never miss a renewal, wherever you are
             </h2>
             <ScanRow />
           </Reveal>
