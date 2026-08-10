@@ -481,11 +481,11 @@ export default function Landing() {
               <Link
                 to="/mobile"
                 onClick={() => window.scrollTo(0, 0)}
-                className="hidden text-muted-foreground transition-colors hover:text-brand-orange sm:inline"
+                className="hidden text-foreground transition-colors hover:text-brand-orange sm:inline"
               >
                 Mobile
               </Link>
-              <Link to="/login" className="transition-colors hover:text-brand-orange">
+              <Link to="/login" className="text-foreground transition-colors hover:text-brand-orange">
                 Log in
               </Link>
               <Link
