@@ -13,6 +13,7 @@
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { APP_NAME } from '@/lib/constants';
+import { marketingType } from '@/lib/marketingType';
 
 const POINTS = [
   'Snap a receipt and let AI file the renewal',
@@ -38,7 +39,7 @@ export default function IosSection() {
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brand-orange">
               Coming soon
             </p>
-            <h2 className="mt-4 text-3xl font-extrabold leading-[1.1] md:text-4xl">
+            <h2 className="mt-4" style={{ ...marketingType.section, fontSize: 'clamp(1.875rem, 4.2vw, 2.25rem)' }}>
               Your paper trail,
               <br />
               now in your pocket

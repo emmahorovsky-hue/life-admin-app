@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Logo } from '@/components/Logo';
 import { Rule } from '@/components/FrameMarks';
 import { FRAME_HAIRLINE_COLOR } from '@/lib/frameTone';
+import { marketingType } from '@/lib/marketingType';
 import {
   type PhoneFamily,
   PADDED,
@@ -335,7 +336,12 @@ function FeatureCard({
           {eyebrow}
         </p>
       )}
-      <h3 className={`m-0 mb-2.5 font-extrabold ${titleClass}`}>{title}</h3>
+      {/* Size stays with `titleClass` — an inline `fontSize` would outrank it
+          and flatten the two card sizes into one. */}
+      <h3
+        className={`m-0 mb-2.5 ${titleClass}`}
+        style={{ ...marketingType.cardTitle, fontSize: undefined }}
+      >{title}</h3>
       <p
         className="m-0 mb-2 max-w-[34ch] text-[15px] leading-[1.55]"
         style={{ color: TEXT_MUTED }}
@@ -454,12 +460,8 @@ export default function IosLanding() {
               Introducing {APP_NAME} for iPhone
             </motion.p>
             <motion.h1
-              className="mx-auto max-w-[16ch] font-black"
-              style={{
-                fontSize: 'clamp(2.375rem, 6.2vw, 4.125rem)',
-                letterSpacing: '-0.035em',
-                lineHeight: 0.98,
-              }}
+              className="mx-auto max-w-[16ch]"
+              style={{ ...marketingType.display, fontSize: 'clamp(2.375rem, 6.2vw, 4.125rem)' }}
               initial={reduced ? {} : { opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08, duration: 0.6, ease: REVEAL_EASE }}
@@ -517,8 +519,8 @@ export default function IosLanding() {
         <section className="px-5 py-[72px] sm:px-10 lg:px-14">
           <Reveal>
             <p
-              className="mx-auto max-w-[52ch] text-center text-[20px] font-semibold leading-[1.45] tracking-[-0.01em] sm:text-[24px]"
-              style={{ color: TEXT_STRONG }}
+              className="mx-auto max-w-[52ch] text-center text-[20px] sm:text-[24px]"
+              style={{ ...marketingType.subtitle, fontSize: undefined, lineHeight: 1.45, color: TEXT_STRONG }}
             >
               Paper turns up when you are nowhere near a desk — a receipt at the till, a renewal
               notice on the train. {APP_NAME} for iPhone is for filing those where you stand, so
@@ -531,7 +533,7 @@ export default function IosLanding() {
                 eyebrow="On the spot"
                 title="Snap any receipt"
                 body={`Photograph a receipt or invoice and ${APP_NAME} reads off the merchant, amount, cycle and renewal date. You glance at it and confirm.`}
-                titleClass="text-[22px] sm:text-[26px] tracking-[-0.02em]"
+                titleClass="text-[22px] sm:text-[26px]"
               >
                 <PhoneShot
                   src="/ios/uploading.webp"
@@ -547,7 +549,7 @@ export default function IosLanding() {
                 eyebrow="Right on time"
                 title="A nudge before it charges"
                 body="A push before the money leaves, timed to the cycle: a day before a weekly, a fortnight before an annual."
-                titleClass="text-[22px] sm:text-[26px] tracking-[-0.02em]"
+                titleClass="text-[22px] sm:text-[26px]"
               >
                 <PhoneShot
                   src="/ios/push.webp"
@@ -572,12 +574,8 @@ export default function IosLanding() {
                 inherited 16px, not the heading's own size). */}
             <div className="text-center">
               <h2
-                className="m-0 mb-[18px] max-w-[18ch] font-extrabold mx-auto"
-                style={{
-                  fontSize: 'clamp(1.875rem, 4.2vw, 2.75rem)',
-                  letterSpacing: '-0.025em',
-                  lineHeight: 1.05,
-                }}
+                className="m-0 mb-[18px] max-w-[18ch] mx-auto"
+                style={marketingType.section}
               >
                 Stay on top of every renewal
               </h2>
@@ -604,7 +602,7 @@ export default function IosLanding() {
               <FeatureCard
                 title="Tap into any charge"
                 body="Open a subscription to see cost, cycle, next renewal and your own notes at a glance."
-                titleClass="text-[20px] sm:text-[22px] tracking-[-0.01em]"
+                titleClass="text-[20px] sm:text-[22px]"
               >
                 <PhoneShot
                   src="/ios/details-sub.webp"
@@ -619,7 +617,7 @@ export default function IosLanding() {
               <FeatureCard
                 title="Tune every reminder"
                 body="Email, push, or both — and mute any subscription you would rather not hear about."
-                titleClass="text-[20px] sm:text-[22px] tracking-[-0.01em]"
+                titleClass="text-[20px] sm:text-[22px]"
               >
                 {/* Same DEVICE_SUBCARD as its neighbour — a tight-family asset,
                     so it resolves to a narrower image box around the same phone. */}
@@ -642,12 +640,8 @@ export default function IosLanding() {
           <Reveal>
             <div className="text-center">
               <h2
-                className="m-0 mb-[18px] font-extrabold"
-                style={{
-                  fontSize: 'clamp(1.875rem, 4.2vw, 2.75rem)',
-                  letterSpacing: '-0.025em',
-                  lineHeight: 1.05,
-                }}
+                className="m-0 mb-[18px]"
+                style={marketingType.section}
               >
                 Filed on your phone.
                 <br />
@@ -687,12 +681,8 @@ export default function IosLanding() {
             >
               <div>
                 <h2
-                  className="m-0 mb-7 font-extrabold"
-                  style={{
-                    fontSize: 'clamp(1.75rem, 3.8vw, 2.5rem)',
-                    letterSpacing: '-0.025em',
-                    lineHeight: 1.06,
-                  }}
+                  className="m-0 mb-7"
+                  style={{ ...marketingType.section, fontSize: 'clamp(1.75rem, 3.8vw, 2.5rem)' }}
                 >
                   Before the charge.
                   <br />
@@ -700,7 +690,7 @@ export default function IosLanding() {
                 </h2>
                 <div className="flex flex-col gap-[22px]">
                   <div>
-                    <p className="m-0 mb-1 text-[16px] font-bold">Timed to the cycle</p>
+                    <p className="m-0 mb-1 text-[16px]" style={marketingType.label}>Timed to the cycle</p>
                     <p
                       className="m-0 max-w-[42ch] text-[14.5px] leading-[1.55]"
                       style={{ color: TEXT_MUTED }}
@@ -710,7 +700,7 @@ export default function IosLanding() {
                     </p>
                   </div>
                   <div>
-                    <p className="m-0 mb-1 text-[16px] font-bold">In your own timezone</p>
+                    <p className="m-0 mb-1 text-[16px]" style={marketingType.label}>In your own timezone</p>
                     <p
                       className="m-0 max-w-[42ch] text-[14.5px] leading-[1.55]"
                       style={{ color: TEXT_MUTED }}
@@ -745,12 +735,8 @@ export default function IosLanding() {
           />
           <Reveal className="relative z-[2]">
             <h2
-              className="mx-auto mb-8 max-w-[16ch] font-black"
-              style={{
-                fontSize: 'clamp(2.125rem, 5.2vw, 3.5rem)',
-                letterSpacing: '-0.03em',
-                lineHeight: 1,
-              }}
+              className="mx-auto mb-8 max-w-[16ch]"
+              style={{ ...marketingType.headline, fontSize: 'clamp(2.125rem, 5.2vw, 3.5rem)' }}
             >
               Never miss a renewal, wherever you are
             </h2>

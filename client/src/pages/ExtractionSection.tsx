@@ -10,6 +10,7 @@ import { useRef } from 'react';
 import { IconCheck } from '@/components/icons';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { APP_NAME } from '@/lib/constants';
+import { marketingType } from '@/lib/marketingType';
 
 const EXTRACTED_FIELDS = [
   { label: 'Merchant', value: 'Nordic Gym Co.' },
@@ -105,7 +106,8 @@ export default function ExtractionSection() {
           {/* ── Right: annotated extracted fields ───────────────────────── */}
           <div>
             <motion.h2
-              className="text-3xl md:text-4xl font-extrabold leading-[1.08] tracking-tight mb-7"
+              className="mb-7"
+              style={{ ...marketingType.section, fontSize: 'clamp(1.875rem, 4.2vw, 2.25rem)' }}
               initial={reduced ? {} : { opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
@@ -137,7 +139,7 @@ export default function ExtractionSection() {
                   <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground w-[130px] flex-shrink-0">
                     {f.label}
                   </span>
-                  <span className="text-[17px] font-bold text-foreground">{f.value}</span>
+                  <span className="text-[17px] text-foreground" style={marketingType.label}>{f.value}</span>
                 </motion.div>
               ))}
             </div>
