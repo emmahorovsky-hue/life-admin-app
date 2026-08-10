@@ -169,8 +169,9 @@ const SHADOW_PANEL = 'drop-shadow(0 30px 55px rgba(0,0,0,0.5))';
  * `public/ios/app-store-badge-wht.svg` is Apple's file byte-for-byte: the
  * guidelines forbid recolouring it, altering its proportions, or printing
  * anything over it, so it is rendered as a plain <img> at its own aspect ratio
- * and never restyled. 52px tall clears the 40px minimum, and the row's 12px gap
- * clears the required clear space of a tenth of the badge height (5.2px).
+ * and never restyled. It renders at its native 40px, which is also Apple's
+ * minimum for digital use, and the 6px gap to the label above clears the
+ * required clear space of a tenth of the badge height (4px).
  *
  * The guidelines also expect the badge to link to a live product page. Until
  * APP_STORE_URL is set there is none, so the badge is inert and a mono label
@@ -181,14 +182,15 @@ const SHADOW_PANEL = 'drop-shadow(0 30px 55px rgba(0,0,0,0.5))';
 function AppStoreBadge() {
   const live = APP_STORE_URL !== null;
 
-  // Native artwork is 119.66407 × 40; 52px tall keeps that ratio exactly.
+  // 40px is both Apple's minimum for digital and the artwork's native height,
+  // so the badge renders 1:1 with no scaling at all.
   const badge = (
     <img
       src="/ios/app-store-badge-wht.svg"
       alt="Download on the App Store"
-      width={156}
-      height={52}
-      className="block h-[52px] w-auto"
+      width={120}
+      height={40}
+      className="block h-10 w-auto"
       draggable={false}
     />
   );
