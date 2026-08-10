@@ -47,11 +47,26 @@ describe('IosLanding', () => {
   it('gives every screenshot a descriptive alt text', () => {
     const { container } = renderPage();
 
-    const images = [...container.querySelectorAll('img')];
-    expect(images.length).toBeGreaterThan(0);
-    for (const img of images) {
-      expect(img.getAttribute('alt')).toBeTruthy();
+    // The QR is excluded deliberately — see the next test.
+    const screenshots = [...container.querySelectorAll('img')].filter(
+      (img) => !(img.getAttribute('src') ?? '').includes('qr')
+    );
+    expect(screenshots.length).toBeGreaterThan(0);
+    for (const img of screenshots) {
+      expect(img.getAttribute('alt'), img.getAttribute('src') ?? '').toBeTruthy();
     }
+  });
+
+  // Pre-launch the QR is ghosted behind a "coming soon" stamp and leads nowhere
+  // useful, so it is decorative: an empty alt keeps a screen reader from
+  // announcing a scannable code that isn't one. It regains its description
+  // when APP_STORE_URL is set.
+  it('marks the unreleased QR as decorative', () => {
+    const { container } = renderPage();
+
+    const qr = container.querySelector('img[src*="qr"]');
+    expect(qr).not.toBeNull();
+    expect(qr!.getAttribute('alt')).toBe('');
   });
 
   // The badge is announcing availability, not offering a download, until
