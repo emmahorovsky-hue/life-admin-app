@@ -92,7 +92,7 @@ describe('SubscriptionModal edit-mode cancel confirm', () => {
     await user.click(screen.getByRole('button', { name: /cancel subscription/i }));
     expect(onCancelRenewal).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: /yes, cancel it/i }));
+    await user.click(screen.getByRole('button', { name: /mark cancelled/i }));
     expect(onCancelRenewal).toHaveBeenCalledTimes(1);
   });
 });

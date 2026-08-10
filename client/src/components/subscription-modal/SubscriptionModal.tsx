@@ -458,13 +458,22 @@ export default function SubscriptionModal({
         <div className="mt-4 flex min-h-[69px] items-center gap-2 border-t border-border px-[22px] py-3.5">
           {confirm === 'cancel' ? (
             <>
+              {/* Paypr is a tracker: this only sets `cancelledAt` on our own row, and
+                  there is no payment or merchant integration anywhere in the product.
+                  The copy used to read "Paypr will stop renewing it", which states that
+                  Paypr acts on the real subscription — a user could click through it,
+                  believe they had cancelled, and keep being billed. Say what actually
+                  changes, and say who still has to do the cancelling. The reminder half
+                  is load-bearing and verified: renewalReminderService filters due
+                  candidates on `cancelledAt: null`, so a cancelled row stops generating
+                  email and push. Kept in step with the mobile sheet's dialog. */}
               <span className="text-[13px] text-foreground">
-                Cancel <strong>{values.name || 'this subscription'}</strong>? Paypr will stop
-                renewing it.
+                Mark <strong>{values.name || 'this subscription'}</strong> as cancelled? Paypr stops
+                reminding you about it — you'll still need to cancel with the provider yourself.
               </span>
-              <div className="ml-auto flex gap-2">
+              <div className="ml-auto flex shrink-0 gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => setConfirm(null)}>
-                  Keep it
+                  Not yet
                 </Button>
                 <Button
                   type="button"
@@ -475,7 +484,7 @@ export default function SubscriptionModal({
                     onCancelRenewal?.();
                   }}
                 >
-                  Yes, cancel it
+                  Mark cancelled
                 </Button>
               </div>
             </>
