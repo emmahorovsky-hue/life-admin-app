@@ -163,141 +163,99 @@ const SHADOW_BIG = 'drop-shadow(0 44px 80px rgba(0,0,0,0.55))';
 const SHADOW_CARD = 'drop-shadow(0 24px 44px rgba(0,0,0,0.5))';
 const SHADOW_PANEL = 'drop-shadow(0 30px 55px rgba(0,0,0,0.5))';
 
-function AppleGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-      <path d="M16.4 12.7c0-2 1.6-3 1.7-3.05-.93-1.36-2.38-1.55-2.9-1.57-1.23-.12-2.4.72-3.02.72-.62 0-1.58-.7-2.6-.68-1.34.02-2.57.78-3.26 1.97-1.39 2.42-.36 6 1 7.96.66.96 1.45 2.04 2.48 2 1-.04 1.38-.64 2.58-.64 1.2 0 1.54.64 2.6.62 1.07-.02 1.75-.98 2.4-1.94.76-1.11 1.07-2.18 1.09-2.24-.02-.01-2.09-.8-2.11-3.17zM14.4 6.6c.55-.66.92-1.58.82-2.5-.79.03-1.75.53-2.31 1.19-.5.58-.94 1.52-.82 2.41.88.07 1.77-.45 2.31-1.1z" />
-    </svg>
-  );
-}
-
 /**
- * App Store badge. Renders as a link once `APP_STORE_URL` is set and as plain
- * text until then — a badge that looks pressable but goes nowhere is worse than
- * one that plainly announces itself as not-yet.
+ * Apple's official "Download on the App Store" badge, white lockup, from
+ * developer.apple.com/app-store/marketing/guidelines. The SVG in
+ * `public/ios/app-store-badge-wht.svg` is Apple's file byte-for-byte: the
+ * guidelines forbid recolouring it, altering its proportions, or printing
+ * anything over it, so it is rendered as a plain <img> at its own aspect ratio
+ * and never restyled. 52px tall clears the 40px minimum, and the row's 12px gap
+ * clears the required clear space of a tenth of the badge height (5.2px).
+ *
+ * The guidelines also expect the badge to link to a live product page. Until
+ * APP_STORE_URL is set there is none, so the badge is inert and a mono label
+ * *above* it — outside the artwork, not over it — carries the "coming soon".
+ * Without that label the badge would read "Download on the App Store" on a page
+ * for an app nobody can download yet.
  */
 function AppStoreBadge() {
   const live = APP_STORE_URL !== null;
-  const inner = (
-    <>
-      <AppleGlyph />
-      <span className="text-left leading-none">
-        <span className="block font-mono text-[9px] tracking-[0.06em]" style={{ color: '#585552' }}>
-          {live ? 'DOWNLOAD ON THE' : 'COMING SOON'}
-        </span>
-        <span className="mt-[2px] block text-[16px] font-bold">App Store</span>
-      </span>
-    </>
-  );
 
-  const shape =
-    'inline-flex h-[52px] items-center gap-2.5 px-5 transition-transform duration-150 ease-out';
+  // Native artwork is 119.66407 × 40; 52px tall keeps that ratio exactly.
+  const badge = (
+    <img
+      src="/ios/app-store-badge-wht.svg"
+      alt="Download on the App Store"
+      width={156}
+      height={52}
+      className="block h-[52px] w-auto"
+      draggable={false}
+    />
+  );
 
   if (!live) {
     return (
-      <span
-        className={shape}
-        style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
-        // Not a control: it states availability rather than offering an action.
-        aria-label={`${APP_NAME} for iPhone is coming soon to the App Store`}
-      >
-        {inner}
+      <span className="inline-flex flex-col items-center gap-1.5">
+        <span
+          className="font-mono text-[9px] uppercase tracking-[0.18em]"
+          style={{ color: TEXT_FAINT }}
+        >
+          Coming soon
+        </span>
+        {badge}
       </span>
     );
   }
   return (
     <a
       href={APP_STORE_URL}
-      className={`${shape} active:scale-[0.97]`}
-      style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
+      className="inline-block transition-transform duration-150 ease-out active:scale-[0.97]"
     >
-      {inner}
+      {badge}
     </a>
   );
 }
 
 /**
- * The scan-and-download row shared by the hero and the closing CTA. The hero
- * carries the secondary web CTA; the closing block does not (by then the
- * visitor has read the page and the badge is the point).
+ * The download row shared by the hero and the closing CTA.
+ *
+ * Pre-launch this is the App Store badge and nothing else. The QR is held back
+ * until `APP_STORE_URL` is set: scanning it today only lands you back on this
+ * page, and a code that has to be captioned "not yet" earns less than the space
+ * it takes. The markup stays so launch restores it alongside the live badge.
  */
-function ScanRow({ withWebCta = false }: { withWebCta?: boolean }) {
+function ScanRow() {
   const live = APP_STORE_URL !== null;
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-[22px] gap-y-6">
-      <div className="flex items-center gap-3.5">
-        {/* Pre-launch the QR is ghosted back and overprinted with a stamp: it
-            still reads as "a QR code lives here" without inviting a scan that
-            can only lead back to this page. The same APP_STORE_URL switch that
-            wakes the badge brings it to full strength. */}
-        <div
-          className="relative flex h-[74px] w-[74px] items-center justify-center p-[7px]"
-          style={{ backgroundColor: SNOW, borderRadius: RADIUS }}
-        >
-          <img
-            src="/ios/qr-paypr-ios.svg"
-            alt={live ? `QR code linking to the ${APP_NAME} for iPhone page` : ''}
-            width={60}
-            height={60}
-            className="h-[60px] w-[60px]"
-            style={{ opacity: live ? 1 : 0.16 }}
-            loading="lazy"
-            decoding="async"
-          />
-          {!live && (
-            <span
-              aria-hidden="true"
-              className="absolute left-1/2 top-1/2 whitespace-nowrap px-1.5 py-[3px]
-                font-mono text-[7px] font-bold uppercase leading-none tracking-[0.1em]"
-              style={{
-                backgroundColor: 'hsl(var(--brand-orange))',
-                color: SNOW,
-                borderRadius: '1px',
-                transform: 'translate(-50%, -50%) rotate(-8deg)',
-              }}
-            >
-              Coming soon
-            </span>
-          )}
-        </div>
-        <p className="m-0 text-left font-mono text-[11px] leading-[1.4]" style={{ color: TEXT_FAINT }}>
-          {live ? (
-            <>
-              Scan to
-              <br />
-              download
-            </>
-          ) : (
-            // Parallel to the live caption's "Scan to download", and doesn't
-            // repeat the stamp — the cluster would otherwise say "coming soon"
-            // three times over, counting the App Store badge's sub-label.
-            <>
-              Scan at
-              <br />
-              launch
-            </>
-          )}
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <AppStoreBadge />
-        {withWebCta && (
-          <Link
-            to="/register"
-            className="inline-flex h-[52px] items-center px-[22px] text-sm font-semibold
-              transition-[transform,background-color] duration-150 ease-out
-              hover:bg-[rgba(250,250,248,0.06)] active:scale-[0.97]"
-            style={{
-              border: '1.5px solid rgba(250,250,248,0.28)',
-              color: SNOW,
-              borderRadius: RADIUS,
-            }}
+      {live && (
+        <div className="flex items-center gap-3.5">
+          <div
+            className="flex h-[74px] w-[74px] items-center justify-center p-[7px]"
+            style={{ backgroundColor: SNOW, borderRadius: RADIUS }}
           >
-            Start on the web
-          </Link>
-        )}
-      </div>
+            <img
+              src="/ios/qr-paypr-ios.svg"
+              alt={`QR code linking to the ${APP_NAME} for iPhone page`}
+              width={60}
+              height={60}
+              className="h-[60px] w-[60px]"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <p
+            className="m-0 text-left font-mono text-[11px] leading-[1.4]"
+            style={{ color: TEXT_FAINT }}
+          >
+            Scan to
+            <br />
+            download
+          </p>
+        </div>
+      )}
+      <AppStoreBadge />
     </div>
   );
 }
@@ -448,7 +406,7 @@ export default function IosLanding() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.34, duration: 0.5, ease: 'easeOut' }}
             >
-              <ScanRow withWebCta />
+              <ScanRow />
             </motion.div>
           </div>
           {/* Two layers on purpose: the outer one runs the one-off entrance, the

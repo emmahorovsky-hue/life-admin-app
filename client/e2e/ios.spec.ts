@@ -116,33 +116,37 @@ test.describe('iPhone launch page', () => {
     ).toBeVisible();
   });
 
-  test('"Start on the web" links to register', async ({ page }) => {
-    await page.goto('/ios');
-
-    await page.getByRole('link', { name: 'Start on the web' }).click();
-    await expect(page).toHaveURL('/register');
-  });
-
   // The badge announces availability rather than offering a download until
-  // APP_STORE_URL is set, so it must not be a link.
+  // APP_STORE_URL is set, so it must not be a link. The "coming soon" is a
+  // separate label above it — Apple's artwork is used unmodified, so nothing
+  // may be printed over it. Matched case-insensitively: the DOM says "Coming
+  // soon" and CSS uppercases it.
   test('the App Store badge is inert while the app is unreleased', async ({ page }) => {
     await page.goto('/ios');
 
-    await expect(page.getByText('COMING SOON').first()).toBeVisible();
+    await expect(page.getByText(/coming soon/i).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /app store/i })).toHaveCount(0);
   });
 
-  // Same APP_STORE_URL switch as the badge: until it is set the QR is ghosted
-  // behind a stamp, because scanning it can only lead back to this page.
-  test('the QR is stamped rather than offered as a scan', async ({ page }) => {
+  // Apple's badge must not be recoloured or re-proportioned. Its artwork is
+  // 119.66407 x 40, so any rendered box off that ratio means it is distorted.
+  test('the App Store badge keeps Apple\'s aspect ratio', async ({ page }) => {
     await page.goto('/ios');
 
-    const qr = page.locator('img[src*="qr"]').first();
-    // Decorative while unreleased — not announced to a screen reader as a
-    // working link, and visibly knocked back behind the overprint.
-    await expect(qr).toHaveAttribute('alt', '');
-    await expect(qr).toHaveCSS('opacity', '0.16');
-    await expect(page.getByText('Scan at')).toHaveCount(2); // hero + closing CTA
+    const box = await page.locator('img[src*="app-store"]').first().boundingBox();
+    if (!box) throw new Error('App Store badge did not render');
+
+    expect(box.height).toBeGreaterThanOrEqual(40); // Apple's minimum for digital
+    expect(Math.abs(box.width / box.height - 119.66407 / 40)).toBeLessThan(0.01);
+  });
+
+  // Scanning it today only lands you back on this page, so it is held until
+  // APP_STORE_URL is set rather than shown with a "not yet" caption.
+  test('the QR and the web CTA are absent while the app is unreleased', async ({ page }) => {
+    await page.goto('/ios');
+
+    await expect(page.locator('img[src*="qr"]')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Start on the web' })).toHaveCount(0);
   });
 
   // Layout assertions only, so motion is off: boundingBox() scrolls its target

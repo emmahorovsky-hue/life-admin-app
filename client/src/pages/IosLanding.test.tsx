@@ -44,50 +44,41 @@ describe('IosLanding', () => {
     expect(screen.getByRole('heading', { name: /ready wherever you are/i })).toBeInTheDocument();
   });
 
-  it('gives every screenshot a descriptive alt text', () => {
+  it('gives every image a descriptive alt text', () => {
     const { container } = renderPage();
 
-    // The QR is excluded deliberately — see the next test.
-    const screenshots = [...container.querySelectorAll('img')].filter(
-      (img) => !(img.getAttribute('src') ?? '').includes('qr')
-    );
-    expect(screenshots.length).toBeGreaterThan(0);
-    for (const img of screenshots) {
+    const images = [...container.querySelectorAll('img')];
+    expect(images.length).toBeGreaterThan(0);
+    for (const img of images) {
       expect(img.getAttribute('alt'), img.getAttribute('src') ?? '').toBeTruthy();
     }
   });
 
-  // Pre-launch the QR is ghosted behind a "coming soon" stamp and leads nowhere
-  // useful, so it is decorative: an empty alt keeps a screen reader from
-  // announcing a scannable code that isn't one. It regains its description
-  // when APP_STORE_URL is set.
-  it('marks the unreleased QR as decorative', () => {
+  // Scanning it today only lands you back on this page, so it is held until
+  // APP_STORE_URL is set rather than shown with a "not yet" caption.
+  it('does not show the QR while the app is unreleased', () => {
     const { container } = renderPage();
 
-    const qr = container.querySelector('img[src*="qr"]');
-    expect(qr).not.toBeNull();
-    expect(qr!.getAttribute('alt')).toBe('');
+    expect(container.querySelector('img[src*="qr"]')).toBeNull();
   });
 
-  // The badge is announcing availability, not offering a download, until
-  // APP_STORE_URL is set — a badge that looks pressable but goes nowhere is a
-  // worse experience than one that plainly reads "coming soon".
-  it('renders the App Store badge as inert text while the app is unreleased', () => {
+  // Apple's badge artwork is used unmodified, so the "coming soon" cannot be
+  // printed over it — it sits above as a separate label. Matched
+  // case-insensitively: the DOM says "Coming soon" and CSS uppercases it.
+  it('renders the App Store badge as inert, labelled coming soon', () => {
     renderPage();
 
-    expect(screen.getAllByText('COMING SOON').length).toBeGreaterThan(0);
-    expect(
-      screen.queryByRole('link', { name: /app store/i })
-    ).not.toBeInTheDocument();
+    expect(screen.getAllByText(/coming soon/i).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: /app store/i })).not.toBeInTheDocument();
   });
 
-  it('sends the secondary hero CTA to registration', () => {
+  // Pre-launch the badge is the only thing in the download row — no QR, and no
+  // secondary web CTA. Registration is reachable from the nav.
+  it('leaves the App Store badge as the only item in the download row', () => {
     renderPage();
 
-    expect(screen.getByRole('link', { name: 'Start on the web' })).toHaveAttribute(
-      'href',
-      '/register'
-    );
+    expect(screen.queryByRole('link', { name: 'Start on the web' })).not.toBeInTheDocument();
+    expect(screen.getAllByAltText('Download on the App Store')).toHaveLength(2); // hero + closing
   });
 
   it('offers sign-up and log-in to a signed-out visitor', () => {
