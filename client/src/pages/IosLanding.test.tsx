@@ -106,4 +106,46 @@ describe('IosLanding', () => {
     );
     expect(within(nav).queryByRole('link', { name: 'Sign up' })).not.toBeInTheDocument();
   });
+
+  // Regression guard. Tailwind utilities are plain classes and this project sets
+  // no `important`, so an inline `style={{ color }}` outranks a
+  // `hover:text-…` rule in every state — which left every hover colour on this
+  // page inert while looking perfectly correct in the source.
+  //
+  // The rule is the combination, not inline colour by itself: the snow-filled
+  // Sign up button sets its own dark text inline and never changes colour on
+  // hover, which is fine. Declaring a colour transition and then overriding it
+  // is not.
+  it('never pairs an inline colour with a hover or focus colour class', () => {
+    const { container } = renderPage();
+
+    const offenders = [...container.querySelectorAll('a')]
+      .filter((a) => a.style.color !== '' && /(?:hover|focus-visible):text-/.test(a.className))
+      .map((a) => `${a.getAttribute('href')} → inline ${a.style.color} beats its hover class`);
+
+    expect(offenders, 'links whose inline colour would beat :hover / :focus-visible').toEqual([]);
+  });
+
+  // Landing's nav and CTAs all carry a focus ring; this page is the same product
+  // and a keyboard user should not lose it by following the "Mobile" link.
+  it('gives every header and footer link a visible focus ring', () => {
+    const { container } = renderPage();
+
+    const chrome = [
+      ...(container.querySelector('header')?.querySelectorAll('a') ?? []),
+      ...(container.querySelector('footer')?.querySelectorAll('a') ?? []),
+    ];
+
+    expect(chrome.length).toBeGreaterThan(0);
+    for (const link of chrome) {
+      const name = link.textContent || link.getAttribute('aria-label') || '';
+      expect(link.className, name).toMatch(/focus-visible:ring-2/);
+    }
+  });
+
+  it('titles the document for this route rather than inheriting the homepage', () => {
+    renderPage();
+
+    expect(document.title).toBe('Paypr for iPhone');
+  });
 });
