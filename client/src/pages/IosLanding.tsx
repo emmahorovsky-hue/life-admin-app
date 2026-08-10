@@ -305,14 +305,6 @@ function FeatureCard({
   );
 }
 
-// Credits strip — the editorial footer band.
-const CREDITS = [
-  { label: 'Product', value: `The ${APP_NAME} team` },
-  { label: 'Platform', value: 'Native iOS · Web' },
-  { label: 'Price', value: 'Free · no card required' },
-  { label: 'Privacy', value: 'Face ID quick-unlock' },
-] as const;
-
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function IosLanding() {
@@ -343,13 +335,6 @@ export default function IosLanding() {
             >
               Web app
             </Link>
-            <Link
-              to="/support"
-              className="hidden transition-colors hover:text-brand-orange sm:inline"
-              style={{ color: TEXT_MUTED }}
-            >
-              Support
-            </Link>
             {user ? (
               <Link
                 to="/dashboard"
@@ -366,9 +351,9 @@ export default function IosLanding() {
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex h-[34px] items-center rounded-md px-4 text-[13px] font-semibold
+                  className="inline-flex h-[34px] items-center px-4 text-[13px] font-semibold
                     transition-transform duration-150 ease-out active:scale-[0.97]"
-                  style={{ backgroundColor: SNOW, color: '#161616' }}
+                  style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
                 >
                   Sign up
                 </Link>
@@ -699,25 +684,6 @@ export default function IosLanding() {
             <ScanRow />
           </Reveal>
         </section>
-
-        <Rule tone="inverse" />
-
-        {/* ── Credits ─────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-8 px-5 py-14 sm:px-14 md:grid-cols-4">
-          {CREDITS.map(({ label, value }) => (
-            <div key={label}>
-              <p
-                className="m-0 mb-2 font-mono text-[10px] uppercase tracking-[0.14em]"
-                style={{ color: 'rgba(250,250,248,0.4)' }}
-              >
-                {label}
-              </p>
-              <p className="m-0 text-[14px]" style={{ color: 'rgba(250,250,248,0.85)' }}>
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
 
         <Rule tone="inverse" />
 
