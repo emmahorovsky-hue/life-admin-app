@@ -120,6 +120,20 @@ export default function TermsOfService() {
               copy, modify, distribute, or create derivative works from any part of the service without our
               prior written consent.
             </p>
+            <p className="text-muted-foreground leading-relaxed mt-4">
+              Brand logos shown alongside the services you track are provided by{' '}
+              <a
+                href="https://logo.dev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-foreground underline underline-offset-4 hover:text-brand-orange transition-colors"
+              >
+                Logo.dev
+              </a>
+              . Those logos remain the property of their respective owners and are used for identification
+              purposes only; their appearance here does not imply any affiliation with or endorsement by
+              those owners.
+            </p>
           </section>
 
           <section>

@@ -944,14 +944,6 @@ export default function Landing() {
             <span>© {new Date().getFullYear()}</span>
           </div>
           <div className="flex items-center gap-4">
-            <a
-              href="https://logo.dev"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Logos by Logo.dev
-            </a>
             <Link to="/terms" onClick={() => window.scrollTo(0, 0)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Terms of Service
             </Link>
