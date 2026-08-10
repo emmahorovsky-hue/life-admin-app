@@ -443,9 +443,15 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background font-sans overflow-x-clip">
       {/* Navbar */}
+      {/* Fades in, deliberately without a vertical slide. The header is `sticky
+          top-0`, so a negative-Y entry offset renders it *above* the viewport and
+          clips the logo and nav. That is not only a load-at-top concern: browsers
+          restore scroll position before a client-rendered SPA paints, so every
+          reload or back-navigation below the fold replayed the slide with the
+          header already pinned to the top edge. */}
       <motion.header
-        initial={reduced ? {} : { opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={reduced ? {} : { opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       >
