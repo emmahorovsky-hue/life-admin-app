@@ -21,10 +21,10 @@ test.describe('Landing Page', () => {
     await expect(page).toHaveURL('/register');
   });
 
-  test('"Sign In" links to login', async ({ page }) => {
+  test('"Log in" links to login', async ({ page }) => {
     await page.goto('/');
 
-    await page.getByRole('link', { name: 'Sign In' }).first().click();
+    await page.getByRole('link', { name: 'Log in' }).first().click();
     await expect(page).toHaveURL('/login');
   });
 
