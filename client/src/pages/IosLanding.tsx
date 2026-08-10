@@ -17,6 +17,7 @@ import {
   phoneBox,
 } from '@/lib/phoneAssets';
 import { APP_NAME } from '@/lib/constants';
+import { useDocumentMeta } from '@/lib/useDocumentMeta';
 
 /**
  * The iPhone launch page (`/mobile`) — a dark, centred-editorial marketing surface
@@ -43,9 +44,46 @@ import { APP_NAME } from '@/lib/constants';
 const INK = '#0C0B0A'; // warm near-black page bg
 const PANEL = '#161311'; // card surface on ink
 const SNOW = '#FAFAF8'; // light text / light surfaces
-const HAIRLINE = 'rgba(250,250,248,0.08)';
+
+/**
+ * The card/panel border. Deliberately a step below the frame rails in
+ * `lib/frameTone.ts` (0.10) — the rails are page architecture and read
+ * continuously, a card edge should sit behind them. Named for the thing it
+ * draws rather than "HAIRLINE", which invited exactly the confusion with the
+ * rails that frameTone's docstring warns about.
+ */
+const PANEL_BORDER = 'rgba(250,250,248,0.08)';
+
+/**
+ * Three text steps on ink, and only three: the page previously carried five
+ * alphas between 0.5 and 0.85, three of them ad-hoc inline, and the gaps
+ * between neighbours (0.55 vs 0.6, 0.58 vs 0.6) are below what anyone can see.
+ */
+const TEXT_STRONG = 'rgba(250,250,248,0.85)';
 const TEXT_MUTED = 'rgba(250,250,248,0.6)';
-const TEXT_FAINT = 'rgba(250,250,248,0.55)';
+const TEXT_FAINT = 'rgba(250,250,248,0.5)';
+
+/**
+ * The muted step as a Tailwind class, for anything with a hover or focus state.
+ *
+ * This distinction is load-bearing, not stylistic: Tailwind utilities are plain
+ * classes and this project sets no `important`, so an inline `style={{ color }}`
+ * outranks `hover:text-brand-orange` in every state and silently kills the
+ * hover. Use the class form on interactive elements; the inline constants above
+ * are for static copy only. (Only the muted step is needed as a class today —
+ * add the others here if an interactive element ever wants one.)
+ */
+const TEXT_MUTED_CLASS = 'text-[rgba(250,250,248,0.6)]';
+
+/**
+ * Focus ring for this surface. The `ring-ring` token Landing uses is the light
+ * palette's, and `/mobile` is a light-only route — so on ink it resolves to a
+ * near-invisible ring. Brand orange over an ink offset is legible against both
+ * the page and the snow-coloured buttons.
+ */
+const FOCUS_RING =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange ' +
+  'focus-visible:ring-offset-2 focus-visible:ring-offset-[#0C0B0A]';
 
 /**
  * The house corner: `--radius` is 0.125rem — "near-square receipt corners" —
@@ -53,6 +91,12 @@ const TEXT_FAINT = 'rgba(250,250,248,0.55)';
  * tile and the CTAs can't drift apart.
  */
 const RADIUS = '2px';
+
+const FOOTER_LINKS = [
+  { to: '/terms', label: 'Terms' },
+  { to: '/privacy', label: 'Privacy' },
+  { to: '/support', label: 'Support' },
+] as const;
 
 // Orange radial glow sitting behind the hero and the closing CTA.
 const glow = (alpha: number) =>
@@ -148,8 +192,8 @@ function PhoneShot({
         width: `min(${width.toFixed(1)}px, ${vwCap.toFixed(1)}vw)`,
         height: 'auto',
         display: 'block',
-        marginTop: `${-padTop.toFixed(1)}px`,
-        marginBottom: `${-padBottom.toFixed(1)}px`,
+        marginTop: `${(-padTop).toFixed(1)}px`,
+        marginBottom: `${(-padBottom).toFixed(1)}px`,
         filter: shadow,
       }}
     />
@@ -186,7 +230,10 @@ function AppStoreBadge() {
     <img
       src="/ios/app-store-badge-wht.svg"
       alt="Download on the App Store"
-      width={120}
+      // The artwork's own dimensions, not rounded: these only set the
+      // pre-decode aspect box, and 120 would reserve a box a shade wider than
+      // the badge then settles into.
+      width={119.66407}
       height={40}
       className="block h-10 w-auto"
       draggable={false}
@@ -209,7 +256,8 @@ function AppStoreBadge() {
   return (
     <a
       href={APP_STORE_URL}
-      className="inline-block transition-transform duration-150 ease-out active:scale-[0.97]"
+      className={`inline-block rounded-[2px] transition-transform duration-150 ease-out
+        active:scale-[0.97] ${FOCUS_RING}`}
     >
       {badge}
     </a>
@@ -280,7 +328,7 @@ function FeatureCard({
       // two cards in a pair carry different amounts of copy, and without it
       // their bottom edges (and the phones pinned to them) don't line up.
       className="flex h-full flex-col overflow-hidden px-7 pb-7 pt-9 sm:px-10 sm:pb-10 sm:pt-10"
-      style={{ backgroundColor: PANEL, border: `1px solid ${HAIRLINE}`, borderRadius: RADIUS }}
+      style={{ backgroundColor: PANEL, border: `1px solid ${PANEL_BORDER}`, borderRadius: RADIUS }}
     >
       {eyebrow && (
         <p className="m-0 mb-2.5 font-mono text-[11px] uppercase tracking-[0.18em] text-brand-orange">
@@ -308,6 +356,14 @@ export default function IosLanding() {
   const { user } = useAuth();
   const reduced = useReducedMotion() ?? false;
 
+  // This is the URL the QR encodes and the one a launch announcement links to,
+  // so it is the one route in the app that most needs its own share card.
+  useDocumentMeta({
+    title: `${APP_NAME} for iPhone`,
+    description: `Catch a receipt the moment it lands. ${APP_NAME} for iPhone files what you photograph and reminds you before a subscription renews — always in sync with the web.`,
+    url: 'https://paypr.live/mobile',
+  });
+
   // Deliberately no redirect for signed-in visitors (unlike `/`): existing web
   // users are the most likely audience for a "there's an app now" page.
   return (
@@ -321,35 +377,40 @@ export default function IosLanding() {
       >
         {/* ── Nav ─────────────────────────────────────────────────────────── */}
         <header className="flex items-center justify-between px-5 py-5 sm:px-10">
-          <Link to="/" aria-label={`${APP_NAME} home`}>
+          <Link to="/" aria-label={`${APP_NAME} home`} className={`rounded-[2px] ${FOCUS_RING}`}>
             <Logo variant="wordmark-inverse" height={24} />
           </Link>
           <nav className="flex items-center gap-4 text-sm sm:gap-[26px]">
             <Link
               to="/"
-              className="hidden transition-colors hover:text-brand-orange sm:inline"
-              style={{ color: TEXT_MUTED }}
+              className={`hidden rounded-[2px] transition-colors hover:text-brand-orange sm:inline
+                ${TEXT_MUTED_CLASS} ${FOCUS_RING}`}
             >
               Web
             </Link>
             {user ? (
               <Link
                 to="/dashboard"
-                className="inline-flex h-[34px] items-center px-4 text-[13px] font-semibold
-                  transition-transform duration-150 ease-out active:scale-[0.97]"
+                className={`inline-flex h-[34px] items-center px-4 text-[13px] font-semibold
+                  transition-transform duration-150 ease-out active:scale-[0.97] ${FOCUS_RING}`}
                 style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
               >
                 Open {APP_NAME}
               </Link>
             ) : (
               <>
-                <Link to="/login" className="transition-colors hover:text-brand-orange" style={{ color: SNOW }}>
+                {/* No inline colour: the page root sets SNOW and this inherits it,
+                    which leaves `hover:text-brand-orange` free to win. */}
+                <Link
+                  to="/login"
+                  className={`rounded-[2px] transition-colors hover:text-brand-orange ${FOCUS_RING}`}
+                >
                   Log in
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex h-[34px] items-center px-4 text-[13px] font-semibold
-                    transition-transform duration-150 ease-out active:scale-[0.97]"
+                  className={`inline-flex h-[34px] items-center px-4 text-[13px] font-semibold
+                    transition-transform duration-150 ease-out active:scale-[0.97] ${FOCUS_RING}`}
                   style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
                 >
                   Sign up
@@ -443,7 +504,7 @@ export default function IosLanding() {
           <Reveal>
             <p
               className="mx-auto max-w-[52ch] text-center text-[20px] font-semibold leading-[1.45] tracking-[-0.01em] sm:text-[24px]"
-              style={{ color: 'rgba(250,250,248,0.85)' }}
+              style={{ color: TEXT_STRONG }}
             >
               Paper turns up when you are nowhere near a desk — a receipt at the till, a renewal
               notice on the train. {APP_NAME} for iPhone is for filing those where you stand, so
@@ -608,7 +669,7 @@ export default function IosLanding() {
               // padding rather than bleeding off its edge, matching the cards.
               className="grid grid-cols-1 items-center gap-8 overflow-hidden px-7 py-10
                 sm:px-14 sm:py-14 md:grid-cols-[1fr_0.8fr] md:gap-12"
-              style={{ backgroundColor: PANEL, border: `1px solid ${HAIRLINE}`, borderRadius: RADIUS }}
+              style={{ backgroundColor: PANEL, border: `1px solid ${PANEL_BORDER}`, borderRadius: RADIUS }}
             >
               <div>
                 <h2
@@ -628,7 +689,7 @@ export default function IosLanding() {
                     <p className="m-0 mb-1 text-[16px] font-bold">Timed to the cycle</p>
                     <p
                       className="m-0 max-w-[42ch] text-[14.5px] leading-[1.55]"
-                      style={{ color: 'rgba(250,250,248,0.58)' }}
+                      style={{ color: TEXT_MUTED }}
                     >
                       A day before a weekly renewal, three before a monthly, a fortnight before an
                       annual one — enough warning to cancel if you would rather not pay it again.
@@ -638,7 +699,7 @@ export default function IosLanding() {
                     <p className="m-0 mb-1 text-[16px] font-bold">In your own timezone</p>
                     <p
                       className="m-0 max-w-[42ch] text-[14.5px] leading-[1.55]"
-                      style={{ color: 'rgba(250,250,248,0.58)' }}
+                      style={{ color: TEXT_MUTED }}
                     >
                       Reminders go out during your waking hours, wherever you happen to be — never
                       in the middle of your night because a server somewhere hit 9am.
@@ -687,35 +748,22 @@ export default function IosLanding() {
 
         {/* ── Footer ──────────────────────────────────────────────────────── */}
         <footer className="flex flex-wrap items-center justify-between gap-4 px-5 py-8 sm:px-14">
-          <div className="flex items-center gap-2.5 text-[13px]" style={{ color: 'rgba(250,250,248,0.5)' }}>
+          <div className="flex items-center gap-2.5 text-[13px]" style={{ color: TEXT_FAINT }}>
             <Logo variant="wordmark-inverse" height={16} />
             <span>© {new Date().getFullYear()}</span>
           </div>
           <div className="flex flex-wrap items-center gap-5 text-[13px]">
-            <Link
-              to="/terms"
-              onClick={() => window.scrollTo(0, 0)}
-              className="transition-colors hover:text-brand-orange"
-              style={{ color: TEXT_MUTED }}
-            >
-              Terms
-            </Link>
-            <Link
-              to="/privacy"
-              onClick={() => window.scrollTo(0, 0)}
-              className="transition-colors hover:text-brand-orange"
-              style={{ color: TEXT_MUTED }}
-            >
-              Privacy
-            </Link>
-            <Link
-              to="/support"
-              onClick={() => window.scrollTo(0, 0)}
-              className="transition-colors hover:text-brand-orange"
-              style={{ color: TEXT_MUTED }}
-            >
-              Support
-            </Link>
+            {FOOTER_LINKS.map(({ to, label }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => window.scrollTo(0, 0)}
+                className={`rounded-[2px] transition-colors hover:text-brand-orange
+                  ${TEXT_MUTED_CLASS} ${FOCUS_RING}`}
+              >
+                {label}
+              </Link>
+            ))}
           </div>
         </footer>
 
