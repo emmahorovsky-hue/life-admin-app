@@ -3,7 +3,7 @@
  * (components/FrameMarks.tsx).
  *
  * `default` is the light paper surface `/` is drawn on and reads from the
- * semantic tokens. `inverse` is for a dark surface such as `/ios`, which is a
+ * semantic tokens. `inverse` is for a dark surface such as `/mobile`, which is a
  * light-only route — `bg-foreground` there is the light palette's near-black
  * and would disappear against the page, so the inverse tone is literal snow
  * alphas instead.

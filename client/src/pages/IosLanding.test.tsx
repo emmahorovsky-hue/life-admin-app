@@ -22,7 +22,7 @@ function setAuth(state: Partial<AuthState>) {
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={['/ios']}>
+    <MemoryRouter initialEntries={['/mobile']}>
       <IosLanding />
     </MemoryRouter>
   );

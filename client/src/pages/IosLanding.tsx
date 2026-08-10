@@ -19,7 +19,7 @@ import {
 import { APP_NAME } from '@/lib/constants';
 
 /**
- * The iPhone launch page (`/ios`) — a dark, centred-editorial marketing surface
+ * The iPhone launch page (`/mobile`) — a dark, centred-editorial marketing surface
  * introducing the native app alongside the web product.
  *
  * Unlike the rest of the app this page does NOT follow the semantic colour
@@ -27,7 +27,7 @@ import { APP_NAME } from '@/lib/constants';
  * palette the product is built on, and this page is a deliberate dark counter-
  * surface. The palette below is therefore literal. `--brand-orange` is the one
  * exception — it is the same accent on both surfaces, so it stays a token
- * (`text-brand-orange`) and tracks the brand if it ever moves. `/ios` is listed
+ * (`text-brand-orange`) and tracks the brand if it ever moves. `/mobile` is listed
  * in `lib/themeRoutes.ts`, so the token always resolves to its light value
  * (#E53D00) here regardless of the visitor's theme preference.
  *
@@ -61,19 +61,17 @@ const glow = (alpha: number) =>
 // ─── Launch switches ─────────────────────────────────────────────────────────
 
 /**
- * The single launch switch. While it is `null`:
- *   - the App Store badge is inert and reads "COMING SOON"
- *   - the QR is ghosted back and overprinted with a "coming soon" stamp, and
- *     its caption reads "QR code at launch" rather than "Scan to download"
+ * The single launch switch. While it is `null` the App Store badge is inert and
+ * carries a "coming soon" label, and the QR is not rendered at all — scanning
+ * it today would only land you back on this page.
  *
- * Setting it to the store listing turns the badge into a real link, flips its
- * sub-label to "DOWNLOAD ON THE", and brings the QR to full strength. Nothing
- * else needs to change.
+ * Setting it to the store listing makes the badge a real link and brings the QR
+ * back beside it. Nothing else needs to change.
  *
- * The QR in `public/ios/qr-paypr-ios.svg` encodes https://paypr.live/ios (this
- * page) rather than the store, so it stays correct either side of launch —
+ * The QR in `public/ios/qr-paypr-ios.svg` encodes https://paypr.live/mobile
+ * (this page) rather than the store, so it stays correct either side of launch —
  * scanning it lands here and finds whatever this badge points at. Regenerate:
- *   qrencode -t SVG -m 2 -s 8 -l M -o qr-paypr-ios.svg "https://paypr.live/ios"
+ *   qrencode -t SVG -m 2 -s 8 -l M -o qr-paypr-ios.svg "https://paypr.live/mobile"
  */
 const APP_STORE_URL: string | null = null;
 
@@ -332,7 +330,7 @@ export default function IosLanding() {
               className="hidden transition-colors hover:text-brand-orange sm:inline"
               style={{ color: TEXT_MUTED }}
             >
-              Web app
+              Web
             </Link>
             {user ? (
               <Link

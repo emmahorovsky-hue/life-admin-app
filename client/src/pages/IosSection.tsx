@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // IosSection — "Now in your pocket" band announcing the iPhone app.
 //
-// The scroll-depth entry point to /ios (the nav link and hero pill in
+// The scroll-depth entry point to /mobile (the nav link and hero pill in
 // Landing.tsx are the other two). Deliberately on the light paper palette
-// rather than a preview of /ios's dark surface: dropping a black band into the
+// rather than a preview of /mobile's dark surface: dropping a black band into the
 // middle of the landing page competes with the genuinely inverted "cost of
 // forgetting" band two sections below it.
 //
@@ -75,7 +75,7 @@ export default function IosSection() {
               transition={{ delay: 0.34, duration: 0.5, ease: 'easeOut' }}
             >
               <Link
-                to="/ios"
+                to="/mobile"
                 onClick={() => window.scrollTo(0, 0)}
                 className="group inline-flex h-11 items-center gap-2 rounded-md bg-primary px-8 text-sm
                   font-medium text-primary-foreground transition-[background-color,transform]

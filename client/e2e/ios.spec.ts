@@ -1,5 +1,5 @@
 // iPhone Launch Page Tests
-// Public marketing page at `/ios`, plus the entry points that reach it from `/`.
+// Public marketing page at `/mobile`, plus the entry points that reach it from `/`.
 
 import { test, expect, type Page } from '@playwright/test';
 import { phoneFamilyFor } from '../src/lib/phoneAssets';
@@ -107,10 +107,10 @@ async function pairMetrics(page: Page, left: string, right: string) {
 }
 
 test.describe('iPhone launch page', () => {
-  test('logged-out visitor sees the page at /ios', async ({ page }) => {
-    await page.goto('/ios');
+  test('logged-out visitor sees the page at /mobile', async ({ page }) => {
+    await page.goto('/mobile');
 
-    await expect(page).toHaveURL('/ios');
+    await expect(page).toHaveURL('/mobile');
     await expect(
       page.getByRole('heading', { level: 1, name: /the pocket companion to your paper trail/i })
     ).toBeVisible();
@@ -122,7 +122,7 @@ test.describe('iPhone launch page', () => {
   // may be printed over it. Matched case-insensitively: the DOM says "Coming
   // soon" and CSS uppercases it.
   test('the App Store badge is inert while the app is unreleased', async ({ page }) => {
-    await page.goto('/ios');
+    await page.goto('/mobile');
 
     await expect(page.getByText(/coming soon/i).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /app store/i })).toHaveCount(0);
@@ -131,7 +131,7 @@ test.describe('iPhone launch page', () => {
   // Apple's badge must not be recoloured or re-proportioned. Its artwork is
   // 119.66407 x 40, so any rendered box off that ratio means it is distorted.
   test('the App Store badge keeps Apple\'s aspect ratio', async ({ page }) => {
-    await page.goto('/ios');
+    await page.goto('/mobile');
 
     const box = await page.locator('img[src*="app-store"]').first().boundingBox();
     if (!box) throw new Error('App Store badge did not render');
@@ -143,7 +143,7 @@ test.describe('iPhone launch page', () => {
   // Scanning it today only lands you back on this page, so it is held until
   // APP_STORE_URL is set rather than shown with a "not yet" caption.
   test('the QR and the web CTA are absent while the app is unreleased', async ({ page }) => {
-    await page.goto('/ios');
+    await page.goto('/mobile');
 
     await expect(page.locator('img[src*="qr"]')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Start on the web' })).toHaveCount(0);
@@ -165,7 +165,7 @@ test.describe('iPhone launch page', () => {
     // stretches the wrapper while the card inside sizes to its own copy — which
     // left the two cards in a pair visibly different heights.
     test('cards paired in a row are the same height', async ({ page }) => {
-      await page.goto('/ios');
+      await page.goto('/mobile');
 
       for (const [left, right] of CARD_PAIRS) {
         const { left: a, right: b } = await pairMetrics(page, left, right);
@@ -181,7 +181,7 @@ test.describe('iPhone launch page', () => {
     // phone ~23% larger in one family and drops the two onto different
     // baselines.
     test('phones paired in a row are one size on one baseline', async ({ page }) => {
-      await page.goto('/ios');
+      await page.goto('/mobile');
 
       for (const [left, right] of CARD_PAIRS) {
         const { left: a, right: b } = await pairMetrics(page, left, right);
@@ -199,7 +199,7 @@ test.describe('iPhone launch page', () => {
     // device, that clearance is the same under either asset family rather than
     // being eaten by one crop's transparent margin.
     test('phones clear the bottom edge of their card', async ({ page }) => {
-      await page.goto('/ios');
+      await page.goto('/mobile');
 
       const gaps: number[] = [];
       for (const [left, right] of CARD_PAIRS) {
@@ -222,20 +222,20 @@ test.describe('iPhone launch page', () => {
     await page.goto('/');
 
     await page.getByRole('link', { name: /New Paypr for iPhone/i }).click();
-    await expect(page).toHaveURL('/ios');
+    await expect(page).toHaveURL('/mobile');
   });
 
   test('the nav link on / leads here', async ({ page }) => {
     await page.goto('/');
 
-    await page.getByRole('link', { name: 'iPhone app' }).click();
-    await expect(page).toHaveURL('/ios');
+    await page.getByRole('link', { name: 'Mobile' }).click();
+    await expect(page).toHaveURL('/mobile');
   });
 
   test('the landing section CTA leads here', async ({ page }) => {
     await page.goto('/');
 
     await page.getByRole('link', { name: /See Paypr for iPhone/i }).click();
-    await expect(page).toHaveURL('/ios');
+    await expect(page).toHaveURL('/mobile');
   });
 });

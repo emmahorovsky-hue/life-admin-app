@@ -1,6 +1,6 @@
 /**
  * Measured facts about the iPhone screenshots in `public/ios/`, and the sizing
- * they drive on the `/ios` marketing page.
+ * they drive on the `/mobile` marketing page.
  *
  * The assets come in two crops, and they differ enough to matter:
  *
