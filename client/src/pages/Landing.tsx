@@ -462,43 +462,46 @@ export default function Landing() {
         initial={reduced ? {} : { opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       >
-        {/* Laid out to match /ios's nav exactly — same max width, padding, gaps,
-            logo height and 34px button — so the two marketing pages differ only
-            in colour. The frame below is the same 1200px, so the wordmark sits
-            on its left rail. */}
-        {/* border-x is transparent and load-bearing: it reproduces the 1px rail
-            the framed grid below (and /ios's header) inset their content by, so
-            the wordmark lands on the rail rather than 1px inside it. */}
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between border-x border-transparent px-5 py-5 sm:px-10">
-          <Link to="/" aria-label={`${APP_NAME} home`}>
-            <Logo height={24} />
-          </Link>
-          <nav className="flex items-center gap-4 text-sm sm:gap-[26px]">
-            {/* Hidden on phones, where three nav items overflow — the hero pill
-                directly below covers the same entry point there. */}
-            <Link
-              to="/ios"
-              onClick={() => window.scrollTo(0, 0)}
-              className="hidden text-muted-foreground transition-colors hover:text-brand-orange sm:inline"
-            >
-              iPhone app
+        {/* Same structure as /ios's nav: the rails run up past the header to the
+            top of the page, and a <Rule> — not a plain border-b — closes it, so
+            the crosshairs land where the hairline crosses each rail.
+            The rails live on this inner element rather than the <header> so the
+            header itself stays full-bleed: it is sticky, and a 1200px-wide
+            backdrop blur would let content scroll past uncovered either side. */}
+        <div className="relative mx-auto w-full max-w-[1200px] border-x border-border/50">
+          <div className="flex items-center justify-between px-5 py-5 sm:px-10">
+            <Link to="/" aria-label={`${APP_NAME} home`}>
+              <Logo height={24} />
             </Link>
-            <Link to="/login" className="transition-colors hover:text-brand-orange">
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              className="inline-flex h-[34px] items-center rounded-[2px] bg-primary px-4 text-[13px]
-                font-semibold text-primary-foreground transition-[background-color,transform]
-                duration-150 ease-out hover:bg-primary-hover active:scale-[0.97]
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
-                focus-visible:ring-offset-2"
-            >
-              Get Started Free
-            </Link>
-          </nav>
+            <nav className="flex items-center gap-4 text-sm sm:gap-[26px]">
+              {/* Hidden on phones, where three nav items overflow — the hero pill
+                  directly below covers the same entry point there. */}
+              <Link
+                to="/ios"
+                onClick={() => window.scrollTo(0, 0)}
+                className="hidden text-muted-foreground transition-colors hover:text-brand-orange sm:inline"
+              >
+                iPhone app
+              </Link>
+              <Link to="/login" className="transition-colors hover:text-brand-orange">
+                Log in
+              </Link>
+              <Link
+                to="/register"
+                className="inline-flex h-[34px] items-center rounded-[2px] bg-primary px-4 text-[13px]
+                  font-semibold text-primary-foreground transition-[background-color,transform]
+                  duration-150 ease-out hover:bg-primary-hover active:scale-[0.97]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+                  focus-visible:ring-offset-2"
+              >
+                Sign up
+              </Link>
+            </nav>
+          </div>
+
+          <Rule />
         </div>
       </motion.header>
 
@@ -620,7 +623,7 @@ export default function Landing() {
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               >
                 <Link to="/login" className={buttonVariants({ variant: 'ghost', size: 'lg' })}>
-                  Sign In
+                  Log in
                 </Link>
               </motion.div>
             </motion.div>
