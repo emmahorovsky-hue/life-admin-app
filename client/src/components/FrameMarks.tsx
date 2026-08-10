@@ -3,7 +3,7 @@
 // marketing pages are framed with: a hairline `Rule` between sections with a
 // "+" where it crosses each rail, and `FrameCorners` for a framed block.
 //
-// Extracted from Landing.tsx so `/` and `/ios` draw the same marks rather than
+// Extracted from Landing.tsx so `/` and `/mobile` draw the same marks rather than
 // each rolling their own. The tone values (and why there are two) live in
 // lib/frameTone.ts — this module only exports components, so fast refresh keeps
 // working.

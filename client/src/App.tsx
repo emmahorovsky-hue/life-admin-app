@@ -116,7 +116,7 @@ function App() {
               <Route path="/support" element={<Support />} />
               {/* iPhone launch page. Public, and deliberately not redirected
                   for signed-in users — existing web users are its audience. */}
-              <Route path="/ios" element={<IosLanding />} />
+              <Route path="/mobile" element={<IosLanding />} />
               <Route path="/" element={<Landing />} />
             </Routes>
           </Suspense>

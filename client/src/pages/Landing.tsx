@@ -464,7 +464,7 @@ export default function Landing() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       >
-        {/* Same structure as /ios's nav: the rails run up past the header to the
+        {/* Same structure as /mobile's nav: the rails run up past the header to the
             top of the page, and a <Rule> — not a plain border-b — closes it, so
             the crosshairs land where the hairline crosses each rail.
             The rails live on this inner element rather than the <header> so the
@@ -479,11 +479,11 @@ export default function Landing() {
               {/* Hidden on phones, where three nav items overflow — the hero pill
                   directly below covers the same entry point there. */}
               <Link
-                to="/ios"
+                to="/mobile"
                 onClick={() => window.scrollTo(0, 0)}
                 className="hidden text-muted-foreground transition-colors hover:text-brand-orange sm:inline"
               >
-                iPhone app
+                Mobile
               </Link>
               <Link to="/login" className="transition-colors hover:text-brand-orange">
                 Log in
@@ -559,7 +559,7 @@ export default function Landing() {
               className="mb-6"
             >
               <Link
-                to="/ios"
+                to="/mobile"
                 onClick={() => window.scrollTo(0, 0)}
                 className="group inline-flex items-center gap-2.5 rounded-full border bg-card/80 py-1.5 pl-1.5 pr-4
                   text-sm shadow-sm backdrop-blur transition-[border-color,transform] duration-150 ease-out
