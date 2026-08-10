@@ -142,7 +142,14 @@ export function AppDialog({
         </Button>
       </div>
       {subheader}
-      <div className={cn('px-6 pb-5', bodyClassName)}>{children}</div>
+      {/*
+        The only region allowed to grow: header, subheader and footer are all
+        `shrink-0`, so a body taller than the card scrolls under fixed chrome
+        rather than pushing the card past the viewport. `min-h-0` is what makes
+        that work — a flex item's default `min-height: auto` refuses to shrink
+        below its content, and the overflow would silently do nothing.
+      */}
+      <div className={cn('min-h-0 flex-1 overflow-y-auto px-6 pb-5', bodyClassName)}>{children}</div>
       {footer && (
         <div className={cn('border-perf-t flex shrink-0 justify-end gap-2 px-6 py-4', footerClassName)}>
           {footer}
@@ -161,10 +168,24 @@ export function AppDialog({
         tabIndex={-1}
         className={cn(
           'max-w-[448px] w-[calc(100%-2rem)] rounded-[2px] border border-foreground bg-card p-0 shadow-2xl outline-none',
+          // Cap the card at the viewport so tall content scrolls inside it. The
+          // overlay is `fixed inset-0` centring flex (ui/dialog.tsx), which has
+          // no scroll of its own — without a cap, a card taller than the screen
+          // overflows *both* edges and the clipped content is unreachable, since
+          // the page behind is fixed too.
+          'flex max-h-[calc(100dvh-2rem)] flex-col',
           className
         )}
       >
-        {onSubmit ? <form onSubmit={onSubmit}>{body}</form> : body}
+        {/* The form is the card's only flex child when present, so it has to
+            carry the column itself or the body below never becomes scrollable. */}
+        {onSubmit ? (
+          <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
+            {body}
+          </form>
+        ) : (
+          body
+        )}
       </DialogContent>
     </Dialog>
   );
