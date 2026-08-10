@@ -12,7 +12,6 @@ import { Users, Shield, Globe, Home } from 'lucide-react';
 import { IconSubscriptions, IconReceipt } from '@/components/icons';
 import {
   motion,
-  useScroll,
   useInView,
   useReducedMotion,
 } from 'framer-motion';
@@ -421,12 +420,6 @@ export default function Landing() {
   const prefersReducedMotion = useReducedMotion();
   const reduced = prefersReducedMotion ?? false;
 
-  // Bind the progress bar's scaleX directly to scroll — no spring. A spring eases
-  // to a settle, which lags and overshoots on scroll-up (the reported "scroll up
-  // isn't smooth") and runs per-frame spring math every frame. Direct binding
-  // tracks scroll exactly with zero lag.
-  const { scrollYProgress: scaleX } = useScroll();
-
   // Frame element for the Features bento's cursor-magnetic registration marks.
   const featuresFrameRef = useRef<HTMLDivElement>(null);
 
@@ -449,14 +442,6 @@ export default function Landing() {
   // scroller that swallowed the first scroll gesture (the "double scroll" on the hero).
   return (
     <div className="min-h-screen bg-background font-sans overflow-x-clip">
-      {/* Scroll progress bar */}
-      {!reduced && (
-        <motion.div
-          className="fixed top-0 left-0 right-0 h-[3px] origin-left z-[60]"
-          style={{ scaleX, backgroundColor: 'hsl(var(--brand-orange))' }}
-        />
-      )}
-
       {/* Navbar */}
       <motion.header
         initial={reduced ? {} : { opacity: 0, y: -16 }}
