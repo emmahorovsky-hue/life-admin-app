@@ -3,6 +3,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Logo } from '@/components/Logo';
+import { Rule } from '@/components/FrameMarks';
+import { FRAME_HAIRLINE_COLOR } from '@/lib/frameTone';
 import { APP_NAME } from '@/lib/constants';
 
 /**
@@ -17,6 +19,12 @@ import { APP_NAME } from '@/lib/constants';
  * (`text-brand-orange`) and tracks the brand if it ever moves. `/ios` is listed
  * in `lib/themeRoutes.ts`, so the token always resolves to its light value
  * (#E53D00) here regardless of the visitor's theme preference.
+ *
+ * Structure follows Landing.tsx rather than the handoff prototype: the content
+ * sits in a railed 1200px frame with `<Rule>` hairlines and registration marks
+ * between sections, and corners are the system's near-square RADIUS. The
+ * prototype's 16/20px rounded panels are Linear's vocabulary, not Paypr's, and
+ * put the two marketing pages in visibly different design languages.
  */
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
@@ -27,6 +35,13 @@ const SNOW = '#FAFAF8'; // light text / light surfaces
 const HAIRLINE = 'rgba(250,250,248,0.08)';
 const TEXT_MUTED = 'rgba(250,250,248,0.6)';
 const TEXT_FAINT = 'rgba(250,250,248,0.55)';
+
+/**
+ * The house corner: `--radius` is 0.125rem — "near-square receipt corners" —
+ * and Landing's tiles use the same 2px. One constant so cards, badges, the QR
+ * tile and the CTAs can't drift apart.
+ */
+const RADIUS = '2px';
 
 // Orange radial glow sitting behind the hero and the closing CTA.
 const glow = (alpha: number) =>
@@ -162,13 +177,13 @@ function AppStoreBadge() {
   );
 
   const shape =
-    'inline-flex h-[52px] items-center gap-2.5 rounded-[9px] px-5 transition-transform duration-150 ease-out';
+    'inline-flex h-[52px] items-center gap-2.5 px-5 transition-transform duration-150 ease-out';
 
   if (!live) {
     return (
       <span
         className={shape}
-        style={{ backgroundColor: SNOW, color: '#161616' }}
+        style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
         // Not a control: it states availability rather than offering an action.
         aria-label={`${APP_NAME} for iPhone is coming soon to the App Store`}
       >
@@ -180,7 +195,7 @@ function AppStoreBadge() {
     <a
       href={APP_STORE_URL}
       className={`${shape} active:scale-[0.97]`}
-      style={{ backgroundColor: SNOW, color: '#161616' }}
+      style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
     >
       {inner}
     </a>
@@ -197,8 +212,8 @@ function ScanRow({ withWebCta = false }: { withWebCta?: boolean }) {
     <div className="flex flex-wrap items-center justify-center gap-x-[22px] gap-y-6">
       <div className="flex items-center gap-3.5">
         <div
-          className="flex h-[74px] w-[74px] items-center justify-center rounded-[10px] p-[7px]"
-          style={{ backgroundColor: SNOW }}
+          className="flex h-[74px] w-[74px] items-center justify-center p-[7px]"
+          style={{ backgroundColor: SNOW, borderRadius: RADIUS }}
         >
           <img
             src="/ios/qr-paypr-ios.svg"
@@ -221,10 +236,14 @@ function ScanRow({ withWebCta = false }: { withWebCta?: boolean }) {
         {withWebCta && (
           <Link
             to="/register"
-            className="inline-flex h-[52px] items-center rounded-[9px] px-[22px] text-sm font-semibold
+            className="inline-flex h-[52px] items-center px-[22px] text-sm font-semibold
               transition-[transform,background-color] duration-150 ease-out
               hover:bg-[rgba(250,250,248,0.06)] active:scale-[0.97]"
-            style={{ border: '1.5px solid rgba(250,250,248,0.28)', color: SNOW }}
+            style={{
+              border: '1.5px solid rgba(250,250,248,0.28)',
+              color: SNOW,
+              borderRadius: RADIUS,
+            }}
           >
             Start on the web
           </Link>
@@ -250,8 +269,8 @@ function FeatureCard({
 }) {
   return (
     <div
-      className="flex flex-col overflow-hidden rounded-2xl px-7 pt-9 sm:px-10 sm:pt-10"
-      style={{ backgroundColor: PANEL, border: `1px solid ${HAIRLINE}` }}
+      className="flex flex-col overflow-hidden px-7 pt-9 sm:px-10 sm:pt-10"
+      style={{ backgroundColor: PANEL, border: `1px solid ${HAIRLINE}`, borderRadius: RADIUS }}
     >
       {eyebrow && (
         <p className="m-0 mb-2.5 font-mono text-[11px] uppercase tracking-[0.18em] text-brand-orange">
@@ -291,12 +310,15 @@ export default function IosLanding() {
   // users are the most likely audience for a "there's an app now" page.
   return (
     <div className="min-h-screen overflow-x-clip font-sans" style={{ backgroundColor: INK, color: SNOW }}>
-      <div className="mx-auto w-full max-w-[1200px]">
+      {/* Railed frame, matching Landing's: the hairline rails run the height of
+          the page and every <Rule> plants a registration mark where it crosses
+          them. Rules must stay direct children of this element. */}
+      <div
+        className="relative mx-auto w-full max-w-[1200px] border-x"
+        style={{ borderColor: FRAME_HAIRLINE_COLOR.inverse }}
+      >
         {/* ── Nav ─────────────────────────────────────────────────────────── */}
-        <header
-          className="flex items-center justify-between px-5 py-5 sm:px-10"
-          style={{ borderBottom: `1px solid ${HAIRLINE}` }}
-        >
+        <header className="flex items-center justify-between px-5 py-5 sm:px-10">
           <Link to="/" aria-label={`${APP_NAME} home`}>
             <Logo variant="wordmark-inverse" height={24} />
           </Link>
@@ -318,9 +340,9 @@ export default function IosLanding() {
             {user ? (
               <Link
                 to="/dashboard"
-                className="inline-flex h-[34px] items-center rounded-md px-4 text-[13px] font-semibold
+                className="inline-flex h-[34px] items-center px-4 text-[13px] font-semibold
                   transition-transform duration-150 ease-out active:scale-[0.97]"
-                style={{ backgroundColor: SNOW, color: '#161616' }}
+                style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
               >
                 Open {APP_NAME}
               </Link>
@@ -342,8 +364,10 @@ export default function IosLanding() {
           </nav>
         </header>
 
+        <Rule tone="inverse" />
+
         {/* ── Hero ────────────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden px-5 pt-16 text-center sm:px-10 sm:pt-20">
+        <section className="relative overflow-hidden px-5 pb-20 pt-16 text-center sm:px-10 sm:pt-20">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute left-1/2 top-[34%] h-[640px] w-[900px] max-w-none -translate-x-1/2"
@@ -416,8 +440,10 @@ export default function IosLanding() {
           </motion.div>
         </section>
 
+        <Rule tone="inverse" />
+
         {/* ── Intro statement + 2-up cards ────────────────────────────────── */}
-        <section className="px-5 pt-[72px] sm:px-10 lg:px-14" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+        <section className="px-5 py-[72px] sm:px-10 lg:px-14">
           <Reveal>
             <p
               className="mx-auto max-w-[52ch] text-center text-[20px] font-semibold leading-[1.45] tracking-[-0.01em] sm:text-[24px]"
@@ -464,8 +490,10 @@ export default function IosLanding() {
           </div>
         </section>
 
+        <Rule tone="inverse" />
+
         {/* ── Section A — the timeline ────────────────────────────────────── */}
-        <section className="px-5 pt-[88px] sm:px-10 lg:px-14 lg:pt-[110px]">
+        <section className="px-5 py-[88px] sm:px-10 lg:px-14 lg:py-[110px]">
           <Reveal>
             {/* The `ch` cap belongs to the sub-paragraph, not the block. The
                 prototype put it on the wrapper, which squeezed the 44px heading
@@ -536,8 +564,10 @@ export default function IosLanding() {
           </div>
         </section>
 
+        <Rule tone="inverse" />
+
         {/* ── Section B — cross-device ────────────────────────────────────── */}
-        <section className="px-5 pt-[88px] sm:px-10 lg:px-14 lg:pt-[110px]">
+        <section className="px-5 py-[88px] sm:px-10 lg:px-14 lg:py-[110px]">
           <Reveal>
             <div className="text-center">
               <h2
@@ -572,13 +602,15 @@ export default function IosLanding() {
           </Reveal>
         </section>
 
+        <Rule tone="inverse" />
+
         {/* ── Notifications split ─────────────────────────────────────────── */}
-        <section className="px-5 pt-[88px] sm:px-10 lg:px-14 lg:pt-[110px]">
+        <section className="px-5 py-[88px] sm:px-10 lg:px-14 lg:py-[110px]">
           <Reveal>
             <div
-              className="grid grid-cols-1 items-center gap-8 overflow-hidden rounded-[20px] px-7 pt-10
+              className="grid grid-cols-1 items-center gap-8 overflow-hidden px-7 pt-10
                 sm:px-14 sm:pt-14 md:grid-cols-[1fr_0.8fr] md:gap-12"
-              style={{ backgroundColor: PANEL, border: `1px solid ${HAIRLINE}` }}
+              style={{ backgroundColor: PANEL, border: `1px solid ${HAIRLINE}`, borderRadius: RADIUS }}
             >
               <div className="pb-4 md:pb-14">
                 <h2
@@ -631,6 +663,8 @@ export default function IosLanding() {
           </Reveal>
         </section>
 
+        <Rule tone="inverse" />
+
         {/* ── Closing CTA ─────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden px-5 py-24 text-center sm:px-10 lg:py-[120px]">
           <div
@@ -653,11 +687,10 @@ export default function IosLanding() {
           </Reveal>
         </section>
 
+        <Rule tone="inverse" />
+
         {/* ── Credits ─────────────────────────────────────────────────────── */}
-        <div
-          className="grid grid-cols-2 gap-x-6 gap-y-8 px-5 py-14 sm:px-14 md:grid-cols-4"
-          style={{ borderTop: `1px solid ${HAIRLINE}` }}
-        >
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 px-5 py-14 sm:px-14 md:grid-cols-4">
           {CREDITS.map(({ label, value }) => (
             <div key={label}>
               <p
@@ -673,11 +706,10 @@ export default function IosLanding() {
           ))}
         </div>
 
+        <Rule tone="inverse" />
+
         {/* ── Footer ──────────────────────────────────────────────────────── */}
-        <footer
-          className="flex flex-wrap items-center justify-between gap-4 px-5 py-8 sm:px-14"
-          style={{ borderTop: `1px solid ${HAIRLINE}` }}
-        >
+        <footer className="flex flex-wrap items-center justify-between gap-4 px-5 py-8 sm:px-14">
           <div className="flex items-center gap-2.5 text-[13px]" style={{ color: 'rgba(250,250,248,0.5)' }}>
             <Logo variant="wordmark-inverse" height={16} />
             <span>© {new Date().getFullYear()}</span>
@@ -709,6 +741,8 @@ export default function IosLanding() {
             </Link>
           </div>
         </footer>
+
+        <Rule tone="inverse" />
       </div>
     </div>
   );
