@@ -106,14 +106,32 @@ async function pairMetrics(page: Page, left: string, right: string) {
   return { left: derive(raw.left), right: derive(raw.right) };
 }
 
+const HERO_HEADING = /the pocket companion to your paper trail/i;
+
+/**
+ * Navigate to `/mobile` and wait for it to actually be on screen.
+ *
+ * `page.goto` resolving is not enough: the route is lazy (`App.tsx` wraps it in
+ * `Suspense`), so the shell can be loaded while the IosLanding chunk is still in
+ * flight. Locally the chunk is warm and this never showed; on a cold CI runner
+ * the gap was wide enough to measure an empty page, which is what
+ * `no card found for "Snap any receipt"` was.
+ *
+ * It matters just as much for the absence assertions below — `toHaveCount(0)`
+ * passes vacuously against a page that has not rendered yet, so without this
+ * wait those tests could go green while asserting nothing at all.
+ */
+async function gotoMobile(page: Page) {
+  await page.goto('/mobile');
+  await page.getByRole('heading', { level: 1, name: HERO_HEADING }).waitFor();
+}
+
 test.describe('iPhone launch page', () => {
   test('logged-out visitor sees the page at /mobile', async ({ page }) => {
     await page.goto('/mobile');
 
     await expect(page).toHaveURL('/mobile');
-    await expect(
-      page.getByRole('heading', { level: 1, name: /the pocket companion to your paper trail/i })
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: HERO_HEADING })).toBeVisible();
   });
 
   // The badge announces availability rather than offering a download until
@@ -122,7 +140,7 @@ test.describe('iPhone launch page', () => {
   // may be printed over it. Matched case-insensitively: the DOM says "Coming
   // soon" and CSS uppercases it.
   test('the App Store badge is inert while the app is unreleased', async ({ page }) => {
-    await page.goto('/mobile');
+    await gotoMobile(page);
 
     await expect(page.getByText(/coming soon/i).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /app store/i })).toHaveCount(0);
@@ -131,7 +149,7 @@ test.describe('iPhone launch page', () => {
   // Apple's badge must not be recoloured or re-proportioned. Its artwork is
   // 119.66407 x 40, so any rendered box off that ratio means it is distorted.
   test('the App Store badge keeps Apple\'s aspect ratio', async ({ page }) => {
-    await page.goto('/mobile');
+    await gotoMobile(page);
 
     const box = await page.locator('img[src*="app-store"]').first().boundingBox();
     if (!box) throw new Error('App Store badge did not render');
@@ -143,7 +161,7 @@ test.describe('iPhone launch page', () => {
   // Scanning it today only lands you back on this page, so it is held until
   // APP_STORE_URL is set rather than shown with a "not yet" caption.
   test('the QR and the web CTA are absent while the app is unreleased', async ({ page }) => {
-    await page.goto('/mobile');
+    await gotoMobile(page);
 
     await expect(page.locator('img[src*="qr"]')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Start on the web' })).toHaveCount(0);
@@ -165,7 +183,7 @@ test.describe('iPhone launch page', () => {
     // stretches the wrapper while the card inside sizes to its own copy — which
     // left the two cards in a pair visibly different heights.
     test('cards paired in a row are the same height', async ({ page }) => {
-      await page.goto('/mobile');
+      await gotoMobile(page);
 
       for (const [left, right] of CARD_PAIRS) {
         const { left: a, right: b } = await pairMetrics(page, left, right);
@@ -181,7 +199,7 @@ test.describe('iPhone launch page', () => {
     // phone ~23% larger in one family and drops the two onto different
     // baselines.
     test('phones paired in a row are one size on one baseline', async ({ page }) => {
-      await page.goto('/mobile');
+      await gotoMobile(page);
 
       for (const [left, right] of CARD_PAIRS) {
         const { left: a, right: b } = await pairMetrics(page, left, right);
@@ -199,7 +217,7 @@ test.describe('iPhone launch page', () => {
     // device, that clearance is the same under either asset family rather than
     // being eaten by one crop's transparent margin.
     test('phones clear the bottom edge of their card', async ({ page }) => {
-      await page.goto('/mobile');
+      await gotoMobile(page);
 
       const gaps: number[] = [];
       for (const [left, right] of CARD_PAIRS) {
