@@ -61,14 +61,18 @@ const glow = (alpha: number) =>
 // ─── Launch switches ─────────────────────────────────────────────────────────
 
 /**
- * Set to the App Store listing on launch day. While it is `null` the badge is
- * inert and reads "COMING SOON"; setting it turns the badge into a real link
- * and flips the sub-label to "DOWNLOAD ON THE". Nothing else needs to change.
+ * The single launch switch. While it is `null`:
+ *   - the App Store badge is inert and reads "COMING SOON"
+ *   - the QR is ghosted back and overprinted with a "coming soon" stamp, and
+ *     its caption reads "QR code at launch" rather than "Scan to download"
+ *
+ * Setting it to the store listing turns the badge into a real link, flips its
+ * sub-label to "DOWNLOAD ON THE", and brings the QR to full strength. Nothing
+ * else needs to change.
  *
  * The QR in `public/ios/qr-paypr-ios.svg` encodes https://paypr.live/ios (this
- * page) rather than the store, so it keeps working before and after launch —
- * scanning it on a phone lands here and finds whatever this badge points at.
- * Regenerate it with:
+ * page) rather than the store, so it stays correct either side of launch —
+ * scanning it lands here and finds whatever this badge points at. Regenerate:
  *   qrencode -t SVG -m 2 -s 8 -l M -o qr-paypr-ios.svg "https://paypr.live/ios"
  */
 const APP_STORE_URL: string | null = null;
@@ -218,27 +222,62 @@ function AppStoreBadge() {
  * visitor has read the page and the badge is the point).
  */
 function ScanRow({ withWebCta = false }: { withWebCta?: boolean }) {
+  const live = APP_STORE_URL !== null;
+
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-[22px] gap-y-6">
       <div className="flex items-center gap-3.5">
+        {/* Pre-launch the QR is ghosted back and overprinted with a stamp: it
+            still reads as "a QR code lives here" without inviting a scan that
+            can only lead back to this page. The same APP_STORE_URL switch that
+            wakes the badge brings it to full strength. */}
         <div
-          className="flex h-[74px] w-[74px] items-center justify-center p-[7px]"
+          className="relative flex h-[74px] w-[74px] items-center justify-center p-[7px]"
           style={{ backgroundColor: SNOW, borderRadius: RADIUS }}
         >
           <img
             src="/ios/qr-paypr-ios.svg"
-            alt={`QR code linking to the ${APP_NAME} for iPhone page`}
+            alt={live ? `QR code linking to the ${APP_NAME} for iPhone page` : ''}
             width={60}
             height={60}
             className="h-[60px] w-[60px]"
+            style={{ opacity: live ? 1 : 0.16 }}
             loading="lazy"
             decoding="async"
           />
+          {!live && (
+            <span
+              aria-hidden="true"
+              className="absolute left-1/2 top-1/2 whitespace-nowrap px-1.5 py-[3px]
+                font-mono text-[7px] font-bold uppercase leading-none tracking-[0.1em]"
+              style={{
+                backgroundColor: 'hsl(var(--brand-orange))',
+                color: SNOW,
+                borderRadius: '1px',
+                transform: 'translate(-50%, -50%) rotate(-8deg)',
+              }}
+            >
+              Coming soon
+            </span>
+          )}
         </div>
         <p className="m-0 text-left font-mono text-[11px] leading-[1.4]" style={{ color: TEXT_FAINT }}>
-          Scan to
-          <br />
-          download
+          {live ? (
+            <>
+              Scan to
+              <br />
+              download
+            </>
+          ) : (
+            // Parallel to the live caption's "Scan to download", and doesn't
+            // repeat the stamp — the cluster would otherwise say "coming soon"
+            // three times over, counting the App Store badge's sub-label.
+            <>
+              Scan at
+              <br />
+              launch
+            </>
+          )}
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-3">
