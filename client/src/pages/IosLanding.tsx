@@ -5,6 +5,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Logo } from '@/components/Logo';
 import { Rule } from '@/components/FrameMarks';
 import { FRAME_HAIRLINE_COLOR } from '@/lib/frameTone';
+import {
+  type PhoneFamily,
+  PADDED,
+  TIGHT,
+  DEVICE_HERO,
+  DEVICE_BIG,
+  DEVICE_CARD,
+  DEVICE_SUBCARD,
+  DEVICE_PANEL,
+  phoneBox,
+} from '@/lib/phoneAssets';
 import { APP_NAME } from '@/lib/constants';
 
 /**
@@ -94,55 +105,54 @@ function Reveal({
 // ─── Pieces ──────────────────────────────────────────────────────────────────
 
 /**
- * A device screenshot. The source PNGs carry their own bezel and transparency,
- * so the shadow is a `drop-shadow` on the alpha channel rather than a box
- * shadow on the element. `width`/`height` are always set — these are the
- * tallest things on the page and reserving their box keeps the scroll from
+ * A device screenshot. The source assets carry their own bezel and
+ * transparency, so the shadow is a `drop-shadow` on the alpha channel rather
+ * than a box shadow on the element. `width`/`height` are always set — these are
+ * the tallest things on the page and reserving their box keeps the scroll from
  * jumping as they decode.
  */
 function PhoneShot({
   src,
   alt,
-  width,
-  ratio,
+  family,
+  deviceHeight,
   shadow,
   priority = false,
   className,
 }: {
   src: string;
   alt: string;
-  /** Rendered CSS width in px. Capped to a share of the viewport on phones. */
-  width: number;
-  /** Intrinsic height ÷ width of the source asset. */
-  ratio: number;
+  family: PhoneFamily;
+  /** Height of the phone itself in px — not of the image box around it. */
+  deviceHeight: number;
   shadow: string;
   priority?: boolean;
   className?: string;
 }) {
+  const { width, height, padTop, padBottom, vwCap } = phoneBox(family, deviceHeight);
+
   return (
     <img
       src={src}
       alt={alt}
-      width={width}
-      height={Math.round(width * ratio)}
+      width={Math.round(width)}
+      height={Math.round(height)}
       draggable={false}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : undefined}
       decoding="async"
       className={className}
       style={{
-        width: `min(${width}px, 72vw)`,
+        width: `min(${width.toFixed(1)}px, ${vwCap.toFixed(1)}vw)`,
         height: 'auto',
         display: 'block',
+        marginTop: `${-padTop.toFixed(1)}px`,
+        marginBottom: `${-padBottom.toFixed(1)}px`,
         filter: shadow,
       }}
     />
   );
 }
-
-// Aspect ratios of the two screenshot sizes in `public/ios/`.
-const TALL = 2504 / 1334; // home, uploading, push, subscriptions, details-sub
-const NARROW = 2271 / 1081; // timeline, notifications
 
 const SHADOW_HERO = 'drop-shadow(0 50px 90px rgba(0,0,0,0.6))';
 const SHADOW_BIG = 'drop-shadow(0 44px 80px rgba(0,0,0,0.55))';
@@ -434,8 +444,8 @@ export default function IosLanding() {
               <PhoneShot
                 src="/ios/home.webp"
                 alt={`The ${APP_NAME} Overview screen on iPhone, listing upcoming renewals`}
-                width={330}
-                ratio={TALL}
+                family={PADDED}
+                deviceHeight={DEVICE_HERO}
                 shadow={SHADOW_HERO}
                 priority
               />
@@ -468,8 +478,8 @@ export default function IosLanding() {
                 <PhoneShot
                   src="/ios/uploading.webp"
                   alt={`${APP_NAME} reading the details off a photographed receipt`}
-                  width={230}
-                  ratio={TALL}
+                  family={PADDED}
+                  deviceHeight={DEVICE_CARD}
                   shadow={SHADOW_CARD}
                 />
               </FeatureCard>
@@ -484,8 +494,8 @@ export default function IosLanding() {
                 <PhoneShot
                   src="/ios/push.webp"
                   alt={`A ${APP_NAME} renewal reminder on the iPhone lock screen`}
-                  width={230}
-                  ratio={TALL}
+                  family={PADDED}
+                  deviceHeight={DEVICE_CARD}
                   shadow={SHADOW_CARD}
                 />
               </FeatureCard>
@@ -526,8 +536,8 @@ export default function IosLanding() {
             <PhoneShot
               src="/ios/timeline.webp"
               alt={`The ${APP_NAME} timeline on iPhone, showing what is due next`}
-              width={300}
-              ratio={NARROW}
+              family={TIGHT}
+              deviceHeight={DEVICE_BIG}
               shadow={SHADOW_BIG}
             />
           </Reveal>
@@ -541,8 +551,8 @@ export default function IosLanding() {
                 <PhoneShot
                   src="/ios/details-sub.webp"
                   alt={`A ${APP_NAME} subscription's detail sheet on iPhone`}
-                  width={220}
-                  ratio={TALL}
+                  family={PADDED}
+                  deviceHeight={DEVICE_SUBCARD}
                   shadow={SHADOW_CARD}
                 />
               </FeatureCard>
@@ -553,13 +563,13 @@ export default function IosLanding() {
                 body="Email, push, or both — with timing that adapts to weekly, monthly and annual cycles."
                 titleClass="text-[20px] sm:text-[22px] tracking-[-0.01em]"
               >
-                {/* 197px, not 220 — this asset is narrower and taller, so matching
-                    the neighbour on width would leave it noticeably taller. */}
+                {/* Same DEVICE_SUBCARD as its neighbour — a tight-family asset,
+                    so it resolves to a narrower image box around the same phone. */}
                 <PhoneShot
                   src="/ios/notifications.webp"
                   alt={`${APP_NAME} notification settings on iPhone`}
-                  width={197}
-                  ratio={NARROW}
+                  family={TIGHT}
+                  deviceHeight={DEVICE_SUBCARD}
                   shadow={SHADOW_CARD}
                 />
               </FeatureCard>
@@ -598,8 +608,8 @@ export default function IosLanding() {
             <PhoneShot
               src="/ios/subscriptions.webp"
               alt={`The ${APP_NAME} subscriptions grid on iPhone`}
-              width={300}
-              ratio={TALL}
+              family={PADDED}
+              deviceHeight={DEVICE_BIG}
               shadow={SHADOW_BIG}
             />
           </Reveal>
@@ -656,8 +666,8 @@ export default function IosLanding() {
                   <PhoneShot
                     src="/ios/notifications.webp"
                     alt={`${APP_NAME} notification settings on iPhone`}
-                    width={240}
-                    ratio={NARROW}
+                    family={TIGHT}
+                    deviceHeight={DEVICE_PANEL}
                     shadow={SHADOW_PANEL}
                   />
                 </div>
