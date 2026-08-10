@@ -464,26 +464,41 @@ export default function Landing() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       >
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        {/* Laid out to match /ios's nav exactly — same max width, padding, gaps,
+            logo height and 34px button — so the two marketing pages differ only
+            in colour. The frame below is the same 1200px, so the wordmark sits
+            on its left rail. */}
+        {/* border-x is transparent and load-bearing: it reproduces the 1px rail
+            the framed grid below (and /ios's header) inset their content by, so
+            the wordmark lands on the rail rather than 1px inside it. */}
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between border-x border-transparent px-5 py-5 sm:px-10">
           <Link to="/" aria-label={`${APP_NAME} home`}>
-            <Logo height={26} />
+            <Logo height={24} />
           </Link>
-          <div className="flex items-center gap-2">
+          <nav className="flex items-center gap-4 text-sm sm:gap-[26px]">
             {/* Hidden on phones, where three nav items overflow — the hero pill
                 directly below covers the same entry point there. */}
             <Link
               to="/ios"
-              className={`hidden sm:inline-flex ${buttonVariants({ variant: 'ghost', size: 'default' })}`}
+              onClick={() => window.scrollTo(0, 0)}
+              className="hidden text-muted-foreground transition-colors hover:text-brand-orange sm:inline"
             >
               iPhone app
             </Link>
-            <Link to="/login" className={buttonVariants({ variant: 'ghost', size: 'default' })}>
+            <Link to="/login" className="transition-colors hover:text-brand-orange">
               Sign In
             </Link>
-            <Link to="/register" className={buttonVariants({ size: 'default' })}>
+            <Link
+              to="/register"
+              className="inline-flex h-[34px] items-center rounded-[2px] bg-primary px-4 text-[13px]
+                font-semibold text-primary-foreground transition-[background-color,transform]
+                duration-150 ease-out hover:bg-primary-hover active:scale-[0.97]
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+                focus-visible:ring-offset-2"
+            >
               Get Started Free
             </Link>
-          </div>
+          </nav>
         </div>
       </motion.header>
 
