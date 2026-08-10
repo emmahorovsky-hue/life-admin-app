@@ -308,8 +308,11 @@ export function FirstRunWizard({
       }}
       eyebrow={`Set up · Step ${step} of 3`}
       title={STEP_META[step - 1].title}
-      className="max-w-[620px] max-md:flex max-md:h-[100dvh] max-md:w-full max-md:max-w-none max-md:flex-col max-md:rounded-none"
-      bodyClassName="max-md:flex-1 max-md:overflow-y-auto"
+      /* `max-md:max-h-none` keeps the phone sheet edge-to-edge: the chrome caps
+         every card at `100dvh-2rem`, which on mobile would leave a gap under a
+         sheet that is deliberately full-bleed and square-cornered. The body
+         scrolls from the chrome's own defaults now, on both breakpoints. */
+      className="max-w-[620px] max-md:h-[100dvh] max-md:max-h-none max-md:w-full max-md:max-w-none max-md:rounded-none"
       footerClassName="max-md:flex-col max-md:items-stretch"
       subheader={
         <div className="flex shrink-0 items-center gap-2 px-6 pb-4">
