@@ -80,7 +80,7 @@ describe('EditSubscriptionDialog cancel / resume', () => {
     await userEvent.click(button);
     expect(onCancelRenewal).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', { name: /yes, cancel it/i }));
+    await userEvent.click(screen.getByRole('button', { name: /mark cancelled/i }));
     expect(onCancelRenewal).toHaveBeenCalledWith('s1');
     expect(onResume).not.toHaveBeenCalled();
   });
