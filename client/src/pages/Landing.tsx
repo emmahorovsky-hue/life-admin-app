@@ -416,10 +416,6 @@ function CaughtStat({ reduced }: { reduced: boolean }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-/** Section headings keep their old 30 → 36px range; only weight, tracking and
- *  leading come from the shared scale. */
-const SECTION_SIZE = 'clamp(1.875rem, 4.2vw, 2.25rem)';
-
 export default function Landing() {
   const { user } = useAuth();
   const prefersReducedMotion = useReducedMotion();
@@ -666,7 +662,7 @@ export default function Landing() {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
-            <h2 className="mb-4" style={{ ...marketingType.section, fontSize: SECTION_SIZE }}>
+            <h2 className="mb-4" style={marketingType.sectionCompact}>
               Everything with a deadline, in one place
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
@@ -776,7 +772,7 @@ export default function Landing() {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
-            <h2 style={{ ...marketingType.section, fontSize: SECTION_SIZE }}>
+            <h2 style={marketingType.sectionCompact}>
               Nothing slips<br />
               <span className="relative inline-block">
                 <span

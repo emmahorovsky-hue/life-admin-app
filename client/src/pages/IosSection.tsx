@@ -39,7 +39,7 @@ export default function IosSection() {
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brand-orange">
               Coming soon
             </p>
-            <h2 className="mt-4" style={{ ...marketingType.section, fontSize: 'clamp(1.875rem, 4.2vw, 2.25rem)' }}>
+            <h2 className="mt-4" style={marketingType.sectionCompact}>
               Your paper trail,
               <br />
               now in your pocket

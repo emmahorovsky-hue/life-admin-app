@@ -42,6 +42,7 @@ type Role =
   | 'display'
   | 'headline'
   | 'section'
+  | 'sectionCompact'
   | 'cardTitle'
   | 'subtitle'
   | 'label'
@@ -68,6 +69,20 @@ export const marketingType: Record<Role, CSSProperties> = {
   /** Section `<h2>`. 30 → 44px. */
   section: {
     fontSize: 'clamp(1.875rem, 4.2vw, 2.75rem)',
+    fontWeight: 600,
+    letterSpacing: '-0.025em',
+    lineHeight: 1.05,
+  },
+
+  /**
+   * Section `<h2>` on `/` and the sections it composes, which top out at 36px
+   * rather than 44px — `/`'s sections carry more of them, closer together, than
+   * `/mobile`'s do. Same weight, tracking and leading as `section`: only the
+   * ceiling differs, and it is a role rather than three copies of one `clamp()`
+   * so the two can't drift apart again. 30 → 36px.
+   */
+  sectionCompact: {
+    fontSize: 'clamp(1.875rem, 4.2vw, 2.25rem)',
     fontWeight: 600,
     letterSpacing: '-0.025em',
     lineHeight: 1.05,
