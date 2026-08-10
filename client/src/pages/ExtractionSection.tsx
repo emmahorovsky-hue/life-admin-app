@@ -107,7 +107,7 @@ export default function ExtractionSection() {
           <div>
             <motion.h2
               className="mb-7"
-              style={{ ...marketingType.section, fontSize: 'clamp(1.875rem, 4.2vw, 2.25rem)' }}
+              style={marketingType.sectionCompact}
               initial={reduced ? {} : { opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
