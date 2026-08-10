@@ -368,6 +368,67 @@ export default function IosLanding() {
   // users are the most likely audience for a "there's an app now" page.
   return (
     <div className="min-h-screen overflow-x-clip font-sans" style={{ backgroundColor: INK, color: SNOW }}>
+      {/* ── Nav ───────────────────────────────────────────────────────────── */}
+      {/* Sticky and full-bleed, structured exactly like Landing's header: the
+          rails live on the inner element rather than the <header>, because a
+          1200px-wide backdrop blur would let content scroll past uncovered
+          either side of it. The `bg-[#0C0B0A]` literals are INK — Tailwind scans
+          source for class strings, so this one cannot be interpolated from the
+          constant; keep the two in sync. */}
+      <header className="sticky top-0 z-50 bg-[#0C0B0A]/95 backdrop-blur supports-[backdrop-filter]:bg-[#0C0B0A]/60">
+        <div
+          className="relative mx-auto w-full max-w-[1200px] border-x"
+          style={{ borderColor: FRAME_HAIRLINE_COLOR.inverse }}
+        >
+          <div className="flex items-center justify-between px-5 py-5 sm:px-10">
+            <Link to="/" aria-label={`${APP_NAME} home`} className={`rounded-[2px] ${FOCUS_RING}`}>
+              <Logo variant="wordmark-inverse" height={24} />
+            </Link>
+            <nav className="flex items-center gap-4 text-sm sm:gap-[26px]">
+              {/* No inline colour on any nav link: the page root sets SNOW and
+                  these inherit it, which leaves `hover:text-brand-orange` free
+                  to win. */}
+              <Link
+                to="/"
+                className={`hidden rounded-[2px] transition-colors hover:text-brand-orange sm:inline
+                  ${FOCUS_RING}`}
+              >
+                Web
+              </Link>
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className={`inline-flex h-[34px] items-center px-4 text-[13px] font-semibold
+                    transition-transform duration-150 ease-out active:scale-[0.97] ${FOCUS_RING}`}
+                  style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
+                >
+                  Open {APP_NAME}
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className={`rounded-[2px] transition-colors hover:text-brand-orange ${FOCUS_RING}`}
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    to="/register"
+                    className={`inline-flex h-[34px] items-center px-4 text-[13px] font-semibold
+                      transition-transform duration-150 ease-out active:scale-[0.97] ${FOCUS_RING}`}
+                    style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
+            </nav>
+          </div>
+
+          <Rule tone="inverse" />
+        </div>
+      </header>
+
       {/* Railed frame, matching Landing's: the hairline rails run the height of
           the page and every <Rule> plants a registration mark where it crosses
           them. Rules must stay direct children of this element. */}
@@ -375,53 +436,6 @@ export default function IosLanding() {
         className="relative mx-auto w-full max-w-[1200px] border-x"
         style={{ borderColor: FRAME_HAIRLINE_COLOR.inverse }}
       >
-        {/* ── Nav ─────────────────────────────────────────────────────────── */}
-        <header className="flex items-center justify-between px-5 py-5 sm:px-10">
-          <Link to="/" aria-label={`${APP_NAME} home`} className={`rounded-[2px] ${FOCUS_RING}`}>
-            <Logo variant="wordmark-inverse" height={24} />
-          </Link>
-          <nav className="flex items-center gap-4 text-sm sm:gap-[26px]">
-            <Link
-              to="/"
-              className={`hidden rounded-[2px] transition-colors hover:text-brand-orange sm:inline
-                ${TEXT_MUTED_CLASS} ${FOCUS_RING}`}
-            >
-              Web
-            </Link>
-            {user ? (
-              <Link
-                to="/dashboard"
-                className={`inline-flex h-[34px] items-center px-4 text-[13px] font-semibold
-                  transition-transform duration-150 ease-out active:scale-[0.97] ${FOCUS_RING}`}
-                style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
-              >
-                Open {APP_NAME}
-              </Link>
-            ) : (
-              <>
-                {/* No inline colour: the page root sets SNOW and this inherits it,
-                    which leaves `hover:text-brand-orange` free to win. */}
-                <Link
-                  to="/login"
-                  className={`rounded-[2px] transition-colors hover:text-brand-orange ${FOCUS_RING}`}
-                >
-                  Log in
-                </Link>
-                <Link
-                  to="/register"
-                  className={`inline-flex h-[34px] items-center px-4 text-[13px] font-semibold
-                    transition-transform duration-150 ease-out active:scale-[0.97] ${FOCUS_RING}`}
-                  style={{ backgroundColor: SNOW, color: '#161616', borderRadius: RADIUS }}
-                >
-                  Sign up
-                </Link>
-              </>
-            )}
-          </nav>
-        </header>
-
-        <Rule tone="inverse" />
-
         {/* ── Hero ────────────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden px-5 pb-20 pt-16 text-center sm:px-10 sm:pt-20">
           <div
