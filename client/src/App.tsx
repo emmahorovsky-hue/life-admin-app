@@ -37,6 +37,7 @@ const DesignSystem = lazy(() => import('./pages/DesignSystem'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const Support = lazy(() => import('./pages/Support'));
+const IosLanding = lazy(() => import('./pages/IosLanding'));
 
 function App() {
   return (
@@ -113,6 +114,9 @@ function App() {
               {/* Public on purpose: the App Store Support URL points here, and
                   anyone locked out of their account needs it most. */}
               <Route path="/support" element={<Support />} />
+              {/* iPhone launch page. Public, and deliberately not redirected
+                  for signed-in users — existing web users are its audience. */}
+              <Route path="/mobile" element={<IosLanding />} />
               <Route path="/" element={<Landing />} />
             </Routes>
           </Suspense>

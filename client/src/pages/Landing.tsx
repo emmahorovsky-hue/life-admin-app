@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { buttonVariants } from '@/components/ui/button';
 import { APP_NAME } from '@/lib/constants';
 import { Logo } from '@/components/Logo';
+import { Rule, FrameCorners } from '@/components/FrameMarks';
 // TODO: Users / Shield / Globe / Home are outside the Paypr set's scope — it
 // covers the product's own surfaces, and these four only appear in this
 // marketing list. Left on lucide deliberately rather than inventing glyphs;
@@ -17,6 +18,7 @@ import {
 } from 'framer-motion';
 import { useRef, useEffect, useState, useSyncExternalStore } from 'react';
 import ExtractionSection from './ExtractionSection';
+import IosSection from './IosSection';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -138,41 +140,6 @@ function CostStat({ target, reduced }: { target: number; reduced: boolean }) {
   return (
     <span ref={ref} className="tabular-nums" style={{ color: 'hsl(var(--brand-orange))' }}>
       ${count}+
-    </span>
-  );
-}
-
-// Small crosshair "+" mark, Vercel-style, sits where rails meet a divider.
-function Plus() {
-  return (
-    <span className="pointer-events-none relative block h-3 w-3">
-      <span className="absolute left-1/2 top-0 h-3 w-px -translate-x-1/2 bg-foreground/20" />
-      <span className="absolute left-0 top-1/2 h-px w-3 -translate-y-1/2 bg-foreground/20" />
-    </span>
-  );
-}
-
-// Divider between sections. The hairline runs full-bleed past the rails
-// (w-screen, centred on the frame), with a "+" mark where it crosses each rail.
-function Rule() {
-  return (
-    <div className="relative z-30 h-px w-full" aria-hidden="true">
-      <div className="absolute left-1/2 top-0 h-px w-screen -translate-x-1/2 bg-border/50" />
-      <span className="absolute -left-[6px] -top-[6px]"><Plus /></span>
-      <span className="absolute -right-[6px] -top-[6px]"><Plus /></span>
-    </div>
-  );
-}
-
-// Registration "+" marks pinned to the four corners of a framed block,
-// Vercel/feature146-style. Parent must be `relative`.
-function FrameCorners() {
-  return (
-    <span aria-hidden="true" className="pointer-events-none">
-      <span className="absolute -left-[6px] -top-[6px]"><Plus /></span>
-      <span className="absolute -right-[6px] -top-[6px]"><Plus /></span>
-      <span className="absolute -left-[6px] -bottom-[6px]"><Plus /></span>
-      <span className="absolute -right-[6px] -bottom-[6px]"><Plus /></span>
     </span>
   );
 }
@@ -495,20 +462,46 @@ export default function Landing() {
         initial={reduced ? {} : { opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       >
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" aria-label={`${APP_NAME} home`}>
-            <Logo height={26} />
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link to="/login" className={buttonVariants({ variant: 'ghost', size: 'default' })}>
-              Sign In
+        {/* Same structure as /mobile's nav: the rails run up past the header to the
+            top of the page, and a <Rule> — not a plain border-b — closes it, so
+            the crosshairs land where the hairline crosses each rail.
+            The rails live on this inner element rather than the <header> so the
+            header itself stays full-bleed: it is sticky, and a 1200px-wide
+            backdrop blur would let content scroll past uncovered either side. */}
+        <div className="relative mx-auto w-full max-w-[1200px] border-x border-border/50">
+          <div className="flex items-center justify-between px-5 py-5 sm:px-10">
+            <Link to="/" aria-label={`${APP_NAME} home`}>
+              <Logo height={24} />
             </Link>
-            <Link to="/register" className={buttonVariants({ size: 'default' })}>
-              Get Started Free
-            </Link>
+            <nav className="flex items-center gap-4 text-sm sm:gap-[26px]">
+              {/* Hidden on phones, where three nav items overflow — the hero pill
+                  directly below covers the same entry point there. */}
+              <Link
+                to="/mobile"
+                onClick={() => window.scrollTo(0, 0)}
+                className="hidden text-muted-foreground transition-colors hover:text-brand-orange sm:inline"
+              >
+                Mobile
+              </Link>
+              <Link to="/login" className="transition-colors hover:text-brand-orange">
+                Log in
+              </Link>
+              <Link
+                to="/register"
+                className="inline-flex h-[34px] items-center rounded-[2px] bg-primary px-4 text-[13px]
+                  font-semibold text-primary-foreground transition-[background-color,transform]
+                  duration-150 ease-out hover:bg-primary-hover active:scale-[0.97]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+                  focus-visible:ring-offset-2"
+              >
+                Sign up
+              </Link>
+            </nav>
           </div>
+
+          <Rule />
         </div>
       </motion.header>
 
@@ -557,6 +550,35 @@ export default function Landing() {
         <div className="container mx-auto max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-20 items-center relative z-10">
           {/* Left: copy */}
           <div>
+            {/* iPhone launch announcement — in-flow above the headline rather
+                than a banner over the page, so it announces without nagging. */}
+            <motion.div
+              initial={reduced ? {} : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="mb-6"
+            >
+              <Link
+                to="/mobile"
+                onClick={() => window.scrollTo(0, 0)}
+                className="group inline-flex items-center gap-2.5 rounded-full border bg-card/80 py-1.5 pl-1.5 pr-4
+                  text-sm shadow-sm backdrop-blur transition-[border-color,transform] duration-150 ease-out
+                  hover:border-brand-orange/50 active:scale-[0.98]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <span className="rounded-full bg-brand-orange px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white">
+                  New
+                </span>
+                <span className="font-medium">{APP_NAME} for iPhone</span>
+                <span
+                  aria-hidden="true"
+                  className="text-muted-foreground transition-transform duration-200 ease-out group-hover:translate-x-0.5"
+                >
+                  →
+                </span>
+              </Link>
+            </motion.div>
+
             <h1 className="text-5xl md:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] mb-7">
               {headline.map((word, i) => (
                 <motion.span
@@ -601,7 +623,7 @@ export default function Landing() {
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               >
                 <Link to="/login" className={buttonVariants({ variant: 'ghost', size: 'lg' })}>
-                  Sign In
+                  Log in
                 </Link>
               </motion.div>
             </motion.div>
@@ -815,6 +837,10 @@ export default function Landing() {
           </motion.div>
         </div>
       </section>
+
+      <Rule />
+
+      <IosSection />
 
       <Rule />
 
