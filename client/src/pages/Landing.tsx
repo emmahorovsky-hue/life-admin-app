@@ -18,6 +18,7 @@ import {
 import { useRef, useEffect, useState, useSyncExternalStore } from 'react';
 import ExtractionSection from './ExtractionSection';
 import IosSection from './IosSection';
+import { marketingType } from '@/lib/marketingType';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -100,7 +101,7 @@ function DashboardMockup({ reduced }: { reduced: boolean }) {
       }}
     >
       <div className="px-5 py-4 border-b flex items-center justify-between">
-        <span className="text-sm font-bold tracking-tight">Upcoming renewals</span>
+        <span className="text-sm" style={marketingType.label}>Upcoming renewals</span>
         <span className="text-xs text-muted-foreground font-mono">next 30 days</span>
       </div>
       <div className="divide-y">
@@ -247,7 +248,7 @@ function RenewalRadar() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-background/50">Renewal radar</p>
-          <h3 className="font-sans text-[22px] font-extrabold tracking-[-0.02em] text-background mt-1 leading-tight">
+          <h3 className="font-sans text-background mt-1" style={{ ...marketingType.cardTitle, fontSize: '1.375rem' }}>
             Scrub the next 90 days
           </h3>
         </div>
@@ -255,12 +256,12 @@ function RenewalRadar() {
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-background/50">Next up</p>
           {next ? (
             <>
-              <p className="text-[15px] font-bold text-background mt-1">{next.name}</p>
+              <p className="text-[15px] text-background mt-1" style={marketingType.label}>{next.name}</p>
               <p className="font-mono text-[12px] text-brand-orange">in {next.days - day} days</p>
             </>
           ) : (
             <>
-              <p className="text-[15px] font-bold text-background mt-1">All clear</p>
+              <p className="text-[15px] text-background mt-1" style={marketingType.label}>All clear</p>
               <p className="font-mono text-[12px] text-brand-orange">nothing ahead</p>
             </>
           )}
@@ -318,11 +319,11 @@ function RenewalRadar() {
       {/* Count tiles */}
       <div className="flex gap-2.5 mt-[22px]">
         <div className="flex-1 border border-background/15 rounded-[2px] px-3.5 py-3">
-          <p className="text-[26px] font-extrabold leading-none text-background">{passed.length}</p>
+          <p className="text-[26px] text-background" style={marketingType.stat}>{passed.length}</p>
           <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-background/50 mt-1.5">Renewed by day {day}</p>
         </div>
         <div className="flex-1 border border-background/15 rounded-[2px] px-3.5 py-3">
-          <p className="text-[26px] font-extrabold leading-none text-brand-orange">{ahead.length}</p>
+          <p className="text-[26px] text-brand-orange" style={marketingType.stat}>{ahead.length}</p>
           <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-background/50 mt-1.5">Still ahead</p>
         </div>
       </div>
@@ -357,7 +358,7 @@ function ReceiptTicker({ speed = 'calm' }: { speed?: 'calm' | 'brisk' }) {
           <ReceiptGlyph />
         </div>
         <div>
-          <h3 className="text-[17px] font-bold leading-tight text-foreground">Always on file</h3>
+          <h3 className="text-foreground" style={{ ...marketingType.subtitle, fontSize: '1.0625rem' }}>Always on file</h3>
           <p className="text-[13px] text-muted-foreground">Every charge, printed &amp; kept.</p>
         </div>
       </div>
@@ -414,6 +415,10 @@ function CaughtStat({ reduced }: { reduced: boolean }) {
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
+
+/** Section headings keep their old 30 → 36px range; only weight, tracking and
+ *  leading come from the shared scale. */
+const SECTION_SIZE = 'clamp(1.875rem, 4.2vw, 2.25rem)';
 
 export default function Landing() {
   const { user } = useAuth();
@@ -570,7 +575,7 @@ export default function Landing() {
               </Link>
             </motion.div>
 
-            <h1 className="text-5xl md:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] mb-7">
+            <h1 className="mb-7" style={marketingType.display}>
               {headline.map((word, i) => (
                 <motion.span
                   key={word + i}
@@ -661,7 +666,7 @@ export default function Landing() {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
-            <h2 className="text-3xl md:text-4xl font-extrabold mb-4">
+            <h2 className="mb-4" style={{ ...marketingType.section, fontSize: SECTION_SIZE }}>
               Everything with a deadline, in one place
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
@@ -734,7 +739,7 @@ export default function Landing() {
                   <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40">
                     {APP_NAME} · Tracked
                   </p>
-                  <h3 className="font-sans text-[1.7rem] leading-tight font-bold text-foreground/90 mt-10 mb-3">
+                  <h3 className="font-sans text-foreground/90 mt-10 mb-3" style={{ ...marketingType.cardTitle, fontSize: '1.7rem' }}>
                     {label}
                   </h3>
                   <p className="font-sans text-[0.95rem] leading-relaxed text-foreground/65">
@@ -771,7 +776,7 @@ export default function Landing() {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
-            <h2 className="text-3xl md:text-4xl font-extrabold leading-[1.1]">
+            <h2 style={{ ...marketingType.section, fontSize: SECTION_SIZE }}>
               Nothing slips<br />
               <span className="relative inline-block">
                 <span
@@ -810,14 +815,14 @@ export default function Landing() {
                 <RegistrationDots />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-extrabold text-foreground">One organised view</h3>
+                <h3 className="text-foreground" style={{ ...marketingType.subtitle, fontSize: '1.125rem' }}>One organised view</h3>
                 <p className="mt-1 max-w-[52ch] text-[13px] text-muted-foreground">
                   All your commitments — subscriptions, contracts, warranties, leases —
                   filtered by category and sorted by date.
                 </p>
               </div>
               <div className="md:border-l md:border-foreground/15 md:pl-7 md:text-right">
-                <p className="text-[40px] font-black leading-none tracking-[-0.03em]">
+                <p className="text-[40px]" style={marketingType.stat}>
                   <CaughtStat reduced={reduced} />
                 </p>
                 <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
@@ -853,8 +858,7 @@ export default function Landing() {
           </motion.p>
 
           <motion.p
-            className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]"
-            style={{ color: 'hsl(var(--background))' }}
+            style={{ ...marketingType.headline, color: 'hsl(var(--background))' }}
             initial={reduced ? {} : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
@@ -884,7 +888,8 @@ export default function Landing() {
       <section className="relative py-24 px-4 text-center overflow-hidden bg-muted/30">
         <div className="container mx-auto max-w-2xl relative z-10">
           <motion.h2
-            className="text-4xl md:text-6xl font-black leading-[1.05] mb-5 text-foreground"
+            className="mb-5 text-foreground"
+            style={marketingType.headline}
             initial={reduced ? {} : { opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
