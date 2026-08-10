@@ -29,8 +29,18 @@ let loaded: Promise<{ ExpoClass: ExpoSdk['Expo']; client: Expo }> | null = null;
  * EXPO_ACCESS_TOKEN is optional. It is only required once "enhanced push
  * security" is switched on for the Expo project, and sending works without it
  * today — but setting it costs nothing and is what stops a leaked push token
- * from letting anyone else notify our users. Read here rather than at module
- * load, so setting it takes effect without a restart.
+ * from letting anyone else notify our users.
+ *
+ * Setting it on a running service needs a **restart** — the memoisation above is
+ * exactly why. The env var is read inside this function rather than at module
+ * load, but `loaded` caches the promise for the process, so the value is
+ * captured on the first send and never re-read. A service that has already sent
+ * one digest will keep using the client it built then. (This comment used to
+ * claim the opposite; on Railway, a plain `railway redeploy` is enough, since
+ * env-var changes apply without `--from-source`.)
+ *
+ * Contrast ENABLE_PUSH_REMINDERS, which really is read per call
+ * (renewalReminderService.pushChannelEnabled) and so does take effect live.
  */
 function loadExpo(): Promise<{ ExpoClass: ExpoSdk['Expo']; client: Expo }> {
   loaded ??= import('expo-server-sdk').then(({ Expo: ExpoClass }) => ({
