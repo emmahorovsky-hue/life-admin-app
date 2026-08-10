@@ -17,6 +17,7 @@ import {
 } from 'framer-motion';
 import { useRef, useEffect, useState, useSyncExternalStore } from 'react';
 import ExtractionSection from './ExtractionSection';
+import IosSection from './IosSection';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -502,6 +503,14 @@ export default function Landing() {
             <Logo height={26} />
           </Link>
           <div className="flex items-center gap-2">
+            {/* Hidden on phones, where three nav items overflow — the hero pill
+                directly below covers the same entry point there. */}
+            <Link
+              to="/ios"
+              className={`hidden sm:inline-flex ${buttonVariants({ variant: 'ghost', size: 'default' })}`}
+            >
+              iPhone app
+            </Link>
             <Link to="/login" className={buttonVariants({ variant: 'ghost', size: 'default' })}>
               Sign In
             </Link>
@@ -557,6 +566,35 @@ export default function Landing() {
         <div className="container mx-auto max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-20 items-center relative z-10">
           {/* Left: copy */}
           <div>
+            {/* iPhone launch announcement — in-flow above the headline rather
+                than a banner over the page, so it announces without nagging. */}
+            <motion.div
+              initial={reduced ? {} : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="mb-6"
+            >
+              <Link
+                to="/ios"
+                onClick={() => window.scrollTo(0, 0)}
+                className="group inline-flex items-center gap-2.5 rounded-full border bg-card/80 py-1.5 pl-1.5 pr-4
+                  text-sm shadow-sm backdrop-blur transition-[border-color,transform] duration-150 ease-out
+                  hover:border-brand-orange/50 active:scale-[0.98]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <span className="rounded-full bg-brand-orange px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white">
+                  New
+                </span>
+                <span className="font-medium">{APP_NAME} for iPhone</span>
+                <span
+                  aria-hidden="true"
+                  className="text-muted-foreground transition-transform duration-200 ease-out group-hover:translate-x-0.5"
+                >
+                  →
+                </span>
+              </Link>
+            </motion.div>
+
             <h1 className="text-5xl md:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05] mb-7">
               {headline.map((word, i) => (
                 <motion.span
@@ -815,6 +853,10 @@ export default function Landing() {
           </motion.div>
         </div>
       </section>
+
+      <Rule />
+
+      <IosSection />
 
       <Rule />
 

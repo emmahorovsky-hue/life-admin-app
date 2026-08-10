@@ -4,6 +4,11 @@
  * designed against the light palette and are the app's first impression, so
  * they opt out of dark mode rather than following `paypr-theme`.
  *
+ * `/ios` is on the list for the opposite-looking reason: it paints its own
+ * fixed dark surface from literal colours rather than the tokens, so the one
+ * token it does use (`--brand-orange`) must resolve to the light-palette
+ * #E53D00 the design was drawn against, not dark mode's lighter variant.
+ *
  * This only suppresses the `dark` class on <html> — the stored preference is
  * left untouched, so Settings → Appearance keeps showing the real choice and
  * the app routes pick it straight back up.
@@ -12,6 +17,7 @@
  */
 export const LIGHT_ONLY_PATHS = [
   '/',
+  '/ios',
   '/login',
   '/register',
   '/forgot-password',
