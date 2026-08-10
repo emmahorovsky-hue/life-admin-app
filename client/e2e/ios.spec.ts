@@ -10,14 +10,25 @@ import { phoneFamilyFor } from '../src/lib/phoneAssets';
  * and comparing boxes is exactly the mistake this guards against.
  */
 async function deviceMetrics(page: Page, heading: string) {
-  const img = page.getByRole('heading', { name: heading }).locator('..').locator('img');
+  const card = page.getByRole('heading', { name: heading }).locator('..');
+  const img = card.locator('img');
   const src = (await img.getAttribute('src')) ?? '';
-  const box = await img.boundingBox();
-  if (!box) throw new Error(`no screenshot found under "${heading}"`);
+
+  // Both rects in one pass — read separately, an intervening scroll would put
+  // them in different coordinate frames.
+  const rects = await card.evaluate((el) => {
+    const c = el.getBoundingClientRect();
+    const i = el.querySelector('img')!.getBoundingClientRect();
+    return { cardBottom: c.bottom, imgBottom: i.bottom, imgHeight: i.height };
+  });
+
   const family = phoneFamilyFor(src);
+  const deviceBottom = rects.imgBottom - rects.imgHeight * family.padBottomFrac;
   return {
-    height: box.height * family.deviceHeightFrac,
-    bottom: box.y + box.height - box.height * family.padBottomFrac,
+    height: rects.imgHeight * family.deviceHeightFrac,
+    bottom: deviceBottom,
+    /** Clearance between the bottom of the phone and the card's bottom edge. */
+    gapBelow: rects.cardBottom - deviceBottom,
   };
 }
 
@@ -101,6 +112,24 @@ test.describe('iPhone launch page', () => {
         ).toBeLessThan(2);
         expect(Math.abs(a.bottom - b.bottom), 'device baselines').toBeLessThan(2);
       }
+    });
+
+    // The prototype bled the phones 8px past the card edge. They now stand on
+    // the card's bottom inset instead — and because PhoneShot's box is the
+    // device, that clearance is the same under either asset family rather than
+    // being eaten by one crop's transparent margin.
+    test('phones clear the bottom edge of their card', async ({ page }) => {
+      await page.goto('/ios');
+
+      const gaps: number[] = [];
+      for (const heading of CARD_PAIRS.flat()) {
+        const { gapBelow } = await deviceMetrics(page, heading);
+        expect(gapBelow, `clearance under "${heading}"`).toBeGreaterThan(16);
+        gaps.push(gapBelow);
+      }
+
+      // And it is the same clearance in every card, not merely non-zero.
+      expect(Math.max(...gaps) - Math.min(...gaps), 'clearance varies by card').toBeLessThan(2);
     });
   });
 

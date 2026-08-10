@@ -282,7 +282,7 @@ function FeatureCard({
       // h-full so a card fills the grid row rather than its own content: the
       // two cards in a pair carry different amounts of copy, and without it
       // their bottom edges (and the phones pinned to them) don't line up.
-      className="flex h-full flex-col overflow-hidden px-7 pt-9 sm:px-10 sm:pt-10"
+      className="flex h-full flex-col overflow-hidden px-7 pb-7 pt-9 sm:px-10 sm:pb-10 sm:pt-10"
       style={{ backgroundColor: PANEL, border: `1px solid ${HAIRLINE}`, borderRadius: RADIUS }}
     >
       {eyebrow && (
@@ -297,10 +297,10 @@ function FeatureCard({
       >
         {body}
       </p>
-      {/* Image is pinned to the bottom and bleeds a touch past the card edge. */}
-      <div className="mt-auto flex justify-center pt-6">
-        <div className="-mb-2">{children}</div>
-      </div>
+      {/* Pinned to the bottom, standing on the card's bottom inset rather than
+          bleeding past it. PhoneShot's box is the device, so this reads as the
+          same gap under either asset family. */}
+      <div className="mt-auto flex justify-center pt-6">{children}</div>
     </div>
   );
 }
@@ -621,11 +621,13 @@ export default function IosLanding() {
         <section className="px-5 py-[88px] sm:px-10 lg:px-14 lg:py-[110px]">
           <Reveal>
             <div
-              className="grid grid-cols-1 items-center gap-8 overflow-hidden px-7 pt-10
-                sm:px-14 sm:pt-14 md:grid-cols-[1fr_0.8fr] md:gap-12"
+              // Even inset all round: the phone stands on the panel's bottom
+              // padding rather than bleeding off its edge, matching the cards.
+              className="grid grid-cols-1 items-center gap-8 overflow-hidden px-7 py-10
+                sm:px-14 sm:py-14 md:grid-cols-[1fr_0.8fr] md:gap-12"
               style={{ backgroundColor: PANEL, border: `1px solid ${HAIRLINE}`, borderRadius: RADIUS }}
             >
-              <div className="pb-4 md:pb-14">
+              <div>
                 <h2
                   className="m-0 mb-7 font-extrabold"
                   style={{
@@ -662,15 +664,13 @@ export default function IosLanding() {
                 </div>
               </div>
               <div className="flex justify-center self-end">
-                <div className="-mb-2">
-                  <PhoneShot
-                    src="/ios/notifications.webp"
-                    alt={`${APP_NAME} notification settings on iPhone`}
-                    family={TIGHT}
-                    deviceHeight={DEVICE_PANEL}
-                    shadow={SHADOW_PANEL}
-                  />
-                </div>
+                <PhoneShot
+                  src="/ios/notifications.webp"
+                  alt={`${APP_NAME} notification settings on iPhone`}
+                  family={TIGHT}
+                  deviceHeight={DEVICE_PANEL}
+                  shadow={SHADOW_PANEL}
+                />
               </div>
             </div>
           </Reveal>
