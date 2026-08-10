@@ -269,7 +269,10 @@ function FeatureCard({
 }) {
   return (
     <div
-      className="flex flex-col overflow-hidden px-7 pt-9 sm:px-10 sm:pt-10"
+      // h-full so a card fills the grid row rather than its own content: the
+      // two cards in a pair carry different amounts of copy, and without it
+      // their bottom edges (and the phones pinned to them) don't line up.
+      className="flex h-full flex-col overflow-hidden px-7 pt-9 sm:px-10 sm:pt-10"
       style={{ backgroundColor: PANEL, border: `1px solid ${HAIRLINE}`, borderRadius: RADIUS }}
     >
       {eyebrow && (
@@ -455,7 +458,7 @@ export default function IosLanding() {
             </p>
           </Reveal>
           <div className="mt-14 grid grid-cols-1 gap-7 md:grid-cols-2">
-            <Reveal>
+            <Reveal className="h-full">
               <FeatureCard
                 eyebrow="On the spot"
                 title="Snap any receipt"
@@ -471,7 +474,7 @@ export default function IosLanding() {
                 />
               </FeatureCard>
             </Reveal>
-            <Reveal delay={0.08}>
+            <Reveal delay={0.08} className="h-full">
               <FeatureCard
                 eyebrow="Right on time"
                 title="A nudge before it charges"
@@ -529,7 +532,7 @@ export default function IosLanding() {
             />
           </Reveal>
           <div className="mt-14 grid grid-cols-1 gap-7 md:grid-cols-2">
-            <Reveal>
+            <Reveal className="h-full">
               <FeatureCard
                 title="Tap into any charge"
                 body="Open a subscription to see cost, cycle, next renewal and your own notes at a glance."
@@ -544,7 +547,7 @@ export default function IosLanding() {
                 />
               </FeatureCard>
             </Reveal>
-            <Reveal delay={0.08}>
+            <Reveal delay={0.08} className="h-full">
               <FeatureCard
                 title="Tune every reminder"
                 body="Email, push, or both — with timing that adapts to weekly, monthly and annual cycles."

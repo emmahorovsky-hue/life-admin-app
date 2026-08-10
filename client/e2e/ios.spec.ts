@@ -29,6 +29,33 @@ test.describe('iPhone launch page', () => {
     await expect(page.getByRole('link', { name: /app store/i })).toHaveCount(0);
   });
 
+  // Each card is wrapped in a motion div for its scroll reveal, so the grid
+  // stretches the wrapper while the card inside sizes to its own copy — which
+  // left the two cards in a pair visibly different heights. Only a real layout
+  // engine can catch a regression here, so it lives in e2e rather than jsdom.
+  test('cards paired in a row are the same height', async ({ page }) => {
+    await page.goto('/ios');
+
+    const pairs = [
+      ['Snap any receipt', 'A nudge before it charges'],
+      ['Tap into any charge', 'Tune every reminder'],
+    ];
+
+    for (const [left, right] of pairs) {
+      // The card is the h3's parent.
+      const leftCard = page.getByRole('heading', { name: left }).locator('..');
+      const rightCard = page.getByRole('heading', { name: right }).locator('..');
+
+      const a = await leftCard.boundingBox();
+      const b = await rightCard.boundingBox();
+      if (!a || !b) throw new Error(`card pair "${left}" / "${right}" did not render`);
+
+      // Sub-pixel rounding only; anything more is the stretch being lost.
+      expect(Math.abs(a.height - b.height), `"${left}" vs "${right}" height`).toBeLessThan(2);
+      expect(Math.abs(a.y + a.height - (b.y + b.height)), 'bottom edges').toBeLessThan(2);
+    }
+  });
+
   test('the hero announcement pill on / leads here', async ({ page }) => {
     await page.goto('/');
 
