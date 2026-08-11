@@ -11,11 +11,14 @@ import { formatCurrency, formatCurrencyTotals, dominantCurrency, DEFAULT_CURRENC
 import type { CurrencyAmount, CategorySpendGroup } from '@life-admin/shared';
 import {
   categorySpendByCurrency,
+  currencyOptions,
   parseRenewalDate,
+  pickCurrency,
   renewalTotals,
   spendTotals,
 } from '@life-admin/shared';
 import { SubscriptionLogo } from '@/components/SubscriptionLogo';
+import { CurrencySwitcher } from '@/components/CurrencySwitcher';
 import { PaperSheet } from '@/components/PaperSheet';
 import { EmptyState } from '@/components/EmptyState';
 import { FirstRunWizard } from '@/components/onboarding/FirstRunWizard';
@@ -27,28 +30,28 @@ import {
   shouldShowResumeCard,
   type OnboardingState,
 } from '@/lib/onboarding';
+import { readDashboardCurrency, writeDashboardCurrency } from '@/lib/dashboardCurrency';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Aggregate figures are lists, not scalars: with no exchange-rate source, costs
-// in different currencies can't be added together, so we render one line per
-// currency (LIF-107). A single-currency user — the common case — sees exactly
-// one line, unchanged from before.
+// in different currencies can't be added together (LIF-107). Since LIF-257 the
+// page is scoped to one currency, so every list handed to this is already
+// narrowed to a single entry — but it stays a list, because that is what makes
+// the sums impossible rather than merely absent. An empty list is "nothing in
+// this currency" and renders as a zero, not a blank.
 function TotalLines({
   totals,
   fallbackCurrency,
-  singleClassName,
-  multiClassName,
+  className,
 }: {
   totals: CurrencyAmount[];
   fallbackCurrency: string;
-  singleClassName: string;
-  multiClassName: string;
+  className: string;
 }) {
-  const lines = formatCurrencyTotals(totals, fallbackCurrency);
   return (
-    <div className={lines.length > 1 ? multiClassName : singleClassName}>
-      {lines.map((line) => (
+    <div className={className}>
+      {formatCurrencyTotals(totals, fallbackCurrency).map((line) => (
         <div key={line}>{line}</div>
       ))}
     </div>
@@ -162,6 +165,14 @@ export default function Dashboard() {
   // subscription's currency (the summary payload carries only id + cost).
   const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_CURRENCY);
   const [currencyById, setCurrencyById] = useState<Map<string, string>>(new Map());
+  // The currency the whole page is scoped to (LIF-257). Null until the user
+  // picks one — the *effective* currency is derived below rather than stored,
+  // so a remembered choice the account no longer holds (or one that arrives
+  // before the data does) falls back to the dominant currency on its own,
+  // without an effect that could fight a refetch.
+  const [selectedCurrency, setSelectedCurrency] = useState<string | null>(() =>
+    readDashboardCurrency(user?.id)
+  );
   // First-run onboarding (LIF-220). Keyed by account, not by browser — see the
   // note in lib/onboarding.ts (LIF-242). Read once on mount is enough: reaching
   // a different user means a logout, and that unmounts this page.
@@ -208,6 +219,14 @@ export default function Dashboard() {
     }
   }, [applyDashboard]);
 
+  const selectCurrency = useCallback(
+    (currency: string) => {
+      setSelectedCurrency(currency);
+      writeDashboardCurrency(user?.id, currency);
+    },
+    [user?.id]
+  );
+
   const updateOnboarding = useCallback(
     (next: OnboardingState) => {
       setOnboarding(next);
@@ -252,25 +271,49 @@ export default function Dashboard() {
     );
   }
 
+  // Every aggregate is still per-currency — with no exchange-rate source a
+  // single summed figure would silently add e.g. USD + EUR. What changed in
+  // LIF-257 is that the page shows one of those currencies at a time instead of
+  // every line at once: the figures below are the same per-currency data,
+  // narrowed to `currency`, never combined.
+  const currencyOf = (id: string) => currencyById.get(id) ?? displayCurrency;
+  const spend = spendTotals(summary, displayCurrency);
+
+  // Tabs come from spend plus any currency that only has cancelled rows left:
+  // it still owns renewals and a chart, so it needs a way to be reached.
+  const currencies = currencyOptions(spend.monthly, currencyById.values(), displayCurrency);
+  const showSwitcher = currencies.length > 1;
+  // A single-currency account can't have a stale selection to honour, so it
+  // reads exactly as it did before the switcher existed.
+  const currency =
+    selectedCurrency && currencies.includes(selectedCurrency) ? selectedCurrency : displayCurrency;
+
+  // Active-subscription count for the currency on screen. Falls back to the
+  // flat count only when the server is too old to send `spendByCurrency` —
+  // which is also the case where the account reads as single-currency anyway.
+  const activeInCurrency = summary.spendByCurrency
+    ? (summary.spendByCurrency.find((s) => s.currency === currency)?.activeSubscriptions ?? 0)
+    : summary.activeSubscriptions;
+
   // Parse as a local calendar date (parseRenewalDate) and compare calendar
   // days, matching Subscriptions/Timeline — native Date parsing shifts the
   // day in timezones behind UTC.
   const today = new Date();
-  const dueSoonRenewals = summary.upcomingRenewals.filter(
+  const renewals = summary.upcomingRenewals.filter((r) => currencyOf(r.id) === currency);
+  const dueSoonRenewals = renewals.filter(
     r => differenceInCalendarDays(parseRenewalDate(r.nextRenewalDate), today) <= 7
   );
+  const dueSoonTotals = renewalTotals(dueSoonRenewals, currencyOf, currency);
 
-  // Every aggregate below is per-currency: renewals can be in different
-  // currencies, and with no exchange-rate source a single summed figure would
-  // silently add e.g. USD + EUR.
-  const currencyOf = (id: string) => currencyById.get(id) ?? displayCurrency;
-  const spend = spendTotals(summary, displayCurrency);
-  const dueSoonTotals = renewalTotals(dueSoonRenewals, currencyOf, displayCurrency);
+  const shownRenewals = renewals.slice(0, 5);
+  // Total covers every upcoming renewal in this currency, not just the 5 rows
+  // shown — the label calls that out below when the list is truncated.
+  const upcomingTotals = renewalTotals(renewals, currencyOf, currency);
 
-  const shownRenewals = summary.upcomingRenewals.slice(0, 5);
-  // Total covers every upcoming renewal, not just the 5 rows shown — the
-  // label calls that out below when the list is truncated.
-  const upcomingTotals = renewalTotals(summary.upcomingRenewals, currencyOf, displayCurrency);
+  // One chart, for the currency on screen. Absent only on an empty account:
+  // every currency with a subscription has a group, and the tabs are built
+  // from those same subscriptions.
+  const categoryGroup = categoryGroups.find((g) => g.currency === currency);
 
   return (
     <div className="space-y-6">
@@ -290,6 +333,11 @@ export default function Dashboard() {
         </h2>
       </div>
 
+      {/* Currency switcher — only for accounts that actually hold more than one */}
+      {showSwitcher && (
+        <CurrencySwitcher currencies={currencies} value={currency} onChange={selectCurrency} />
+      )}
+
       {/* Summary tiles */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Featured: monthly cost */}
@@ -299,13 +347,12 @@ export default function Dashboard() {
               Charged this month
             </p>
             <TotalLines
-              totals={spend.monthly}
-              fallbackCurrency={displayCurrency}
-              singleClassName="text-4xl font-bold font-mono tracking-tight"
-              multiClassName="text-2xl font-bold font-mono tracking-tight space-y-1"
+              totals={pickCurrency(spend.monthly, currency)}
+              fallbackCurrency={currency}
+              className="text-4xl font-bold font-mono tracking-tight"
             />
             <p className="text-sm opacity-75 mt-3">
-              {summary.activeSubscriptions} active {summary.activeSubscriptions === 1 ? 'subscription' : 'subscriptions'}
+              {activeInCurrency} active {activeInCurrency === 1 ? 'subscription' : 'subscriptions'}
             </p>
           </CardContent>
         </Card>
@@ -317,10 +364,9 @@ export default function Dashboard() {
               Per year
             </p>
             <TotalLines
-              totals={spend.annual}
-              fallbackCurrency={displayCurrency}
-              singleClassName="text-4xl font-bold font-mono tracking-tight"
-              multiClassName="text-2xl font-bold font-mono tracking-tight space-y-1"
+              totals={pickCurrency(spend.annual, currency)}
+              fallbackCurrency={currency}
+              className="text-4xl font-bold font-mono tracking-tight"
             />
           </CardContent>
         </Card>
@@ -333,15 +379,14 @@ export default function Dashboard() {
             </p>
             <TotalLines
               totals={dueSoonTotals}
-              fallbackCurrency={displayCurrency}
-              singleClassName="text-4xl font-bold font-mono tracking-tight"
-              multiClassName="text-2xl font-bold font-mono tracking-tight space-y-1"
+              fallbackCurrency={currency}
+              className="text-4xl font-bold font-mono tracking-tight"
             />
-            {dueSoonRenewals.length > 0 && (
-              <p className="text-sm text-muted-foreground mt-3">
-                {dueSoonRenewals.length} {dueSoonRenewals.length === 1 ? 'renewal' : 'renewals'} upcoming
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground mt-3">
+              {dueSoonRenewals.length > 0
+                ? `${dueSoonRenewals.length} ${dueSoonRenewals.length === 1 ? 'renewal' : 'renewals'} upcoming`
+                : 'Nothing due this week'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -350,8 +395,18 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upcoming renewals — filed-paper receipt (matches Timeline / Subscriptions) */}
         <PaperSheet className="pt-6 pr-6 pb-6 pl-12">
-          {summary.upcomingRenewals.length === 0 ? (
-              <EmptyState tone="inline" icon={null} title="No renewals in the next 30 days" />
+          {renewals.length === 0 ? (
+              <EmptyState
+                tone="inline"
+                icon={null}
+                title={
+                  // With a switcher on screen the list is scoped, so "in the
+                  // next 30 days" would read as though the account were empty.
+                  showSwitcher
+                    ? `No ${currency} renewals in the next 30 days`
+                    : 'No renewals in the next 30 days'
+                }
+              />
             ) : (
               <>
                 {/* Column headers */}
@@ -393,7 +448,7 @@ export default function Dashboard() {
                       </span>
                       <div className="leader-dots flex-1 mx-2 mb-0.5" />
                       <span className="font-mono font-bold text-sm text-foreground shrink-0">
-                        {formatCurrency(parseFloat(renewal.cost), currencyById.get(renewal.id) ?? displayCurrency)}
+                        {formatCurrency(parseFloat(renewal.cost), currencyOf(renewal.id))}
                       </span>
                     </div>
                   ))}
@@ -407,81 +462,63 @@ export default function Dashboard() {
                     different currencies can't be added together */}
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                    Total{summary.upcomingRenewals.length > shownRenewals.length
-                      ? ` · all ${summary.upcomingRenewals.length}`
+                    Total{renewals.length > shownRenewals.length
+                      ? ` · all ${renewals.length}`
                       : ''}
                   </span>
                   <TotalLines
                     totals={upcomingTotals}
-                    fallbackCurrency={displayCurrency}
-                    singleClassName="text-right font-mono font-bold text-foreground text-2xl"
-                    multiClassName="text-right font-mono font-bold text-foreground text-xl"
+                    fallbackCurrency={currency}
+                    className="text-right font-mono font-bold text-foreground text-2xl"
                   />
                 </div>
 
-                {summary.upcomingRenewals.length > 5 && (
+                {renewals.length > shownRenewals.length && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="w-full mt-4"
                     onClick={() => navigate('/subscriptions')}
                   >
-                    View all {summary.upcomingRenewals.length} renewals
+                    View all {renewals.length} renewals
                   </Button>
                 )}
               </>
             )}
         </PaperSheet>
 
-        {/* Category breakdown chart — one per currency, since bars in different
-            currencies can't share an axis. */}
+        {/* Category breakdown chart — one currency's worth, since bars in
+            different currencies can't share an axis. The switcher above chooses
+            which; the header needs no currency suffix because only one is on
+            screen at a time. */}
         <Card>
           <CardContent className="p-6">
-            {categoryGroups.length === 0 ? (
-              <>
-                {/* Header — mirrors the renewals card's mono column labels */}
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                    Spending by Category
-                  </span>
-                  <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                    Monthly
-                  </span>
-                </div>
-                <div className="border-perf mb-4" />
-                <EmptyState
-                  tone="inline"
-                  title="No subscriptions yet"
-                  description="Add one to see where your money goes."
-                  action={
-                    <Button onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
-                      Add subscription
-                    </Button>
-                  }
-                />
-              </>
+            {/* Header — mirrors the renewals card's mono column labels */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                Spending by Category
+              </span>
+              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                Monthly
+              </span>
+            </div>
+
+            {/* Perforated separator */}
+            <div className="border-perf mb-4" />
+
+            {categoryGroup ? (
+              <CategoryChart currency={categoryGroup.currency} data={categoryGroup.data} />
             ) : (
-              <div className="space-y-6">
-                {categoryGroups.map((group) => (
-                  <div key={group.currency}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                        Spending by Category
-                      </span>
-                      <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-                        {/* Name the currency only when there's more than one chart
-                            to tell apart — otherwise the header is as it always was. */}
-                        Monthly{categoryGroups.length > 1 ? ` · ${group.currency}` : ''}
-                      </span>
-                    </div>
-
-                    {/* Perforated separator */}
-                    <div className="border-perf mb-4" />
-
-                    <CategoryChart currency={group.currency} data={group.data} />
-                  </div>
-                ))}
-              </div>
+              <EmptyState
+                tone="inline"
+                title="No subscriptions yet"
+                description="Add one to see where your money goes."
+                action={
+                  <Button onClick={() => navigate('/subscriptions', { state: { openAdd: true } })}>
+                    Add subscription
+                  </Button>
+                }
+              />
             )}
           </CardContent>
         </Card>

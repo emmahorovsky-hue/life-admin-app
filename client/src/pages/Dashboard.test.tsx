@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Dashboard from './Dashboard';
@@ -10,6 +10,8 @@ import {
   onboardingStorageKey,
   readOnboardingState,
 } from '@/lib/onboarding';
+import { readDashboardCurrency, writeDashboardCurrency } from '@/lib/dashboardCurrency';
+import { addDays, format } from 'date-fns';
 
 const USER_ID = 'u1';
 
@@ -233,5 +235,165 @@ describe('Dashboard first-run onboarding', () => {
     await user.click(screen.getByRole('button', { name: /skip setup/i }));
 
     await waitFor(() => expect(mockedDashboard.getSummary).toHaveBeenCalledTimes(2));
+  });
+});
+
+// The dashboard shows one currency at a time (LIF-257). Selecting one narrows
+// the existing per-currency data — it never adds two currencies together.
+describe('Dashboard currency switcher', () => {
+  const inDays = (days: number) => format(addDays(new Date(), days), 'yyyy-MM-dd');
+
+  const renewal = (over: Partial<DashboardSummary['upcomingRenewals'][number]>) => ({
+    id: 's1',
+    name: 'Netflix',
+    cost: '15.99',
+    category: 'streaming',
+    renewalDate: inDays(3),
+    nextRenewalDate: inDays(3),
+    daysUntilRenewal: 3,
+    ...over,
+  });
+
+  // Two SGD subscriptions and one EUR one, so SGD is the dominant currency.
+  const multiCurrencySubs = [
+    subRow({ id: 's1', name: 'Netflix', cost: '15.99', currency: 'SGD' }),
+    subRow({ id: 's2', name: 'Spotify', cost: '9.99', currency: 'SGD', category: 'music' }),
+    subRow({ id: 's3', name: 'Figma', cost: '12.00', currency: 'EUR', category: 'software' }),
+  ];
+
+  const multiCurrencySummary: DashboardSummary = {
+    totalMonthlySpend: '37.98', // the meaningless cross-currency sum, never rendered
+    totalAnnualSpend: '455.76',
+    activeSubscriptions: 3,
+    spendByCurrency: [
+      { currency: 'SGD', totalMonthlySpend: '25.98', totalAnnualSpend: '311.76', activeSubscriptions: 2 },
+      { currency: 'EUR', totalMonthlySpend: '12.00', totalAnnualSpend: '144.00', activeSubscriptions: 1 },
+    ],
+    upcomingRenewals: [
+      renewal({}),
+      // 20 days out, so EUR has an upcoming renewal but nothing due this week.
+      renewal({
+        id: 's3',
+        name: 'Figma',
+        cost: '12.00',
+        category: 'software',
+        renewalDate: inDays(20),
+        nextRenewalDate: inDays(20),
+        daysUntilRenewal: 20,
+      }),
+    ],
+  };
+
+  const tabs = () => screen.getByRole('group', { name: 'Currency' });
+  const tab = (code: string) => within(tabs()).getByRole('button', { name: code });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    // Onboarding is irrelevant here and its overlay would swallow the clicks.
+    localStorage.setItem(
+      onboardingStorageKey(USER_ID),
+      JSON.stringify({ status: 'done', step: 3, picks: [] })
+    );
+    mockedSubs.getAll.mockResolvedValue(multiCurrencySubs);
+    mockedDashboard.getSummary.mockResolvedValue(multiCurrencySummary);
+  });
+
+  it('stays hidden for an account with a single currency', async () => {
+    mockedSubs.getAll.mockResolvedValue([subRow()]);
+    mockedDashboard.getSummary.mockResolvedValue({
+      ...emptySummary,
+      totalMonthlySpend: '15.99',
+      totalAnnualSpend: '191.88',
+      activeSubscriptions: 1,
+      spendByCurrency: [
+        { currency: 'SGD', totalMonthlySpend: '15.99', totalAnnualSpend: '191.88', activeSubscriptions: 1 },
+      ],
+    });
+    renderDashboard();
+
+    await screen.findByText(/welcome back, sam/i);
+    expect(screen.queryByRole('group', { name: 'Currency' })).not.toBeInTheDocument();
+    expect(screen.getByText('$15.99')).toBeInTheDocument();
+  });
+
+  it('offers a tab per currency, dominant first, and opens on the dominant one', async () => {
+    renderDashboard();
+
+    await screen.findByRole('group', { name: 'Currency' });
+    expect(within(tabs()).getAllByRole('button').map((b) => b.textContent)).toEqual(['SGD', 'EUR']);
+    expect(tab('SGD')).toHaveAttribute('aria-pressed', 'true');
+    expect(tab('EUR')).toHaveAttribute('aria-pressed', 'false');
+
+    // One clean figure per tile, and no sign of the other currency.
+    expect(screen.getByText('$25.98')).toBeInTheDocument();
+    expect(screen.getByText('$311.76')).toBeInTheDocument();
+    expect(screen.getByText('2 active subscriptions')).toBeInTheDocument();
+    expect(screen.queryByText('€12.00')).not.toBeInTheDocument();
+  });
+
+  it('rescopes every tile, the receipt and the chart header when a tab is picked', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await user.click(await screen.findByRole('button', { name: 'EUR' }));
+
+    expect(tab('EUR')).toHaveAttribute('aria-pressed', 'true');
+    // The monthly tile, the Figma row and the receipt total — all €12.00.
+    expect(screen.getAllByText('€12.00')).toHaveLength(3);
+    expect(screen.getByText('€144.00')).toBeInTheDocument();
+    expect(screen.getByText('1 active subscription')).toBeInTheDocument();
+    // SGD's figures are gone, not folded in — no cross-currency sum exists.
+    expect(screen.queryByText('$25.98')).not.toBeInTheDocument();
+    expect(screen.queryByText(/37\.98/)).not.toBeInTheDocument();
+
+    // The receipt lists only this currency's renewals.
+    expect(screen.getByText('Figma')).toBeInTheDocument();
+    expect(screen.queryByText('Netflix')).not.toBeInTheDocument();
+
+    // Nothing due in EUR this week reads as a zero, not a blank.
+    expect(screen.getByText('€0.00')).toBeInTheDocument();
+    expect(screen.getByText('Nothing due this week')).toBeInTheDocument();
+  });
+
+  it('shows an inline empty state for a currency with no upcoming renewals', async () => {
+    const user = userEvent.setup();
+    mockedDashboard.getSummary.mockResolvedValue({
+      ...multiCurrencySummary,
+      upcomingRenewals: [renewal({})], // SGD only
+    });
+    renderDashboard();
+
+    await user.click(await screen.findByRole('button', { name: 'EUR' }));
+
+    expect(screen.getByText('No EUR renewals in the next 30 days')).toBeInTheDocument();
+  });
+
+  it('remembers the choice for this account', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await user.click(await screen.findByRole('button', { name: 'EUR' }));
+    expect(readDashboardCurrency(USER_ID)).toBe('EUR');
+  });
+
+  it('opens on the remembered currency', async () => {
+    writeDashboardCurrency(USER_ID, 'EUR');
+    renderDashboard();
+
+    await screen.findByRole('group', { name: 'Currency' });
+    expect(tab('EUR')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('€144.00')).toBeInTheDocument();
+  });
+
+  // The user deleted the last subscription in the remembered currency: the page
+  // must not stay scoped to a currency the account no longer holds.
+  it('falls back to the dominant currency when the remembered one is gone', async () => {
+    writeDashboardCurrency(USER_ID, 'GBP');
+    renderDashboard();
+
+    await screen.findByRole('group', { name: 'Currency' });
+    expect(tab('SGD')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('$25.98')).toBeInTheDocument();
   });
 });
