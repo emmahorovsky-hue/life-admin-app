@@ -5,6 +5,7 @@ import cors from 'cors';
 import authRoutes from '../routes/auth';
 import prisma from '../utils/db';
 import * as emailService from '../services/emailService';
+import { waitForCall } from './waitForAsync';
 
 const sendPasswordResetEmail = emailService.sendPasswordResetEmail as jest.Mock;
 const sendVerificationEmail = emailService.sendVerificationEmail as jest.Mock;
@@ -188,7 +189,7 @@ describe('Auth email identity vs display', () => {
     await request(app)
       .post('/api/auth/forgot-password')
       .send({ email: 'firstlast@gmail.com' });
-    await new Promise((r) => setTimeout(r, 100)); // fire-and-forget; let it flush
+    await waitForCall(sendPasswordResetEmail, 'the reset email');
 
     expect(sendPasswordResetEmail).toHaveBeenCalledTimes(1);
     expect(sendPasswordResetEmail.mock.calls[0][0].to).toBe('first.last@gmail.com');
@@ -196,7 +197,7 @@ describe('Auth email identity vs display', () => {
     await request(app)
       .post('/api/auth/resend-verification')
       .send({ email: 'fir.st.last+x@googlemail.com' });
-    await new Promise((r) => setTimeout(r, 100));
+    await waitForCall(sendVerificationEmail, 'the verification email');
 
     expect(sendVerificationEmail).toHaveBeenCalledTimes(1);
     expect(sendVerificationEmail.mock.calls[0][0].to).toBe('first.last@gmail.com');
