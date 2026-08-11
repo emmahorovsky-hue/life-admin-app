@@ -8,6 +8,7 @@ import authRoutes from '../routes/auth';
 import prisma from '../utils/db';
 import * as emailService from '../services/emailService';
 import { emailFields } from '../utils/email';
+import { waitForCall } from './waitForAsync';
 
 // ts-jest compiles named exports to read-only getters, so spyOn() can't replace
 // them. Mock the module instead (keeping the real impls we don't override).
@@ -93,8 +94,8 @@ describe('Auth Password Reset Endpoints', () => {
         .send({ email: user.email });
 
       expect(res.status).toBe(200);
-      // issue happens fire-and-forget; give it a tick to flush.
-      await new Promise((r) => setTimeout(r, 100));
+      // Issue happens fire-and-forget; wait for it to land.
+      await waitForCall(sendPasswordResetEmail, 'the reset email');
 
       const tokens = await prisma.passwordResetToken.findMany({ where: { userId: user.id } });
       expect(tokens).toHaveLength(1);
@@ -115,7 +116,7 @@ describe('Auth Password Reset Endpoints', () => {
       const req = request(app).post('/api/auth/forgot-password');
       if (platform) req.set('X-Platform', platform);
       await req.send({ email: user.email });
-      await new Promise((r) => setTimeout(r, 100)); // fire-and-forget; let it flush
+      await waitForCall(sendPasswordResetEmail, 'the reset email');
 
       expect(sendPasswordResetEmail).toHaveBeenCalledTimes(1);
       const { resetUrl } = sendPasswordResetEmail.mock.calls[0][0];
@@ -129,7 +130,7 @@ describe('Auth Password Reset Endpoints', () => {
       await seedResetToken(user.id); // pre-existing unused token
 
       await request(app).post('/api/auth/forgot-password').send({ email: user.email });
-      await new Promise((r) => setTimeout(r, 100));
+      await waitForCall(sendPasswordResetEmail, 'the reset email');
 
       const tokens = await prisma.passwordResetToken.findMany({ where: { userId: user.id } });
       const unused = tokens.filter((t) => t.usedAt === null);

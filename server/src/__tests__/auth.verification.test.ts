@@ -7,6 +7,7 @@ import authRoutes from '../routes/auth';
 import prisma from '../utils/db';
 import * as emailService from '../services/emailService';
 import { emailFields } from '../utils/email';
+import { waitForCall } from './waitForAsync';
 
 // Helper to hash tokens
 function hashToken(raw: string): string {
@@ -73,8 +74,9 @@ describe('Auth Verification Endpoints', () => {
         name: 'New User',
       });
 
-      // Give async operation time to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Token issue is fire-and-forget, and the send is its last step — so once
+      // this lands the token row is written too.
+      await waitForCall(sendSpy, 'the verification email');
 
       const user = await prisma.user.findUnique({
         where: { email: 'newuser@example.com' },
