@@ -278,6 +278,41 @@ describe('dashboard renewals (compute-on-read)', () => {
     expect(res.body.upcomingRenewals).toHaveLength(0);
   });
 
+  // This used to be capped at the 5 earliest across every currency, which cut
+  // the web dashboard's per-currency filter off from rows it was about to
+  // select: a currency whose renewals all sat behind another's read as having
+  // none at all (LIF-257). Clients narrow the window themselves.
+  it('returns every renewal in the 30-day window, not just the first five', async () => {
+    const renewalsIn = (days: number) => {
+      const anchor = new Date();
+      anchor.setUTCDate(anchor.getUTCDate() + days);
+      anchor.setUTCHours(0, 0, 0, 0);
+      return anchor;
+    };
+
+    await prisma.subscription.createMany({
+      data: Array.from({ length: 7 }, (_, i) => ({
+        userId,
+        name: `Sub ${i}`,
+        cost: '10.00',
+        // The last one is in another currency and renews last, so a top-5 cap
+        // would drop exactly the row a EUR-scoped dashboard needs.
+        currency: i === 6 ? 'EUR' : 'SGD',
+        billingCycle: 'monthly',
+        renewalDate: renewalsIn(i + 1),
+        category: 'software',
+      })),
+    });
+
+    const res = await request(app).get('/api/dashboard/summary').set('Cookie', cookie);
+    expect(res.status).toBe(200);
+    expect(res.body.upcomingRenewals).toHaveLength(7);
+    // Still earliest-first.
+    expect(res.body.upcomingRenewals.map((r: { name: string }) => r.name)).toEqual([
+      'Sub 0', 'Sub 1', 'Sub 2', 'Sub 3', 'Sub 4', 'Sub 5', 'Sub 6',
+    ]);
+  });
+
   it('/upcoming returns rolled-forward nextRenewalDate alongside the full row', async () => {
     const anchor = new Date();
     anchor.setUTCMonth(anchor.getUTCMonth() - 2);

@@ -41,6 +41,10 @@ export interface DashboardSummary {
   // than reported as zero, so a young account gets a short series (or an empty
   // one) instead of a run of $0 months it never actually had.
   spendHistory?: MonthlySpend[];
+  // Every active subscription renewing in the next 30 days, earliest first —
+  // the whole window, not a top-N. Clients narrow it themselves (the web
+  // dashboard by currency, both to 5 displayed rows), so a server-side cap
+  // would drop the rows they were about to pick out.
   upcomingRenewals: Array<{
     id: string;
     name: string;
