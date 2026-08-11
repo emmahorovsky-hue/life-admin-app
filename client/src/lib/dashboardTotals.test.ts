@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   categorySpendByCurrency,
+  currencyOptions,
   formatCurrencyTotals,
+  pickCurrency,
   renewalTotals,
   spendTotals,
 } from '@life-admin/shared';
@@ -157,5 +159,64 @@ describe('categorySpendByCurrency', () => {
 
   it('returns no groups for no subscriptions', () => {
     expect(categorySpendByCurrency([], 'SGD')).toEqual([]);
+  });
+});
+
+// The dashboard is scoped to one currency at a time (LIF-257). These two are
+// how that scope is chosen and applied — neither adds anything up.
+
+describe('currencyOptions', () => {
+  it('lists the currencies dominant-first, as every other aggregate is ordered', () => {
+    const options = currencyOptions(
+      [
+        { currency: 'USD', amount: 10 },
+        { currency: 'EUR', amount: 30 },
+        { currency: 'GBP', amount: 20 },
+      ],
+      [],
+      'USD'
+    );
+
+    expect(options).toEqual(['USD', 'EUR', 'GBP']);
+  });
+
+  it('reads a single-currency account as one option, so the switcher stays hidden', () => {
+    expect(currencyOptions([{ currency: 'SGD', amount: 25.98 }], ['SGD', 'SGD'], 'SGD')).toEqual([
+      'SGD',
+    ]);
+  });
+
+  // A currency whose subscriptions are all cancelled has no active spend, but
+  // still owns renewals and a category chart. Without a tab, that data would be
+  // on the page with no way to reach it.
+  it('keeps a currency that only has cancelled rows left, ranked last', () => {
+    const options = currencyOptions([{ currency: 'SGD', amount: 25.98 }], ['SGD', 'EUR'], 'SGD');
+
+    expect(options).toEqual(['SGD', 'EUR']);
+  });
+
+  it('still leads with the primary currency when it has no spend of its own', () => {
+    expect(currencyOptions([{ currency: 'USD', amount: 40 }], ['GBP'], 'GBP')).toEqual([
+      'GBP',
+      'USD',
+    ]);
+  });
+});
+
+describe('pickCurrency', () => {
+  const totals = [
+    { currency: 'USD', amount: 10 },
+    { currency: 'EUR', amount: 30 },
+  ];
+
+  it('narrows a per-currency total to the currency on screen', () => {
+    expect(pickCurrency(totals, 'EUR')).toEqual([{ currency: 'EUR', amount: 30 }]);
+    // Narrowed, never combined — the other currency is hidden, not folded in.
+    expect(formatCurrencyTotals(pickCurrency(totals, 'EUR'), 'EUR')).toEqual(['€30.00']);
+  });
+
+  it('renders a currency with nothing in it as a zero, not a blank', () => {
+    expect(pickCurrency(totals, 'GBP')).toEqual([]);
+    expect(formatCurrencyTotals(pickCurrency(totals, 'GBP'), 'GBP')).toEqual(['£0.00']);
   });
 });

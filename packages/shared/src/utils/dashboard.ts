@@ -43,6 +43,38 @@ export function spendTotals(
   };
 }
 
+// The currencies a dashboard can be scoped to, in the same dominant-first order
+// every other aggregate uses (LIF-257). One entry means the account is
+// single-currency and the UI shows no switcher at all — which is also what a
+// server too old to send `spendByCurrency` produces, since `spendTotals` falls
+// back to a single flat total in the primary currency.
+//
+// `alsoPresent` catches currencies that have rows on the page but no active
+// spend — an account whose EUR subscriptions are all cancelled still has EUR
+// renewals and an EUR category chart, and a currency with no tab is a currency
+// whose data can never be reached. They sort last (amount 0) unless they are
+// the primary one.
+export function currencyOptions(
+  spend: CurrencyAmount[],
+  alsoPresent: Iterable<string>,
+  primaryCurrency: string
+): string[] {
+  const entries = [
+    ...spend,
+    ...[...alsoPresent].map((currency) => ({ currency, amount: 0 })),
+  ];
+  return sumByCurrency(entries, primaryCurrency).map((entry) => entry.currency);
+}
+
+// Narrow a per-currency aggregate to the one currency the dashboard is scoped
+// to. Deliberately a filter and not a sum: scoping is the existing per-currency
+// data with the other entries hidden, so the no-cross-currency-sum rule above
+// is untouched. An empty result is the honest answer for "nothing in this
+// currency" — `formatCurrencyTotals` renders it as a zero rather than a blank.
+export function pickCurrency(totals: CurrencyAmount[], currency: string): CurrencyAmount[] {
+  return totals.filter((total) => total.currency === currency);
+}
+
 // Total of a set of upcoming renewals, per currency. `currencyOf` resolves a
 // renewal's currency (the dashboard summary payload carries only ids and costs,
 // so callers look it up in the subscriptions they already fetched).
