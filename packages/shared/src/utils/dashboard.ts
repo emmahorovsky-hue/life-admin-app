@@ -49,21 +49,13 @@ export function spendTotals(
 // server too old to send `spendByCurrency` produces, since `spendTotals` falls
 // back to a single flat total in the primary currency.
 //
-// `alsoPresent` catches currencies that have rows on the page but no active
-// spend — an account whose EUR subscriptions are all cancelled still has EUR
-// renewals and an EUR category chart, and a currency with no tab is a currency
-// whose data can never be reached. They sort last (amount 0) unless they are
-// the primary one.
-export function currencyOptions(
-  spend: CurrencyAmount[],
-  alsoPresent: Iterable<string>,
-  primaryCurrency: string
-): string[] {
-  const entries = [
-    ...spend,
-    ...[...alsoPresent].map((currency) => ({ currency, amount: 0 })),
-  ];
-  return sumByCurrency(entries, primaryCurrency).map((entry) => entry.currency);
+// Derived from active spend alone, so the tabs match the figures underneath
+// them: every other number on the page excludes cancelled subscriptions, and a
+// tab for a currency whose subscriptions are all cancelled would open on zeros
+// in every tile. Nothing becomes unreachable — renewals and the category chart
+// exclude cancelled rows too, so such a currency has nothing left to show.
+export function currencyOptions(spend: CurrencyAmount[], primaryCurrency: string): string[] {
+  return sumByCurrency(spend, primaryCurrency).map((entry) => entry.currency);
 }
 
 // Narrow a per-currency aggregate to the one currency the dashboard is scoped
@@ -106,13 +98,21 @@ export interface CategorySpendGroup {
 // currency. Bars from different currencies can't share an axis, so a user with
 // USD and EUR subscriptions gets one chart per currency rather than a single
 // chart of nonsense sums.
+//
+// Cancelled subscriptions are excluded, matching the server's spend totals
+// ("cancelled subs won't renew, so they're excluded") and therefore the tiles
+// this chart sits beside. It is headed "Spending by Category", and a cancelled
+// subscription is spend the user has already stopped.
 export function categorySpendByCurrency(
-  subscriptions: Array<Pick<Subscription, 'cost' | 'billingCycle' | 'category' | 'currency'>>,
+  subscriptions: Array<
+    Pick<Subscription, 'cost' | 'billingCycle' | 'category' | 'currency' | 'cancelledAt'>
+  >,
   primaryCurrency: string
 ): CategorySpendGroup[] {
   // currency -> category -> monthly total
   const byCurrency = new Map<string, Map<string, number>>();
   for (const sub of subscriptions) {
+    if (sub.cancelledAt !== null) continue;
     const monthly = normalizeToMonthlyCost(parseFloat(sub.cost), sub.billingCycle);
     const categoryMap = byCurrency.get(sub.currency) ?? new Map<string, number>();
     categoryMap.set(sub.category, (categoryMap.get(sub.category) ?? 0) + monthly);

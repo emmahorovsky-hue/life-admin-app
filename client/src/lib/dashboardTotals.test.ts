@@ -103,6 +103,7 @@ describe('categorySpendByCurrency', () => {
     category,
     cost,
     billingCycle,
+    cancelledAt: null,
   });
 
   it('splits the category chart per currency instead of mixing bars', () => {
@@ -160,6 +161,33 @@ describe('categorySpendByCurrency', () => {
   it('returns no groups for no subscriptions', () => {
     expect(categorySpendByCurrency([], 'SGD')).toEqual([]);
   });
+
+  // The tiles beside this chart come from the server, which excludes cancelled
+  // subscriptions from every spend total. A chart headed "Spending by Category"
+  // that disagreed with them would be the odd one out.
+  it('leaves out cancelled subscriptions, like every other figure on the page', () => {
+    const groups = categorySpendByCurrency(
+      [
+        sub('SGD', 'streaming', '15.99'),
+        { ...sub('SGD', 'music', '9.99'), cancelledAt: '2026-08-01T00:00:00.000Z' },
+      ],
+      'SGD'
+    );
+
+    expect(groups).toEqual([{ currency: 'SGD', data: [{ name: 'Streaming', total: 15.99 }] }]);
+  });
+
+  it('drops a currency entirely once its last subscription is cancelled', () => {
+    const groups = categorySpendByCurrency(
+      [
+        sub('SGD', 'streaming', '15.99'),
+        { ...sub('EUR', 'software', '12.00'), cancelledAt: '2026-08-01T00:00:00.000Z' },
+      ],
+      'SGD'
+    );
+
+    expect(groups.map((g) => g.currency)).toEqual(['SGD']);
+  });
 });
 
 // The dashboard is scoped to one currency at a time (LIF-257). These two are
@@ -173,7 +201,6 @@ describe('currencyOptions', () => {
         { currency: 'EUR', amount: 30 },
         { currency: 'GBP', amount: 20 },
       ],
-      [],
       'USD'
     );
 
@@ -181,25 +208,26 @@ describe('currencyOptions', () => {
   });
 
   it('reads a single-currency account as one option, so the switcher stays hidden', () => {
-    expect(currencyOptions([{ currency: 'SGD', amount: 25.98 }], ['SGD', 'SGD'], 'SGD')).toEqual([
-      'SGD',
-    ]);
+    expect(currencyOptions([{ currency: 'SGD', amount: 25.98 }], 'SGD')).toEqual(['SGD']);
   });
 
-  // A currency whose subscriptions are all cancelled has no active spend, but
-  // still owns renewals and a category chart. Without a tab, that data would be
-  // on the page with no way to reach it.
-  it('keeps a currency that only has cancelled rows left, ranked last', () => {
-    const options = currencyOptions([{ currency: 'SGD', amount: 25.98 }], ['SGD', 'EUR'], 'SGD');
-
-    expect(options).toEqual(['SGD', 'EUR']);
+  // A currency whose subscriptions are all cancelled has no active spend — and
+  // no renewals and no chart either, since those exclude cancelled rows too —
+  // so it never reaches this list. A tab for it would open on a page of zeros.
+  it('has no options at all when nothing is active', () => {
+    expect(currencyOptions([], 'SGD')).toEqual([]);
   });
 
-  it('still leads with the primary currency when it has no spend of its own', () => {
-    expect(currencyOptions([{ currency: 'USD', amount: 40 }], ['GBP'], 'GBP')).toEqual([
-      'GBP',
-      'USD',
-    ]);
+  it('leads with the primary currency even when it is not the largest', () => {
+    const options = currencyOptions(
+      [
+        { currency: 'USD', amount: 400 },
+        { currency: 'GBP', amount: 1 },
+      ],
+      'GBP'
+    );
+
+    expect(options).toEqual(['GBP', 'USD']);
   });
 });
 

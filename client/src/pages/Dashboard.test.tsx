@@ -396,4 +396,129 @@ describe('Dashboard currency switcher', () => {
     expect(tab('SGD')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('$25.98')).toBeInTheDocument();
   });
+
+  // The summary used to arrive capped at the 5 earliest renewals across every
+  // currency, so a currency whose renewals all sat behind another's simply had
+  // none to filter — its tab claimed "no renewals" while they existed. The
+  // window now arrives whole and the 5-row cut happens after the filter.
+  it('shows a currency its own renewals even when others are due first', async () => {
+    const user = userEvent.setup();
+    mockedDashboard.getSummary.mockResolvedValue({
+      ...multiCurrencySummary,
+      upcomingRenewals: [
+        // Six SGD renewals, all sooner than the EUR one.
+        ...Array.from({ length: 6 }, (_, i) =>
+          renewal({
+            id: `sgd${i}`,
+            name: `SGD sub ${i}`,
+            renewalDate: inDays(i + 1),
+            nextRenewalDate: inDays(i + 1),
+            daysUntilRenewal: i + 1,
+          })
+        ),
+        renewal({
+          id: 's3',
+          name: 'Figma',
+          cost: '12.00',
+          category: 'software',
+          renewalDate: inDays(20),
+          nextRenewalDate: inDays(20),
+          daysUntilRenewal: 20,
+        }),
+      ],
+    });
+    mockedSubs.getAll.mockResolvedValue([
+      ...Array.from({ length: 6 }, (_, i) =>
+        subRow({ id: `sgd${i}`, name: `SGD sub ${i}`, currency: 'SGD' })
+      ),
+      subRow({ id: 's3', name: 'Figma', cost: '12.00', currency: 'EUR', category: 'software' }),
+    ]);
+    renderDashboard();
+
+    await user.click(await screen.findByRole('button', { name: 'EUR' }));
+
+    expect(screen.getByText('Figma')).toBeInTheDocument();
+    expect(screen.queryByText('No EUR renewals in the next 30 days')).not.toBeInTheDocument();
+  });
+
+  // The 5-row display cut is per currency, and the total below it still covers
+  // every one — the label says so, and the button offers the rest.
+  it('caps the receipt at five rows of the selected currency and offers the rest', async () => {
+    mockedDashboard.getSummary.mockResolvedValue({
+      ...multiCurrencySummary,
+      // Five due this week and a sixth well after it, so the receipt total
+      // ($60) is distinguishable from the due-soon tile ($50).
+      upcomingRenewals: [1, 2, 3, 4, 5, 20].map((days, i) =>
+        renewal({
+          id: `sgd${i}`,
+          name: `SGD sub ${i}`,
+          cost: '10.00',
+          renewalDate: inDays(days),
+          nextRenewalDate: inDays(days),
+          daysUntilRenewal: days,
+        })
+      ),
+    });
+    mockedSubs.getAll.mockResolvedValue([
+      ...Array.from({ length: 6 }, (_, i) =>
+        subRow({ id: `sgd${i}`, name: `SGD sub ${i}`, cost: '10.00', currency: 'SGD' })
+      ),
+      subRow({ id: 's3', name: 'Figma', cost: '12.00', currency: 'EUR', category: 'software' }),
+    ]);
+    renderDashboard();
+
+    await screen.findByRole('group', { name: 'Currency' });
+    expect(screen.getByText('SGD sub 4')).toBeInTheDocument();
+    expect(screen.queryByText('SGD sub 5')).not.toBeInTheDocument();
+    expect(screen.getByText('Total · all 6')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View all 6 renewals' })).toBeInTheDocument();
+    // The total covers all six rows, not the five on screen — and it isn't the
+    // due-soon tile, which counts only the five inside the week.
+    expect(screen.getByText('$60.00')).toBeInTheDocument();
+    expect(screen.getByText('$50.00')).toBeInTheDocument();
+  });
+
+  // Every figure on the page excludes cancelled subscriptions, so a currency
+  // left with only cancelled rows has nothing to show — a tab for it would open
+  // on zeros in every tile.
+  it('offers no tab for a currency whose subscriptions are all cancelled', async () => {
+    mockedSubs.getAll.mockResolvedValue([
+      subRow({ id: 's1', name: 'Netflix', currency: 'SGD' }),
+      subRow({
+        id: 's3',
+        name: 'Figma',
+        cost: '12.00',
+        currency: 'EUR',
+        category: 'software',
+        cancelledAt: '2026-08-01T00:00:00.000Z',
+      }),
+    ]);
+    mockedDashboard.getSummary.mockResolvedValue({
+      ...multiCurrencySummary,
+      spendByCurrency: [
+        { currency: 'SGD', totalMonthlySpend: '15.99', totalAnnualSpend: '191.88', activeSubscriptions: 1 },
+      ],
+      upcomingRenewals: [renewal({})],
+    });
+    renderDashboard();
+
+    await screen.findByText(/welcome back, sam/i);
+    expect(screen.queryByRole('group', { name: 'Currency' })).not.toBeInTheDocument();
+    expect(screen.getByText('1 active subscription')).toBeInTheDocument();
+    // The cancelled EUR row is gone from the chart too, so nothing is stranded.
+    expect(screen.queryByText('Figma')).not.toBeInTheDocument();
+  });
+
+  // A file of nothing but cancelled subscriptions isn't an empty account, and
+  // must not be offered the "add your first one" prompt.
+  it('tells an all-cancelled account there is nothing active to chart', async () => {
+    mockedSubs.getAll.mockResolvedValue([
+      subRow({ id: 's1', currency: 'SGD', cancelledAt: '2026-08-01T00:00:00.000Z' }),
+    ]);
+    mockedDashboard.getSummary.mockResolvedValue(emptySummary);
+    renderDashboard();
+
+    await screen.findByText('Nothing active to chart');
+    expect(screen.queryByText('No subscriptions yet')).not.toBeInTheDocument();
+  });
 });

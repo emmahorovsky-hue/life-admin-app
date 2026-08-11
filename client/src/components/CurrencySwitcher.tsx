@@ -24,13 +24,22 @@ export function CurrencySwitcher({ currencies, value, onChange, className }: Cur
     <div className={className}>
       {/* Eyebrow + hairline, matching the column headers on the receipt below */}
       <div className="flex items-center gap-3 mb-2">
-        <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+        <span
+          id="currency-switcher-label"
+          className="text-xs font-mono uppercase tracking-widest text-muted-foreground"
+        >
           Currency
         </span>
         <div className="border-perf flex-1" aria-hidden="true" />
       </div>
 
-      <div role="group" aria-label="Currency" className="flex flex-wrap gap-1.5">
+      {/* Labelled by the visible eyebrow rather than a duplicate aria-label, so
+          the heading isn't announced twice. */}
+      <div
+        role="group"
+        aria-labelledby="currency-switcher-label"
+        className="flex flex-wrap gap-1.5"
+      >
         {currencies.map((currency) => {
           const active = currency === value;
           return (
