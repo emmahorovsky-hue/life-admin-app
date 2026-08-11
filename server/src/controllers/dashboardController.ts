@@ -173,6 +173,15 @@ export const getDashboardSummary = async (
 
     // Get upcoming renewals (next 30 days). renewalDate is an anchor; roll it
     // forward to the next future occurrence before filtering/sorting.
+    //
+    // Every renewal in the window, not a top-N: clients narrow this list before
+    // they display it — the web dashboard by currency (LIF-257), both clients to
+    // 5 rows — and a cap applied here, across all currencies and ahead of that
+    // narrowing, silently drops the rows they were about to select. A top-5
+    // truncation made a currency's renewals vanish from its own tab, and made
+    // both "view all N" buttons unreachable, since N could never exceed the 5
+    // already on screen. The window bounds this: one row per active
+    // subscription renewing within 30 days.
     const now = new Date();
     const spendHistory = computeSpendHistory(liveSubscriptions, now, 6);
 
@@ -183,7 +192,6 @@ export const getDashboardSummary = async (
       .map((sub) => ({ sub, next: computeNextRenewal(sub.renewalDate, sub.billingCycle, now) }))
       .filter(({ next }) => next <= thirtyDaysFromNow)
       .sort((a, b) => a.next.getTime() - b.next.getTime())
-      .slice(0, 5) // Limit to 5 upcoming renewals
       .map(({ sub, next }) => ({
         id: sub.id,
         name: sub.name,
