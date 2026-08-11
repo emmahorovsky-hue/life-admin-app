@@ -279,14 +279,19 @@ export default function Dashboard() {
   const currencyOf = (id: string) => currencyById.get(id) ?? displayCurrency;
   const spend = spendTotals(summary, displayCurrency);
 
-  // Tabs come from spend plus any currency that only has cancelled rows left:
-  // it still owns renewals and a chart, so it needs a way to be reached.
-  const currencies = currencyOptions(spend.monthly, currencyById.values(), displayCurrency);
+  // One tab per currency the account actively spends in — the same set every
+  // figure below is drawn from, so no tab can open on a page of zeros.
+  const currencies = currencyOptions(spend.monthly, displayCurrency);
   const showSwitcher = currencies.length > 1;
-  // A single-currency account can't have a stale selection to honour, so it
-  // reads exactly as it did before the switcher existed.
+  // Falls back to the leading tab rather than to `displayCurrency`: the
+  // dominant currency counts cancelled subscriptions, so an account that
+  // cancelled all its EUR ones still reads as EUR-dominant while EUR has no tab
+  // and no spend. A single-currency account can't have a stale selection to
+  // honour, so it reads exactly as it did before the switcher existed.
   const currency =
-    selectedCurrency && currencies.includes(selectedCurrency) ? selectedCurrency : displayCurrency;
+    selectedCurrency && currencies.includes(selectedCurrency)
+      ? selectedCurrency
+      : (currencies[0] ?? displayCurrency);
 
   // Active-subscription count for the currency on screen. Falls back to the
   // flat count only when the server is too old to send `spendByCurrency` —
@@ -305,14 +310,17 @@ export default function Dashboard() {
   );
   const dueSoonTotals = renewalTotals(dueSoonRenewals, currencyOf, currency);
 
+  // The summary carries the whole 30-day window (the truncation that used to
+  // live on the server would have cut a currency's renewals before this filter
+  // could reach them), so this is where the list is cut down for display.
   const shownRenewals = renewals.slice(0, 5);
   // Total covers every upcoming renewal in this currency, not just the 5 rows
   // shown — the label calls that out below when the list is truncated.
   const upcomingTotals = renewalTotals(renewals, currencyOf, currency);
 
-  // One chart, for the currency on screen. Absent only on an empty account:
-  // every currency with a subscription has a group, and the tabs are built
-  // from those same subscriptions.
+  // One chart, for the currency on screen. Absent only when nothing is active
+  // in it: chart and tabs are built from the same non-cancelled subscriptions,
+  // so a currency with a tab always has a group.
   const categoryGroup = categoryGroups.find((g) => g.currency === currency);
 
   return (
@@ -508,6 +516,16 @@ export default function Dashboard() {
 
             {categoryGroup ? (
               <CategoryChart currency={categoryGroup.currency} data={categoryGroup.data} />
+            ) : hasSubscriptions ? (
+              // Subscriptions on file, none of them still running. "No
+              // subscriptions yet" would be a lie to someone looking at their
+              // own cancelled file, and the wizard-style prompt to add a first
+              // one is the wrong offer.
+              <EmptyState
+                tone="inline"
+                title="Nothing active to chart"
+                description="Cancelled subscriptions aren't counted as spending."
+              />
             ) : (
               <EmptyState
                 tone="inline"

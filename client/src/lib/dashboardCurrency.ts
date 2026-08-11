@@ -10,6 +10,8 @@
 // one otherwise (deleting the last EUR subscription must not leave the page
 // scoped to EUR).
 
+import { supportedCurrency } from './currency';
+
 export const DASHBOARD_CURRENCY_STORAGE_KEY = 'paypr.dashboard.currency.v1';
 
 export function dashboardCurrencyStorageKey(userId: string): string {
@@ -24,10 +26,9 @@ export function dashboardCurrencyStorageKey(userId: string): string {
 export function readDashboardCurrency(userId: string | undefined): string | null {
   if (!userId) return null;
   try {
-    const stored = window.localStorage.getItem(dashboardCurrencyStorageKey(userId));
-    // A currency code, not arbitrary text: anything else is a hand-edited or
-    // half-written value and is discarded.
-    return stored && /^[A-Z]{3}$/.test(stored) ? stored : null;
+    // A currency this app supports, not arbitrary text: anything else is a
+    // hand-edited or half-written value and is discarded.
+    return supportedCurrency(window.localStorage.getItem(dashboardCurrencyStorageKey(userId)));
   } catch {
     return null;
   }
