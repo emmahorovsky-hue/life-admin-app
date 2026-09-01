@@ -54,27 +54,38 @@ describe('IosLanding', () => {
     }
   });
 
-  // Scanning it today only lands you back on this page, so it is held until
-  // APP_STORE_URL is set rather than shown with a "not yet" caption.
-  it('does not show the QR while the app is unreleased', () => {
+  // The QR is the desktop half of the download row, so it only earns its space
+  // once the badge beside it is live. Both copies — hero and closing CTA.
+  it('shows the QR alongside the badge now the app is released', () => {
     const { container } = renderPage();
 
-    expect(container.querySelector('img[src*="qr"]')).toBeNull();
+    expect(container.querySelectorAll('img[src*="qr"]')).toHaveLength(2);
   });
 
-  // Apple's badge artwork is used unmodified, so the "coming soon" cannot be
-  // printed over it — it sits above as a separate label. Matched
-  // case-insensitively: the DOM says "Coming soon" and CSS uppercases it.
-  it('renders the App Store badge as inert, labelled coming soon', () => {
+  // The inverse of the pre-launch guard: with APP_STORE_URL set the badge is a
+  // real link and the "coming soon" label above it is gone. Matched
+  // case-insensitively — the DOM said "Coming soon" and CSS uppercased it.
+  it('links the App Store badge to the listing, with no coming-soon label', () => {
     renderPage();
 
-    expect(screen.getAllByText(/coming soon/i).length).toBeGreaterThan(0);
-    expect(screen.queryByRole('link', { name: /app store/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /app store/i })).toHaveLength(2);
   });
 
-  // Pre-launch the badge is the only thing in the download row — no QR, and no
-  // secondary web CTA. Registration is reachable from the nav.
-  it('leaves the App Store badge as the only item in the download row', () => {
+  // Region-neutral on purpose: the listing's own URL carries an /sg/ storefront
+  // segment that would pin every visitor to the Singapore store. Apple 301s the
+  // bare form to whichever storefront the visitor actually buys from.
+  it('points the badge at a storefront-neutral App Store URL', () => {
+    renderPage();
+
+    for (const link of screen.getAllByRole('link', { name: /app store/i })) {
+      expect(link).toHaveAttribute('href', 'https://apps.apple.com/app/id6792259308');
+    }
+  });
+
+  // The download row is the badge and the QR — still no secondary web CTA.
+  // Registration is reachable from the nav.
+  it('keeps the download row to the badge and the QR', () => {
     renderPage();
 
     expect(screen.queryByRole('link', { name: 'Start on the web' })).not.toBeInTheDocument();
