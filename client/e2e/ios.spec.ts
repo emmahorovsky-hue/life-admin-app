@@ -134,16 +134,21 @@ test.describe('iPhone launch page', () => {
     await expect(page.getByRole('heading', { level: 1, name: HERO_HEADING })).toBeVisible();
   });
 
-  // The badge announces availability rather than offering a download until
-  // APP_STORE_URL is set, so it must not be a link. The "coming soon" is a
-  // separate label above it — Apple's artwork is used unmodified, so nothing
-  // may be printed over it. Matched case-insensitively: the DOM says "Coming
-  // soon" and CSS uppercases it.
-  test('the App Store badge is inert while the app is unreleased', async ({ page }) => {
+  // With APP_STORE_URL set the badge is a real download link and the pre-launch
+  // "coming soon" label above it is gone. Both copies — hero and closing CTA.
+  // The href is asserted storefront-neutral on purpose: the listing's own URL
+  // carries an /sg/ segment that would pin every visitor to the Singapore
+  // store, and Apple 301s the bare form to the visitor's own storefront.
+  test('the App Store badge links to the listing once released', async ({ page }) => {
     await gotoMobile(page);
 
-    await expect(page.getByText(/coming soon/i).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: /app store/i })).toHaveCount(0);
+    await expect(page.getByText(/coming soon/i)).toHaveCount(0);
+
+    const badges = page.getByRole('link', { name: /app store/i });
+    await expect(badges).toHaveCount(2);
+    for (const badge of await badges.all()) {
+      await expect(badge).toHaveAttribute('href', 'https://apps.apple.com/app/id6792259308');
+    }
   });
 
   // Apple's badge must not be recoloured or re-proportioned. Its artwork is
@@ -158,12 +163,14 @@ test.describe('iPhone launch page', () => {
     expect(Math.abs(box.width / box.height - 119.66407 / 40)).toBeLessThan(0.01);
   });
 
-  // Scanning it today only lands you back on this page, so it is held until
-  // APP_STORE_URL is set rather than shown with a "not yet" caption.
-  test('the QR and the web CTA are absent while the app is unreleased', async ({ page }) => {
+  // The QR is the desktop half of the download row — it exists so someone
+  // reading on a laptop can install without typing, so it renders only
+  // alongside a live badge. Still no secondary web CTA: registration is
+  // reachable from the nav.
+  test('the QR renders alongside the badge, and no web CTA joins it', async ({ page }) => {
     await gotoMobile(page);
 
-    await expect(page.locator('img[src*="qr"]')).toHaveCount(0);
+    await expect(page.locator('img[src*="qr"]')).toHaveCount(2);
     await expect(page.getByRole('link', { name: 'Start on the web' })).toHaveCount(0);
   });
 

@@ -106,19 +106,22 @@ const glow = (alpha: number) =>
 // ─── Launch switches ─────────────────────────────────────────────────────────
 
 /**
- * The single launch switch. While it is `null` the App Store badge is inert and
- * carries a "coming soon" label, and the QR is not rendered at all — scanning
- * it today would only land you back on this page.
+ * The single launch switch, live since the App Store approved the app. While it
+ * is `null` the badge is inert and carries a "coming soon" label and the QR is
+ * not rendered at all; set, the badge is a real link and the QR sits beside it.
+ * Kept as a switch rather than inlined so pulling the listing — or a rejected
+ * update — is a one-line revert rather than a copy rewrite.
  *
- * Setting it to the store listing makes the badge a real link and brings the QR
- * back beside it. Nothing else needs to change.
+ * No storefront segment on purpose. The listing's own URL is `/sg/app/...`,
+ * which pins every visitor to the Singapore store; Apple 301s this bare form to
+ * whichever storefront the visitor actually buys from.
  *
- * The QR in `public/ios/qr-paypr-ios.svg` encodes https://paypr.live/mobile
- * (this page) rather than the store, so it stays correct either side of launch —
- * scanning it lands here and finds whatever this badge points at. Regenerate:
- *   qrencode -t SVG -m 2 -s 8 -l M -o qr-paypr-ios.svg "https://paypr.live/mobile"
+ * The QR in `public/ios/qr-paypr-ios.svg` encodes this same URL, so scanning it
+ * from a desktop opens the listing on the phone directly rather than routing
+ * through this page for a second tap. Regenerate after changing it:
+ *   qrencode -t SVG -m 2 -s 8 -l M -o qr-paypr-ios.svg "https://apps.apple.com/app/id6792259308"
  */
-const APP_STORE_URL: string | null = null;
+const APP_STORE_URL: string | null = 'https://apps.apple.com/app/id6792259308';
 
 // ─── Shared motion ───────────────────────────────────────────────────────────
 
@@ -268,41 +271,66 @@ function AppStoreBadge() {
 /**
  * The download row shared by the hero and the closing CTA.
  *
- * Pre-launch this is the App Store badge and nothing else. The QR is held back
- * until `APP_STORE_URL` is set: scanning it today only lands you back on this
- * page, and a code that has to be captioned "not yet" earns less than the space
- * it takes. The markup stays so launch restores it alongside the live badge.
+ * The QR is the desktop half of this row — it exists so someone reading on a
+ * laptop can install without typing anything, which is why it renders only
+ * alongside a live badge. Before launch it was held back rather than captioned
+ * "not yet": a code that cannot be acted on earns less than the space it takes.
  */
 function ScanRow() {
   const live = APP_STORE_URL !== null;
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-[22px] gap-y-6">
+    // `inline-flex`, not `flex`: both callers are `text-center` sections, so the
+    // box shrinks to its contents and is centred by the inherited text-align.
+    // A `flex` box would stretch the full column width and the outline would
+    // read as a band across the page rather than as a card around the CTA.
+    <div
+      className="inline-flex flex-col items-center gap-5 px-6 py-5
+        min-[420px]:flex-row min-[420px]:gap-x-6"
+      style={{
+        backgroundColor: PANEL,
+        border: `1px solid ${PANEL_BORDER}`,
+        borderRadius: RADIUS,
+      }}
+    >
       {live && (
-        <div className="flex items-center gap-3.5">
-          <div
-            className="flex h-[74px] w-[74px] items-center justify-center p-[7px]"
-            style={{ backgroundColor: SNOW, borderRadius: RADIUS }}
-          >
-            <img
-              src="/ios/qr-paypr-ios.svg"
-              alt={`QR code linking to the ${APP_NAME} for iPhone page`}
-              width={60}
-              height={60}
-              className="h-[60px] w-[60px]"
-              loading="lazy"
-              decoding="async"
-            />
+        <>
+          <div className="flex items-center gap-3.5">
+            <div
+              className="flex h-[74px] w-[74px] items-center justify-center p-[7px]"
+              style={{ backgroundColor: SNOW, borderRadius: RADIUS }}
+            >
+              <img
+                src="/ios/qr-paypr-ios.svg"
+                alt={`QR code linking to ${APP_NAME} for iPhone on the App Store`}
+                width={60}
+                height={60}
+                className="h-[60px] w-[60px]"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <p
+              className="m-0 text-left font-mono text-[11px] leading-[1.4]"
+              style={{ color: TEXT_FAINT }}
+            >
+              Scan to
+              <br />
+              download
+            </p>
           </div>
-          <p
-            className="m-0 text-left font-mono text-[11px] leading-[1.4]"
-            style={{ color: TEXT_FAINT }}
-          >
-            Scan to
-            <br />
-            download
-          </p>
-        </div>
+          {/* Separates the two affordances the box holds — scan it with a phone,
+              or click through on this machine. Turns with the layout: a full-
+              width hairline while the box is stacked, a column rule once it is
+              a row. 420px is where the row actually fits inside the section's
+              px-5 — Tailwind's `sm` would stack it for another 220px of width
+              it does not need. */}
+          <div
+            aria-hidden="true"
+            className="h-px w-full self-center min-[420px]:h-[74px] min-[420px]:w-px"
+            style={{ backgroundColor: PANEL_BORDER }}
+          />
+        </>
       )}
       <AppStoreBadge />
     </div>
@@ -475,7 +503,7 @@ export default function IosLanding() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.22, duration: 0.5, ease: 'easeOut' }}
             >
-              Catch a receipt the moment it lands. Coming soon for iPhone, always in sync with
+              Catch a receipt the moment it lands. Out now for iPhone, always in sync with
               the web.
             </motion.p>
             <motion.div
