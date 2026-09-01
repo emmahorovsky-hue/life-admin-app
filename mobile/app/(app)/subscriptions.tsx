@@ -310,7 +310,7 @@ export default function SubscriptionsScreen() {
               <AppText variant="caption" style={styles.footerCount}>
                 Showing {filtered.length} of {subscriptions.length} subscriptions
               </AppText>
-            ) : null
+            ) : undefined
           }
         />
       )}

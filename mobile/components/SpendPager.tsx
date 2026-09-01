@@ -17,7 +17,7 @@
 // this existed, eyebrow included.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useRef } from 'react';
+import { ComponentRef, useEffect, useRef } from 'react';
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -161,7 +161,11 @@ export function SpendPager({ pages, width }: { pages: SpendPage[]; width: number
   // A plain ref, not reanimated's useAnimatedRef: that one exists to be read
   // from a worklet, and its `.current` does not carry ScrollView's imperative
   // methods on the JS side — `scrollTo` silently did nothing through it.
-  const scroller = useRef<ScrollView>(null);
+  //
+  // Typed off the component, not as `ScrollView`: React Native 0.87 generates
+  // its types from Flow, where `ScrollView` is a function component whose
+  // instance — the thing holding `scrollTo` — is a separate internal type.
+  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const offset = useSharedValue(0);
   // Which page last settled. A ref, not state: nothing renders off it — the dots
   // read the offset directly — it exists only so the tick fires once per page.

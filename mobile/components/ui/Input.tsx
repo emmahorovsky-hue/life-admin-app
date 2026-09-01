@@ -1,10 +1,14 @@
-import { forwardRef } from 'react';
+import { ComponentRef, forwardRef } from 'react';
 import { StyleSheet, TextInput, TextInputProps } from 'react-native';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { radius, spacing } from '@life-admin/shared';
 import { colors, textStyles } from '../../lib/theme';
 
-export const Input = forwardRef<TextInput, TextInputProps>(function Input(
+// The ref type is read off the component rather than written as `TextInput`:
+// since React Native 0.87 generates its types from Flow, `TextInput` is a
+// function component whose instance is an internal type, not the class the name
+// used to refer to. `ComponentRef` keeps this pointing at whatever that is.
+export const Input = forwardRef<ComponentRef<typeof TextInput>, TextInputProps>(function Input(
   { style, ...props },
   ref,
 ) {

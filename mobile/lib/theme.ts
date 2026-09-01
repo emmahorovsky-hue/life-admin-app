@@ -77,10 +77,22 @@ export function fontFamilyFor(weight: number, mono: boolean): string | undefined
 
 export type TextVariant = keyof typeof typeScale;
 
+/**
+ * A `TextStyle` that can still be built up field by field.
+ *
+ * React Native 0.87 generates its TypeScript types from Flow, and Flow's style
+ * objects are `$ReadOnly` — so `TextStyle` itself is now `Readonly` and cannot
+ * be assigned into after construction. The styles here and in `AppText` are
+ * genuinely conditional, so they are composed as this mutable shape and handed
+ * to `StyleSheet.create` (or a `style` prop) as a plain `TextStyle` at the end,
+ * where the readonly form is what everything downstream expects.
+ */
+export type MutableTextStyle = { -readonly [K in keyof TextStyle]: TextStyle[K] };
+
 const resolved = Object.fromEntries(
   Object.entries(typeScale).map(([name, t]) => {
     const mono = 'mono' in t && t.mono === true;
-    const style: TextStyle = {
+    const style: MutableTextStyle = {
       fontFamily: fontFamilyFor(t.weight, mono),
       fontSize: t.size,
       color: colors.foreground,
