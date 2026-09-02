@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { THEMES, currencies, type Theme } from '@life-admin/shared';
+import { THEMES, currencies, currencyName, DEFAULT_CURRENCY, type Theme } from '@life-admin/shared';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Select } from '@/components/ui/select';
@@ -81,13 +81,15 @@ export default function AppearancePanel() {
         <Select
           id="default-currency"
           className="mt-3 h-11 max-w-[300px] rounded-[2px]"
-          value={user?.defaultCurrency ?? 'SGD'}
+          value={user?.defaultCurrency ?? DEFAULT_CURRENCY}
           onChange={(e) => handleCurrencyChange(e.target.value)}
           disabled={savingCurrency}
         >
+          {/* Named, not just coded: three of these share "kr" and six share
+              "$", so the code alone stopped being enough to choose from. */}
           {currencies.map((code) => (
             <option key={code} value={code}>
-              {code}
+              {code} — {currencyName(code)}
             </option>
           ))}
         </Select>

@@ -10,6 +10,8 @@ import {
   defaultSubscriptionFormValues,
 } from '@/lib/subscriptions';
 import { getApiErrorMessage } from '@/lib/utils';
+import { DEFAULT_CURRENCY } from '@/lib/currency';
+import { useAuth } from '@/contexts/AuthContext';
 import { useUnmountSafeTimeout } from '@/hooks/useUnmountSafeTimeout';
 
 interface ReviewExtractedDialogProps {
@@ -21,11 +23,18 @@ interface ReviewExtractedDialogProps {
 
 const today = () => new Date().toISOString().split('T')[0];
 
-function candidateToFormValues(candidate: SubscriptionCandidate): SubscriptionFormValues {
+// `fallbackCurrency` is the account's default. A null currency means the
+// receipt was in one this app doesn't support — the server flags it in
+// uncertainFields — and the least wrong guess is what this user files
+// everything else in, not a hardcoded SGD.
+function candidateToFormValues(
+  candidate: SubscriptionCandidate,
+  fallbackCurrency: string
+): SubscriptionFormValues {
   return {
     name: candidate.name,
     cost: candidate.cost ?? 0,
-    currency: candidate.currency ?? 'SGD',
+    currency: candidate.currency ?? fallbackCurrency,
     billingCycle: candidate.billingCycle,
     renewalDate: candidate.renewalDate ?? today(),
     category: candidate.category,
@@ -39,6 +48,7 @@ export default function ReviewExtractedDialog({
   candidate,
   onSuccess,
 }: ReviewExtractedDialogProps) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -51,7 +61,7 @@ export default function ReviewExtractedDialog({
   if (candidate !== prevCandidate) {
     setPrevCandidate(candidate);
     if (candidate) {
-      setValues(candidateToFormValues(candidate));
+      setValues(candidateToFormValues(candidate, user?.defaultCurrency ?? DEFAULT_CURRENCY));
       setError('');
     }
   }
