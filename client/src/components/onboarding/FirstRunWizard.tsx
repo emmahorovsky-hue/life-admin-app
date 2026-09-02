@@ -15,6 +15,7 @@ import { updateProfile } from '@/lib/api';
 import {
   formatCurrency,
   currencyForLocale,
+  currencyName,
   currencySymbol,
   supportedCurrency,
   DEFAULT_CURRENCY,
@@ -413,7 +414,7 @@ export function FirstRunWizard({
               >
                 {currencies.map((code) => (
                   <option key={code} value={code}>
-                    {code} {currencySymbol(code)}
+                    {code} {currencySymbol(code)} — {currencyName(code)}
                   </option>
                 ))}
               </select>
