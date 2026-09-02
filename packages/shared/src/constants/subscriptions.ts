@@ -101,4 +101,9 @@ export const billingCycles = BILLING_CYCLES.map((id) => ({
   name: BILLING_CYCLE_NAMES[id],
 }));
 
-export const currencies = ['USD', 'EUR', 'GBP', 'SGD'];
+// Currencies live in ./currencies, which describes each one (symbol, symbol
+// position, decimals, regions) rather than just naming it. Re-exported here
+// because every consumer imports `currencies` from the package root and this
+// module is where it has always come from.
+export { currencies, CURRENCIES, currencyDefinition, currencyName } from './currencies';
+export type { CurrencyDefinition } from './currencies';

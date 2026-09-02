@@ -1,28 +1,13 @@
-import { currencies } from '../constants/subscriptions';
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$',
-  SGD: '$',
-  EUR: '€',
-  GBP: '£',
-};
+import { CURRENCIES, currencies, currencyDefinition } from '../constants/currencies';
 
 export const DEFAULT_CURRENCY = 'SGD';
 
-// Region → currency, for the four currencies this app supports. Only regions
-// that map unambiguously are listed; everything else is a miss, which callers
-// read as "ask, don't guess".
-const EUROZONE = [
-  'AT', 'BE', 'HR', 'CY', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE',
-  'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PT', 'SK', 'SI', 'ES',
-];
-
-const CURRENCY_BY_REGION: Record<string, string> = {
-  US: 'USD',
-  GB: 'GBP',
-  SG: 'SGD',
-  ...Object.fromEntries(EUROZONE.map((region) => [region, 'EUR'])),
-};
+// Region -> currency, derived from the registry's `regions` columns. Only
+// regions that map unambiguously are listed there; everything else is a miss,
+// which callers read as "ask, don't guess".
+const CURRENCY_BY_REGION: Record<string, string> = Object.fromEntries(
+  CURRENCIES.flatMap((currency) => currency.regions.map((region) => [region, currency.code]))
+);
 
 /** The code itself when this app supports it, otherwise null. */
 export function supportedCurrency(code?: string | null): string | null {
@@ -35,7 +20,7 @@ export function supportedCurrency(code?: string | null): string | null {
  * Best supported currency for a BCP-47 locale — "en-GB" → GBP, "de-DE" → EUR.
  *
  * Null, not a default, when the locale carries no region ("en") or names one
- * this app has no currency for ("en-AU"). A new user's money is the one thing
+ * this app has no currency for ("en-ZA"). A new user's money is the one thing
  * that must not be quietly guessed: callers prefill a *visible* control with
  * this and fall back to DEFAULT_CURRENCY, so a miss shows up as something to
  * correct rather than as a wrong number nobody was asked about.
@@ -65,20 +50,43 @@ export interface CurrencyAmount {
 
 // Symbol for a currency code, falling back to the code itself when unknown.
 export function currencySymbol(code: string): string {
-  return CURRENCY_SYMBOLS[code] ?? code;
+  return currencyDefinition(code)?.symbol ?? code;
 }
 
+// The amount alone, at the currency's own precision. Most currencies show two
+// decimals; JPY and HUF show none, and "¥1000.00" reads as a mistake.
+//
+// No thousands separator and always a "." for the decimal point, in every
+// currency — including the ones whose market writes "15,99 zł". Localising the
+// separators means choosing a locale, which this app deliberately never does
+// (see currencyForLocale), and the receipt layouts align these figures with
+// `tabular-nums`, which a variable-width separator would break. The symbol and
+// its position are localised; the digits are not.
+function formatAmount(amount: number, code: string): string {
+  return amount.toFixed(currencyDefinition(code)?.decimals ?? 2);
+}
+
+// Symbol and amount, on the side the currency's market writes it. Polish,
+// Nordic and Czech convention puts the symbol after the number with a space —
+// "15.99 zł", not "zł15.99".
 export function formatCurrency(amount: number, code: string): string {
-  const symbol = CURRENCY_SYMBOLS[code];
-  return symbol ? `${symbol}${amount.toFixed(2)}` : `${code} ${amount.toFixed(2)}`;
+  const currency = currencyDefinition(code);
+  const digits = formatAmount(amount, code);
+  if (!currency) return `${code} ${digits}`;
+  return currency.position === 'suffix'
+    ? `${digits} ${currency.symbol}`
+    : `${currency.symbol}${digits}`;
 }
 
 // Same as formatCurrency, but always names the currency. Symbols aren't unique
-// (USD and SGD are both "$"), so a bare symbol is ambiguous as soon as two
-// currencies are shown side by side.
+// (USD, SGD, AUD, CAD, NZD and HKD are all "$"; SEK, NOK and DKK are all "kr"),
+// so a bare symbol is ambiguous as soon as two currencies are shown side by
+// side. The code always goes last, whichever side the symbol is on, so a column
+// of these stays scannable.
 export function formatCurrencyWithCode(amount: number, code: string): string {
-  const symbol = CURRENCY_SYMBOLS[code];
-  return symbol ? `${symbol}${amount.toFixed(2)} ${code}` : `${code} ${amount.toFixed(2)}`;
+  const currency = currencyDefinition(code);
+  if (!currency) return `${code} ${formatAmount(amount, code)}`;
+  return `${formatCurrency(amount, code)} ${code}`;
 }
 
 export function dominantCurrency(codes: string[]): string {
