@@ -177,7 +177,9 @@ Update the authenticated user's profile and preferences. All fields optional; on
 ```
 
 - `theme`: one of `light` | `dark` | `system`
-- `defaultCurrency`: one of the shared supported currencies (`USD` | `EUR` | `GBP` | `SGD`)
+- `defaultCurrency`: one of the shared supported currencies — the list lives in
+  `packages/shared/src/constants/currencies.ts` and is not copied here, because a
+  second copy drifts. Twenty codes as of 2026-09-03, `SGD` the default.
 - `timezone`: any IANA zone the runtime recognizes
 - `reminderEmailsEnabled`: strict boolean
 
@@ -343,7 +345,10 @@ Create a new subscription.
 **Validation:**
 - `name`: 1-255 characters, required
 - `cost`: Positive decimal, required
-- `currency`: 3-letter code (USD, EUR, etc.)
+- `currency`: 3-letter ISO 4217 code, and one the app supports (see
+  `packages/shared/src/constants/currencies.ts`). Case-insensitive — it is
+  upper-cased before validation. Optional on create: omitted, it falls back to
+  the account's `defaultCurrency`
 - `billingCycle`: One of: `monthly`, `annual`, `weekly`, `quarterly`
 - `renewalDate`: Valid ISO date
 - `category`: Valid category ID
