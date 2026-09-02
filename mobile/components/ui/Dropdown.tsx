@@ -1,4 +1,5 @@
-import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { Pressable, ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { BottomSheetScrollView, useBottomSheetInternal } from '@gorhom/bottom-sheet';
 import { radius } from '@life-admin/shared';
 import { IconChevron, IconCheck } from '../icons';
 import { colors } from '../../lib/theme';
@@ -68,6 +69,23 @@ export function Dropdown({
   const edge = align ?? (inline ? 'left' : 'right');
   const selected = options.find((option) => option.value === value);
 
+  // Every screen that opens this is inside a FormSheet, whose content is a
+  // BottomSheetScrollView — and a plain RN ScrollView nested in one never gets
+  // the pan: the sheet's gesture handler claims it, so the menu looks scrollable
+  // and simply isn't. @gorhom's own scrollable coordinates with the sheet
+  // instead of fighting it. `unsafe: true` returns null rather than throwing
+  // outside a sheet, which is the setup screen's inline dropdown — there a
+  // plain ScrollView is the right one, and BottomSheetScrollView would throw.
+  const scroller = useBottomSheetInternal(true) !== null ? BottomSheetScrollView : ScrollView;
+  const Scroller = scroller as typeof ScrollView;
+
+  // An explicit height, not a maxHeight. A ScrollView takes the height layout
+  // gives it and never sizes to its own content, so inside `menu` — a plain
+  // absolutely-positioned box with no height of its own — a maxHeight alone
+  // resolves to zero. The menu then renders as an invisible sliver that still
+  // swallows taps, which is exactly how it failed on the setup screen.
+  const menuHeight = Math.min(options.length, MAX_VISIBLE_OPTIONS) * OPTION_HEIGHT;
+
   return (
     <View style={[styles.anchor, style]}>
       <Pressable
@@ -101,6 +119,18 @@ export function Dropdown({
             menuWidth ? { width: menuWidth } : null,
           ]}
         >
+          {/* Capped and scrollable: the currency list is twenty rows now, and an
+              uncapped menu ran off the bottom of the screen with no way to
+              reach the last option. The cap is a half row short of a round
+              number on purpose — a clipped row is what tells you to scroll.
+              `nestedScrollEnabled` is for Android, where this menu is often
+              inside a sheet's own scroll view. */}
+          <Scroller
+            style={{ height: menuHeight }}
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={options.length > MAX_VISIBLE_OPTIONS}
+            bounces={false}
+          >
           {options.map((option) => {
             const active = option.value === value;
             return (
@@ -124,11 +154,15 @@ export function Dropdown({
               </Pressable>
             );
           })}
+          </Scroller>
         </View>
       )}
     </View>
   );
 }
+
+const OPTION_HEIGHT = 40;
+const MAX_VISIBLE_OPTIONS = 6.5;
 
 const styles = StyleSheet.create({
   anchor: { position: 'relative', zIndex: 20 },
@@ -186,7 +220,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    height: 40,
+    height: OPTION_HEIGHT,
     paddingHorizontal: 12,
   },
   optionActive: { backgroundColor: 'rgba(229,61,0,0.08)' },

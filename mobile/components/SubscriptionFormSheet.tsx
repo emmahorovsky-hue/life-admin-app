@@ -24,7 +24,7 @@ import {
   defaultSubscriptionFormValues,
   categories,
   currencies,
-  currencySymbol,
+  currencyName,
   filterSuggestions,
   suggestionCost,
   formatCurrency,
@@ -61,7 +61,10 @@ import { SHEET_BACKDROP_OPACITY, SHEET_HANDLE } from '../lib/quiet';
 import { useSheetBackHandler } from '../lib/useSheetBackHandler';
 
 // Segmented billing control — 4 canonical cycles. Legacy 'annual' maps to 'yearly'.
-const CURRENCY_OPTIONS = currencies.map((code) => ({ value: code, meta: currencySymbol(code) }));
+// Named, not just symbolled: twenty codes include three that share "kr" and
+// six that share "$", so the symbol stopped being the disambiguating detail.
+// The symbol is still on screen — AmountInput renders it beside the cost.
+const CURRENCY_OPTIONS = currencies.map((code) => ({ value: code, meta: currencyName(code) }));
 
 const CYCLE_SEGMENTS = [
   { id: 'weekly', label: 'Weekly' },
@@ -193,7 +196,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
       },
       openWithCandidate: (candidate) => {
         setEditing(null);
-        const prefill = candidateToFormPrefill(candidate);
+        const prefill = candidateToFormPrefill(candidate, user?.defaultCurrency);
         setValues({ ...blankValues(), ...prefill.values });
         setCostText(prefill.costText);
         setRemindersMuted(false);
@@ -427,6 +430,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
                 open={currencyOpen}
                 disabled={loading}
                 accessibilityLabel={`Currency, ${values.currency}`}
+                menuWidth={220}
                 onToggle={() => {
                   selectHaptic();
                   setSuggestionsOpen(false);

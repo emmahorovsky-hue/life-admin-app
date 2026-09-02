@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { formatDistanceToNow } from 'date-fns';
-import { hairline, radius, spacing } from '@life-admin/shared';
+import { DEFAULT_CURRENCY, hairline, radius, spacing } from '@life-admin/shared';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AvatarTile } from '../../../components/settings/AvatarTile';
 import { SettingsDetailHeader } from '../../../components/settings/SettingsDetailHeader';
@@ -229,7 +229,7 @@ export default function AccountScreen() {
             <View style={styles.rowText}>
               <AppText variant="body" weight={600} style={styles.rowTitle}>Default currency</AppText>
               <AppText variant="monoMeta" style={styles.rowSubtitle}>
-                {user?.defaultCurrency ?? 'SGD'}
+                {user?.defaultCurrency ?? DEFAULT_CURRENCY}
               </AppText>
             </View>
             <Button
