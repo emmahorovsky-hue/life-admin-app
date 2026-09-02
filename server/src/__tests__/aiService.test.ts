@@ -288,6 +288,32 @@ describe('aiService', () => {
         expect(normalizeCandidate({ ...VALID_INPUT, currency: '€' }).currency).toBeNull();
         expect(normalizeCandidate({ ...VALID_INPUT, currency: 'DOLLARS' }).currency).toBeNull();
       });
+
+      it('does not flag noise from the model as an uncertain currency', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        // "DOLLARS" is the model failing to follow the schema, not the document
+        // being read correctly — there is nothing for the user to confirm.
+        const candidate = normalizeCandidate({ ...VALID_INPUT, currency: 'DOLLARS' });
+        expect(candidate.uncertainFields).not.toContain('currency');
+      });
+
+      it('accepts a currency added with the wider supported set', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        const candidate = normalizeCandidate({ ...VALID_INPUT, currency: 'pln' });
+        expect(candidate.currency).toBe('PLN');
+        expect(candidate.uncertainFields).not.toContain('currency');
+      });
+
+      // The receipt was read correctly and this app simply has no such
+      // currency. Nulling it silently produced a candidate the create endpoint
+      // rejects with a 400, which reads as a broken scan rather than an
+      // unsupported currency.
+      it('nulls and flags a well-formed code this app does not support', async () => {
+        const { normalizeCandidate } = await loadAiService();
+        const candidate = normalizeCandidate({ ...VALID_INPUT, currency: 'KRW' });
+        expect(candidate.currency).toBeNull();
+        expect(candidate.uncertainFields).toContain('currency');
+      });
     });
   });
 });
