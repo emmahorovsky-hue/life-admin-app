@@ -108,18 +108,25 @@ export const createSubscription = async (
     // Polish user's subscription in Singapore dollars, which is invisible until
     // the dashboard grows a currency tab nobody asked for. DEFAULT_CURRENCY is
     // the last resort, and matches the column default.
-    const fallbackCurrency =
-      (await prisma.user.findUnique({
-        where: { id: req.user.userId },
-        select: { defaultCurrency: true },
-      }))?.defaultCurrency ?? DEFAULT_CURRENCY;
+    //
+    // Read lazily: the body carries a currency on every request the two apps
+    // make, and this is the one extra round trip on the create path.
+    const resolvedCurrency =
+      currency ||
+      (
+        await prisma.user.findUnique({
+          where: { id: req.user.userId },
+          select: { defaultCurrency: true },
+        })
+      )?.defaultCurrency ||
+      DEFAULT_CURRENCY;
 
     const subscription = await prisma.subscription.create({
       data: {
         userId: req.user.userId,
         name,
         cost: new Prisma.Decimal(cost),
-        currency: currency || fallbackCurrency,
+        currency: resolvedCurrency,
         billingCycle,
         renewalDate: new Date(renewalDate),
         category,

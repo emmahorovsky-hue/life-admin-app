@@ -118,11 +118,14 @@ export interface CandidatePrefill {
  * category outside the mobile form's fixed sets). A null cost stays blank so
  * the user fills it — the form requires cost > 0 to save.
  *
- * `fallbackCurrency` is the account's default, and it is the caller's to pass:
- * a null currency means the receipt was in one this app doesn't support (the
- * server flags it in uncertainFields), and the least wrong guess is what this
- * user files everything else in — not a hardcoded SGD that would have quietly
- * denominated a Polish receipt in Singapore dollars.
+ * Callers should pass `fallbackCurrency` — the account's default. A null
+ * currency means the receipt was in one this app doesn't support (the server
+ * flags it in uncertainFields), and the least wrong guess is what this user
+ * files everything else in, not a hardcoded SGD that would have quietly
+ * denominated a Polish receipt in Singapore dollars. The default covers the
+ * caller that has no user yet: `user?.defaultCurrency` is undefined until
+ * AuthContext resolves, and DEFAULT_CURRENCY is the same last resort the
+ * create endpoint falls back to.
  */
 export function candidateToFormPrefill(
   c: SubscriptionCandidate,
