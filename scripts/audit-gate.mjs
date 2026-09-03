@@ -36,8 +36,9 @@ const annotate = (level, message) =>
 
 /**
  * `npm audit --json` exits non-zero whenever it finds anything, so a thrown
- * error is expected and its stdout still holds the report. Only a genuinely
- * unparseable result is treated as a failure — the gate fails closed.
+ * error is expected and its stdout still holds the report. A result that is
+ * unparseable, or parseable but not a report, is treated as a failure — the
+ * gate fails closed.
  */
 function runAudit() {
   let stdout;
@@ -55,11 +56,28 @@ function runAudit() {
     throw new Error('`npm audit --json` produced no output');
   }
 
+  let report;
   try {
-    return JSON.parse(stdout);
+    report = JSON.parse(stdout);
   } catch {
     throw new Error(`Could not parse \`npm audit --json\` output:\n${stdout.slice(0, 2000)}`);
   }
+
+  // When the audit endpoint cannot be reached, npm still exits non-zero with
+  // perfectly parseable JSON — but the body is an error envelope rather than a
+  // report: `{ message, error: { summary, detail } }`, with no
+  // `vulnerabilities` key at all. `collectAdvisories` then iterates nothing,
+  // finds no advisories, and the gate prints "Security gate passed" on a run
+  // that learned nothing about the tree. A gate that reports green when it
+  // failed to look is worse than no gate, so demand the shape of a real report
+  // and let the caller turn anything else into a failure.
+  if (report.error || typeof report.vulnerabilities !== 'object' || report.vulnerabilities === null) {
+    const detail =
+      report.message ?? report.error?.summary ?? report.error?.detail ?? '(no detail given)';
+    throw new Error(`\`npm audit --json\` did not return a report: ${detail}`);
+  }
+
+  return report;
 }
 
 /** Collapse the per-package report into one record per distinct advisory. */
