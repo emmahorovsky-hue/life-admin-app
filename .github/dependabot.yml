@@ -22,6 +22,22 @@ updates:
       # not a routine bump. Remove once the migration lands.
       - dependency-name: tailwindcss
         update-types: ['version-update:semver-major']
+
+      # React Native minors are majors in all but name, and nothing in CI
+      # builds the iOS app, so the breakage they cause is invisible here.
+      # 0.86 -> 0.87 removed React/RCTRootContentView.h, which
+      # react-native-gesture-handler 2.x imports: the iOS build stops
+      # compiling until gesture-handler goes to 3.x, a major this group does
+      # not carry. PR #345 shipped that bump with every check green and was
+      # only caught by building it on a simulator by hand. Upgrading React
+      # Native is a dedicated migration; remove this once one lands.
+      #
+      # This does not hide React Native security advisories: the Security
+      # Audit gate fails the build on a moderate+ advisory in the tree
+      # whatever dependabot does or does not open.
+      - dependency-name: react-native
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
     groups:
       npm-minor-and-patch:
         applies-to: version-updates

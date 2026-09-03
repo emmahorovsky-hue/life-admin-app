@@ -171,6 +171,28 @@ Part 6.
 - `Subscription.cancelledAt` — **cancel** (`POST /api/subscriptions/:id/cancel`) is not delete: it sets `cancelledAt` and freezes `renewalDate` at the end of the current paid period (`server/src/controllers/subscriptionController.ts`), so the subscription stays active and visible until that date. `POST /api/subscriptions/:id/resume` reverses it by clearing `cancelledAt`. Client-side status (`packages/shared/src/utils/subscription.ts`) derives `active` / `cancelling` / `ended` from `cancelledAt` + the frozen renewal date — it never reads `isActive`
 - `NotificationLog` — append-only log of sent renewal reminder emails; no foreign key to `Subscription` (intentional, subscriptions can be deleted)
 
+## Load-bearing dependency pins
+
+**Nothing in CI builds the native iOS app**, so a dependency update that breaks
+it passes every check. Two pins exist only to stop that, and both look
+removable if you judge them by their original reason alone:
+
+- **`expo-modules-jsi` → `57.0.4`** (root `overrides`) plus
+  `mobile/patches/expo-modules-jsi+57.0.4.patch`. The patch's stated reason —
+  disambiguating `abs` to `Swift.abs` — *was* fixed upstream in 57.0.6, so the
+  patch reads as safe to delete. It is not: 57.0.6 also annotated both
+  `RuntimeScheduler` constructors `SWIFT_RETURNS_RETAINED` while
+  `SWIFT_SHARED_REFERENCE` trails the class body, which does not compile under
+  Xcode 26.3 / Swift 6.2.4. 57.0.7 is the latest 57.x and still has it. Deleting
+  the patch drops the pin, the pin is what keeps jsi below 57.0.6, and the iOS
+  build stops compiling. PR #345 did exactly this with every check green.
+- **`react-native`** is held at 0.86.x by a dependabot `ignore` rule; 0.87
+  removes a header that `react-native-gesture-handler` 2.x imports. See
+  `.github/dependabot.yml` for the detail.
+
+Before changing either, build the app on a simulator — `npx expo run:ios`. CI
+will not tell you.
+
 ## Branch & commit conventions
 
 Branch format: `{type}/{issue-number}-{description}` (e.g. `feature/LIF-42-email-reminders`)
