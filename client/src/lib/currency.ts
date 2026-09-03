@@ -6,6 +6,7 @@ export {
   dominantCurrency,
   currencyForLocale,
   currencySymbol,
+  currencyName,
   supportedCurrency,
   DEFAULT_CURRENCY,
 } from '@life-admin/shared';

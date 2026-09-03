@@ -21,7 +21,7 @@ import {
   ServiceSuggestion,
   currencies,
   currencyForLocale,
-  currencySymbol,
+  currencyName,
   formatCurrency,
   parseRenewalDate,
   radius,
@@ -60,7 +60,10 @@ const STEP_LABELS = ['Pick', 'Check', 'Filed'];
 /** Gutter between the two columns of step 1's grid, and between its rows. */
 const TILE_GAP = 12;
 const STEP_TITLES = ['Pick what you pay for', 'Check the amounts', "That's the file open"];
-const CURRENCY_OPTIONS = currencies.map((code) => ({ value: code, meta: currencySymbol(code) }));
+// Named, not just symbolled: twenty codes include three that share "kr" and
+// six that share "$", so the symbol stopped being the disambiguating detail.
+// The symbol is still on screen — AmountInput renders it beside the cost.
+const CURRENCY_OPTIONS = currencies.map((code) => ({ value: code, meta: currencyName(code) }));
 
 /**
  * Default renewal for a monthly plan: one month out, but never further than the
@@ -544,7 +547,7 @@ export default function SetupScreen() {
               open={currencyOpen}
               disabled={submitting}
               accessibilityLabel={`Currency, ${currency}`}
-              menuWidth={116}
+              menuWidth={220}
               onToggle={() => {
                 selectHaptic();
                 setCurrencyOpen((v) => !v);

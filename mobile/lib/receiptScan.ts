@@ -4,6 +4,7 @@ import {
   BILLING_CYCLES,
   categories,
   currencies,
+  DEFAULT_CURRENCY,
   type SubscriptionCandidate,
   type SubscriptionFormValues,
 } from '@life-admin/shared';
@@ -114,11 +115,23 @@ export interface CandidatePrefill {
 /**
  * Map an extracted SubscriptionCandidate onto the add-form's values, clamping
  * anything the form can't represent to a safe default (the server may return a
- * currency/category outside the mobile form's fixed sets). A null cost stays
- * blank so the user fills it — the form requires cost > 0 to save.
+ * category outside the mobile form's fixed sets). A null cost stays blank so
+ * the user fills it — the form requires cost > 0 to save.
+ *
+ * Callers should pass `fallbackCurrency` — the account's default. A null
+ * currency means the receipt was in one this app doesn't support (the server
+ * flags it in uncertainFields), and the least wrong guess is what this user
+ * files everything else in, not a hardcoded SGD that would have quietly
+ * denominated a Polish receipt in Singapore dollars. The default covers the
+ * caller that has no user yet: `user?.defaultCurrency` is undefined until
+ * AuthContext resolves, and DEFAULT_CURRENCY is the same last resort the
+ * create endpoint falls back to.
  */
-export function candidateToFormPrefill(c: SubscriptionCandidate): CandidatePrefill {
-  const currency = c.currency && currencies.includes(c.currency) ? c.currency : 'SGD';
+export function candidateToFormPrefill(
+  c: SubscriptionCandidate,
+  fallbackCurrency: string = DEFAULT_CURRENCY
+): CandidatePrefill {
+  const currency = c.currency && currencies.includes(c.currency) ? c.currency : fallbackCurrency;
   const billingCycle = (BILLING_CYCLES as readonly string[]).includes(c.billingCycle)
     ? c.billingCycle
     : 'monthly';

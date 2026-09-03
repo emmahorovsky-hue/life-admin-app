@@ -62,7 +62,7 @@ model Subscription {
   
   name           String
   cost           Decimal  @db.Decimal(10, 2)
-  currency       String   @default("USD")
+  currency       String   @default("SGD")
   billingCycle   String   // monthly, annual, weekly, quarterly
   renewalDate    DateTime
   category       String
@@ -85,7 +85,9 @@ model Subscription {
 - `userId` - Foreign key to User (required)
 - `name` - Subscription name (Netflix, etc.)
 - `cost` - Monthly or billing period cost (decimal with 2 places)
-- `currency` - Currency code (USD, EUR, etc.)
+- `currency` - ISO 4217 code, one of the app's supported currencies
+  (`packages/shared/src/constants/currencies.ts`). A plain `String`, not an enum:
+  adding a currency is a code change, never a migration
 - `billingCycle` - One of: `monthly`, `annual`, `weekly`, `quarterly`
 - `renewalDate` - Next renewal/billing date
 - `category` - Subscription category (streaming, productivity, etc.)

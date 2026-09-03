@@ -243,7 +243,9 @@ describe('Auth Profile Endpoints', () => {
       const res = await request(app)
         .patch('/api/auth/profile')
         .set('Cookie', authCookie(user.id, user.email))
-        .send({ defaultCurrency: 'SEK' });
+        // Well-formed and real, but not one this app supports — SEK used to
+        // play this role and is now in the list.
+        .send({ defaultCurrency: 'KRW' });
 
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');

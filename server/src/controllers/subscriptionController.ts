@@ -10,6 +10,7 @@ import {
   SortOrder,
 } from '../constants/subscriptions';
 import { reportServerError } from '../utils/reportError';
+import { DEFAULT_CURRENCY } from '@life-admin/shared';
 
 /**
  * POST /api/subscriptions/extract
@@ -101,12 +102,31 @@ export const createSubscription = async (
     const { name, cost, currency, billingCycle, renewalDate, category, notes } =
       req.body;
 
+    // Currency is optional on create (the web and mobile forms always send one;
+    // API clients need not). Fall back to what this account files everything
+    // else in rather than to a literal — a hardcoded SGD quietly denominated a
+    // Polish user's subscription in Singapore dollars, which is invisible until
+    // the dashboard grows a currency tab nobody asked for. DEFAULT_CURRENCY is
+    // the last resort, and matches the column default.
+    //
+    // Read lazily: the body carries a currency on every request the two apps
+    // make, and this is the one extra round trip on the create path.
+    const resolvedCurrency =
+      currency ||
+      (
+        await prisma.user.findUnique({
+          where: { id: req.user.userId },
+          select: { defaultCurrency: true },
+        })
+      )?.defaultCurrency ||
+      DEFAULT_CURRENCY;
+
     const subscription = await prisma.subscription.create({
       data: {
         userId: req.user.userId,
         name,
         cost: new Prisma.Decimal(cost),
-        currency: currency || 'SGD',
+        currency: resolvedCurrency,
         billingCycle,
         renewalDate: new Date(renewalDate),
         category,

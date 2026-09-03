@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { CATEGORY_IDS, BILLING_CYCLES, normaliseCategory } from '../constants/subscriptions';
+import { supportedCurrency } from '@life-admin/shared';
 import { reportServerError } from '../utils/reportError';
 
 // Graceful skip when no key is configured — mirrors emailService's RESEND_API_KEY handling.
@@ -89,9 +90,12 @@ const EXTRACTION_TOOL: Anthropic.Tool = {
         type: ['string', 'null'],
         description:
           'ISO 4217 currency code, e.g. "USD", "EUR", "SGD". Map unambiguous symbols to codes ' +
-          '("€" -> "EUR", "£" -> "GBP", "zł" -> "PLN"). "$" alone is ambiguous (USD/CAD/AUD/SGD...) — ' +
-          'use other evidence like the merchant country or tax type; if still unclear, use null and ' +
-          'add "currency" to uncertainFields.',
+          '("€" -> "EUR", "£" -> "GBP", "zł" -> "PLN", "Kč" -> "CZK", "Ft" -> "HUF", ' +
+          '"₹" -> "INR", "¥" -> "JPY", "RM" -> "MYR", "R$" -> "BRL", "CHF" -> "CHF"). ' +
+          '"$" is ambiguous (USD/CAD/AUD/NZD/SGD/HKD) and so is "kr" (SEK/NOK/DKK) — ' +
+          'use other evidence like the merchant country, language or tax type; if still unclear, ' +
+          'use null and add "currency" to uncertainFields. Always report the currency actually ' +
+          'printed on the document, even if it is one this list does not mention.',
       },
       billingCycle: {
         type: 'string',
@@ -282,10 +286,19 @@ export function normalizeCandidate(input: unknown): SubscriptionCandidate {
       ? raw.cost
       : null;
 
+  // Two separate rejections, and the second one is the interesting one. A code
+  // that isn't ISO-shaped ("DOLLARS", "€") is noise from the model. A code that
+  // is well-formed but unsupported ("KRW") is the document being *read
+  // correctly* — the receipt really is in won — and this app has no such
+  // currency. Both end as null, but only the second is worth the user's
+  // attention, so it is flagged like an unmappable category below: the create
+  // endpoint validates against the same list and would 400 on it otherwise,
+  // which reads as a broken scan rather than an unsupported currency.
   const trimmedCurrency =
     typeof raw.currency === 'string' ? raw.currency.trim().toUpperCase() : null;
-  const currency =
-    trimmedCurrency !== null && /^[A-Z]{3}$/.test(trimmedCurrency) ? trimmedCurrency : null;
+  const isoShaped = trimmedCurrency !== null && /^[A-Z]{3}$/.test(trimmedCurrency);
+  const currency = isoShaped ? supportedCurrency(trimmedCurrency) : null;
+  const unsupportedCurrency = isoShaped && currency === null;
 
   const uncertainFields = Array.isArray(raw.uncertainFields)
     ? raw.uncertainFields.filter((f): f is string => typeof f === 'string')
@@ -299,6 +312,9 @@ export function normalizeCandidate(input: unknown): SubscriptionCandidate {
   // surfaced is that we fell back to `other` and threw their value away.
   if (matchedCategory === null && !uncertainFields.includes('category')) {
     uncertainFields.push('category');
+  }
+  if (unsupportedCurrency && !uncertainFields.includes('currency')) {
+    uncertainFields.push('currency');
   }
 
   return {
