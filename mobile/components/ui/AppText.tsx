@@ -1,6 +1,6 @@
-import { Text, TextProps } from 'react-native';
+import { Text, TextProps, TextStyle } from 'react-native';
 import { typeScale } from '@life-admin/shared';
-import { colors, fontFamilyFor, MutableTextStyle, textStyles, TextVariant } from '../../lib/theme';
+import { colors, fontFamilyFor, textStyles, TextVariant } from '../../lib/theme';
 
 /** Weights that have a loaded Archivo family (sans). Mono only has 400/700. */
 type Weight = 400 | 500 | 600 | 700 | 800;
@@ -33,7 +33,7 @@ export function AppText({
   accessibilityRole,
   ...rest
 }: AppTextProps) {
-  const override: MutableTextStyle = {};
+  const override: TextStyle = {};
 
   if (weight) {
     const mono = 'mono' in typeScale[variant] && (typeScale[variant] as { mono?: boolean }).mono === true;
