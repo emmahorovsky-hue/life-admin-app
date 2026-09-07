@@ -81,9 +81,11 @@ export function renewalTotals(
   );
 }
 
-// A type alias, not an interface: victory-native's CartesianChart wants
-// `Record<string, unknown>`, and only type aliases get an implicit index
-// signature. An interface here fails mobile's typecheck.
+// A plain shape, read by the web dashboard's category chart. It is a type
+// alias rather than an interface because victory-native's CartesianChart
+// required `Record<string, unknown>`, which only aliases satisfy via their
+// implicit index signature. That dependency is gone, so the distinction no
+// longer binds — either form compiles.
 export type CategorySpend = {
   name: string;
   total: number;
