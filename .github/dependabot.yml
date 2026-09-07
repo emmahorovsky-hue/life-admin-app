@@ -38,6 +38,53 @@ updates:
       - dependency-name: react-native
         update-types:
           ['version-update:semver-minor', 'version-update:semver-major']
+
+      # The same reasoning, one layer out: these are the third-party *native*
+      # modules whose versions Expo SDK 57 pins in its bundledNativeModules.json.
+      # They ship platform code, so a mismatch surfaces at build or run time on
+      # a device — and no CI job here builds the iOS app, so every check stays
+      # green regardless. PR #352 proposed six of them at once, each one drifting
+      # further from the version Expo expects.
+      #
+      # The supported way to move these is `npx expo install --check` (or an SDK
+      # upgrade), which picks the set Expo has actually tested together. Bumping
+      # them one PR at a time defeats that. `npx expo-doctor` reports the drift.
+      #
+      # Scoped to minors and majors on purpose: patches are routine bugfixes, and
+      # leaving them unblocked keeps a fix reaching us as an ordinary version
+      # update. Security advisories are unaffected either way — the Security
+      # Audit gate fails the build on a moderate+ advisory in the tree no matter
+      # what dependabot opens.
+      #
+      # Remove an entry here when its package stops being Expo-managed, or fold
+      # the whole block into the next SDK upgrade.
+      - dependency-name: react-native-reanimated
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
+      - dependency-name: react-native-worklets
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
+      - dependency-name: react-native-screens
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
+      - dependency-name: react-native-safe-area-context
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
+      - dependency-name: react-native-gesture-handler
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
+      - dependency-name: react-native-svg
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
+      - dependency-name: '@shopify/react-native-skia'
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
+      - dependency-name: '@react-native-community/datetimepicker'
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
+      - dependency-name: '@sentry/react-native'
+        update-types:
+          ['version-update:semver-minor', 'version-update:semver-major']
     groups:
       npm-minor-and-patch:
         applies-to: version-updates
