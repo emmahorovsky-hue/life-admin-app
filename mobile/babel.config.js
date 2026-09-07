@@ -13,7 +13,7 @@ module.exports = function (api) {
     // react-native-worklets/plugin is required by react-native-reanimated (v4)
     // and must be listed last. Without it, Reanimated throws during setup and
     // the release build crashes on launch. Reanimated is pulled in transitively
-    // by @gorhom/bottom-sheet, victory-native, and @shopify/react-native-skia.
+    // by @gorhom/bottom-sheet and @shopify/react-native-skia.
     plugins: [require.resolve('react-native-worklets/plugin')],
   };
 };
