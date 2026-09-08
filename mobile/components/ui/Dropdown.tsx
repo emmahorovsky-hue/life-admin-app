@@ -91,22 +91,25 @@ export function Dropdown({
       <Pressable
         disabled={disabled}
         onPress={onToggle}
-        style={inline ? styles.inlineTrigger : styles.fieldTrigger}
+        style={({ pressed }) => [
+          inline ? styles.inlineTrigger : styles.fieldTrigger,
+          pressed && styles.triggerPressed,
+        ]}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         accessibilityState={{ expanded: open, disabled }}
-        hitSlop={inline ? 6 : undefined}
+        hitSlop={inline ? 8 : undefined}
       >
         <AppText
-          variant={inline ? 'monoMeta' : 'monoData'}
+          variant="monoData"
           style={inline ? styles.inlineTriggerText : styles.fieldTriggerText}
         >
           {selected?.label ?? value}
         </AppText>
         <IconChevron
           direction={open ? 'up' : 'down'}
-          size={inline ? 12 : 14}
-          color={colors.mutedForeground}
+          size={14}
+          color={inline ? colors.brandOrange : colors.mutedForeground}
         />
       </Pressable>
 
@@ -179,16 +182,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   fieldTriggerText: { color: colors.foreground },
+  // Both trigger sizes: feedback on the press itself, matching Button.
+  triggerPressed: { opacity: 0.9 },
 
-  // Sized to the type it sits in, not to a form field — it is a word in a
-  // sentence that happens to be tappable.
+  // A control first, a word second (LIF-265): the hairline-and-11pt version
+  // read as part of the sentence, and users missed that the currency could be
+  // changed at all. Full border, real padding, and the orange chevron are what
+  // say "tappable"; with hitSlop 8 the target clears 44pt.
   inlineTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.base,
     backgroundColor: colors.card,
@@ -212,7 +219,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   menuField: { top: 56 }, // trigger height (52) + 4 gap
-  menuInline: { top: 30 },
+  menuInline: { top: 34 }, // chip height (~30: 13pt mono line + 12 padding + border) + 4 gap
   menuLeft: { left: 0 },
   menuRight: { right: 0 },
 
