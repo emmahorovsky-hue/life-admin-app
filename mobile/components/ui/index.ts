@@ -19,6 +19,7 @@ export {
   type GlassSurfaceProps,
 } from './GlassSurface';
 export { Input, SheetInput } from './Input';
+export { PasswordInput, SheetPasswordInput, type PasswordInputProps } from './PasswordInput';
 export { ScreenTitle } from './ScreenTitle';
 export { Switch, type SwitchProps } from './Switch';
 export { ToastProvider, useToast } from './Toast';

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { deleteAccount } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/utils';
@@ -62,9 +63,8 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
       <div className="mt-4 space-y-4">
         <div className="space-y-2">
           <Label htmlFor="delete-password">Current password</Label>
-          <Input
+          <PasswordInput
             id="delete-password"
-            type="password"
             placeholder="Enter current password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

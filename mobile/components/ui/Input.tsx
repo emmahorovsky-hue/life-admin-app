@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, type ComponentRef, type Ref } from 'react';
 import { StyleSheet, TextInput, TextInputProps } from 'react-native';
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { radius, spacing } from '@life-admin/shared';
@@ -30,15 +30,21 @@ export const Input = forwardRef<TextInput, TextInputProps>(function Input(
  * They share `styles.input` deliberately: two components that must stay
  * pixel-identical belong in one file, next to each other.
  */
-export function SheetInput({ style, ...props }: TextInputProps) {
+export const SheetInput = forwardRef<TextInput, TextInputProps>(function SheetInput(
+  { style, ...props },
+  ref,
+) {
   return (
     <BottomSheetTextInput
+      // cast: BottomSheetTextInput's ref is mistyped upstream as the RNGH
+      // component type; the instance it forwards at runtime is a TextInput
+      ref={ref as unknown as Ref<ComponentRef<typeof BottomSheetTextInput>>}
       placeholderTextColor={colors.mutedForeground}
       style={[textStyles.body, styles.input, style]}
       {...props}
     />
   );
-}
+});
 
 const styles = StyleSheet.create({
   input: {

@@ -5,7 +5,7 @@ import * as Linking from 'expo-linking';
 import axios from 'axios';
 import { isValidPassword, spacing } from '@life-admin/shared';
 import { colors, fonts, textStyles } from '../../lib/theme';
-import { AppText, Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
+import { AppText, Button, FieldLabel, Input, PasswordInput, ScreenTitle } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthClose } from '../../components/AuthClose';
 import { SCREEN_PAD } from '../../lib/quiet';
@@ -127,10 +127,9 @@ export default function AuthScreen() {
 
           <View style={styles.field}>
             <FieldLabel>Password</FieldLabel>
-            <Input
+            <PasswordInput
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
               autoComplete={isSignup ? 'new-password' : 'current-password'}
             />
             {isSignup ? (
@@ -143,10 +142,9 @@ export default function AuthScreen() {
           {isSignup ? (
             <View style={styles.field}>
               <FieldLabel>Confirm password</FieldLabel>
-              <Input
+              <PasswordInput
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                secureTextEntry
                 autoComplete="new-password"
               />
             </View>
