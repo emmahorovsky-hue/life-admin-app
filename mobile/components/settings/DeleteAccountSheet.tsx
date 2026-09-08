@@ -11,6 +11,7 @@ import {
   FieldLabel,
   FormSheet,
   SheetInput,
+  SheetPasswordInput,
   type FormSheetHandle,
   type OpenableSheetHandle,
 } from '../ui';
@@ -100,11 +101,10 @@ export const DeleteAccountSheet = forwardRef<OpenableSheetHandle>(function Delet
       </AppText>
       <View style={styles.field}>
         <FieldLabel>Current password</FieldLabel>
-        <SheetInput
+        <SheetPasswordInput
           value={password}
           onChangeText={setPassword}
           placeholder="Enter current password"
-          secureTextEntry
           autoCapitalize="none"
           autoComplete="current-password"
           editable={!loading}

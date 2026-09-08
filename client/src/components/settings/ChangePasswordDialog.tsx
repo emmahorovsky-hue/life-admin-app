@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { changePassword } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/utils';
@@ -66,9 +66,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="current-password">Current password</Label>
-          <Input
+          <PasswordInput
             id="current-password"
-            type="password"
             placeholder="Enter current password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -78,9 +77,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
         </div>
         <div className="space-y-2">
           <Label htmlFor="new-password">New password</Label>
-          <Input
+          <PasswordInput
             id="new-password"
-            type="password"
             placeholder="At least 8 characters"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
@@ -93,9 +91,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
         </div>
         <div className="space-y-2">
           <Label htmlFor="confirm-password">Confirm new password</Label>
-          <Input
+          <PasswordInput
             id="confirm-password"
-            type="password"
             placeholder="Re-enter new password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}

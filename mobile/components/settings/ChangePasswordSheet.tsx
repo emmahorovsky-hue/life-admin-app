@@ -6,7 +6,7 @@ import {
   Button,
   FieldLabel,
   FormSheet,
-  SheetInput,
+  SheetPasswordInput,
   useToast,
   type FormSheetHandle,
   type OpenableSheetHandle,
@@ -94,22 +94,20 @@ export const ChangePasswordSheet = forwardRef<OpenableSheetHandle>(function Chan
     >
       <View>
         <FieldLabel>Current password</FieldLabel>
-        <SheetInput
+        <SheetPasswordInput
           placeholder="Enter current password"
           value={currentPassword}
           onChangeText={setCurrentPassword}
-          secureTextEntry
           autoComplete="current-password"
           editable={!loading}
         />
       </View>
       <View style={styles.field}>
         <FieldLabel>New password</FieldLabel>
-        <SheetInput
+        <SheetPasswordInput
           placeholder="At least 8 characters"
           value={newPassword}
           onChangeText={setNewPassword}
-          secureTextEntry
           autoComplete="new-password"
           editable={!loading}
         />
@@ -119,11 +117,10 @@ export const ChangePasswordSheet = forwardRef<OpenableSheetHandle>(function Chan
       </View>
       <View style={styles.field}>
         <FieldLabel>Confirm new password</FieldLabel>
-        <SheetInput
+        <SheetPasswordInput
           placeholder="Re-enter new password"
           value={confirmPassword}
           onChangeText={setConfirmPassword}
-          secureTextEntry
           autoComplete="new-password"
           editable={!loading}
         />

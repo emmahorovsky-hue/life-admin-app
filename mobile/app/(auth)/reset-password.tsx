@@ -4,7 +4,7 @@ import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
 import { isValidPassword, spacing } from '@life-admin/shared';
 import { colors, fonts, textStyles } from '../../lib/theme';
-import { AppText, Button, FieldLabel, Input, ScreenTitle } from '../../components/ui';
+import { AppText, Button, FieldLabel, PasswordInput, ScreenTitle } from '../../components/ui';
 import { api } from '../../lib/api';
 import { SCREEN_PAD } from '../../lib/quiet';
 
@@ -78,10 +78,9 @@ export default function ResetPasswordScreen() {
 
       <View style={styles.field}>
         <FieldLabel>New password</FieldLabel>
-        <Input
+        <PasswordInput
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
           autoComplete="new-password"
         />
         <AppText variant="caption" style={styles.hint}>
@@ -91,10 +90,9 @@ export default function ResetPasswordScreen() {
 
       <View style={styles.field}>
         <FieldLabel>Confirm new password</FieldLabel>
-        <Input
+        <PasswordInput
           value={confirmPassword}
           onChangeText={setConfirmPassword}
-          secureTextEntry
           autoComplete="new-password"
         />
       </View>
