@@ -1,5 +1,5 @@
-import { ReactNode, useState } from 'react';
-import { Pressable, StyleSheet, TextInputProps, View } from 'react-native';
+import { forwardRef, ReactNode, useState } from 'react';
+import { Pressable, StyleSheet, TextInput, TextInputProps, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../lib/theme';
 import { Input, SheetInput } from './Input';
@@ -11,13 +11,17 @@ export type PasswordInputProps = Omit<TextInputProps, 'secureTextEntry'>;
  * same reason `Input`/`SheetInput` are two components: the sheet variant must
  * render a `BottomSheetTextInput` underneath, which throws outside a sheet.
  */
-export function PasswordInput(props: PasswordInputProps) {
-  return <PasswordField input={(p) => <Input {...p} />} {...props} />;
-}
+export const PasswordInput = forwardRef<TextInput, PasswordInputProps>(
+  function PasswordInput(props, ref) {
+    return <PasswordField input={(p) => <Input ref={ref} {...p} />} {...props} />;
+  },
+);
 
-export function SheetPasswordInput(props: PasswordInputProps) {
-  return <PasswordField input={(p) => <SheetInput {...p} />} {...props} />;
-}
+export const SheetPasswordInput = forwardRef<TextInput, PasswordInputProps>(
+  function SheetPasswordInput(props, ref) {
+    return <PasswordField input={(p) => <SheetInput ref={ref} {...p} />} {...props} />;
+  },
+);
 
 function PasswordField({
   input,
@@ -25,13 +29,15 @@ function PasswordField({
   ...props
 }: PasswordInputProps & { input: (props: TextInputProps) => ReactNode }) {
   const [visible, setVisible] = useState(false);
+  const disabled = props.editable === false;
 
   return (
     <View style={styles.wrap}>
       {input({ ...props, secureTextEntry: !visible, style: [styles.input, style] })}
       <Pressable
         onPress={() => setVisible((v) => !v)}
-        style={({ pressed }) => [styles.eye, pressed && styles.eyePressed]}
+        disabled={disabled}
+        style={({ pressed }) => [styles.eye, pressed && styles.eyePressed, disabled && styles.eyeDisabled]}
         accessibilityRole="button"
         accessibilityLabel={visible ? 'Hide password' : 'Show password'}
       >
@@ -63,6 +69,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   eyePressed: {
+    opacity: 0.5,
+  },
+  eyeDisabled: {
     opacity: 0.5,
   },
 });
