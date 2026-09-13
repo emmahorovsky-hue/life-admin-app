@@ -63,7 +63,7 @@ export default {
     name: 'Paypr',
     slug: 'paypr-live',
     owner: 'paypr-lives-team',
-    version: '1.0.0',
+    version: '1.0.1',
     orientation: 'portrait',
     scheme: 'lifeadmin',
     icon: './assets/icon.png',
