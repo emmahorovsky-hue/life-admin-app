@@ -13,7 +13,7 @@
     "@shopify/react-native-skia": "2.10.2",
     "axios": "^1.19.0",
     "date-fns": "^4.4.0",
-    "expo": "~57.0.10",
+    "expo": "57.0.10",
     "expo-blur": "~57.0.2",
     "expo-device": "~57.0.1",
     "expo-document-picker": "~57.0.1",
