@@ -124,6 +124,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Nothing in this workflow builds the iOS app, so a version skew between
+      # two native modules is invisible to every other job here — it typechecks,
+      # it bundles, it passes e2e, and then it dies in dyld on a real device
+      # before a line of JS runs. That shipped three times in a row (LIF-266).
+      #
+      # Deliberately a step in this job rather than a job of its own: it needs
+      # the same `npm ci` that is already done above, it takes about a second,
+      # and adding a job would mean changing the required checks on the
+      # protected branch to make it enforcing.
+      - name: Check native dependency consistency
+        run: node scripts/native-surface-gate.mjs
+
       - name: Typecheck packages/shared
         run: npm run typecheck --workspace=packages/shared
 
