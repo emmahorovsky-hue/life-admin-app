@@ -32,6 +32,7 @@ Welcome to Life Admin App documentation. Use this index to find what you need.
 ## 🚢 Deployment & DevOps
 
 - [DEPLOYMENT.md](../DEPLOYMENT.md) - Production deployment (Railway & Vercel)
+- [MARKETING-ASSETS.md](MARKETING-ASSETS.md) - Publishing public marketing images (Buffer creatives) on paypr.live
 
 ## 📋 Quick Reference
 
