@@ -34,8 +34,10 @@ platforms and their CDNs cache aggressively by URL.
   Only direct file URLs are meaningful.
 - Everything in this folder is public the moment it deploys, and the repo is
   public too — never park unreleased/confidential creatives here.
-- PR previews (`*.vercel.app`) also serve the files, so you can check an image
-  from the preview URL before merging.
+- PR preview deployments (`*.vercel.app`) sit behind Vercel deployment
+  protection (they 302 to a Vercel SSO login), so preview URLs are not usable
+  for checking assets unless you're logged into the project's Vercel account —
+  and never usable for Buffer. Only production `paypr.live` URLs are public.
 
 ## Which Vercel project?
 
