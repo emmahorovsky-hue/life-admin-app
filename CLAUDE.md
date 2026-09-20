@@ -174,7 +174,7 @@ Part 6.
 ## Load-bearing dependency pins
 
 **Nothing in CI builds the native iOS app**, so a dependency update that breaks
-it passes every check. Two pins exist only to stop that, and both look
+it passes every check. Three pins exist only to stop that, and all look
 removable if you judge them by their original reason alone:
 
 - **`expo-modules-jsi` → `57.0.4`** (root `overrides`) plus
@@ -189,9 +189,38 @@ removable if you judge them by their original reason alone:
 - **`react-native`** is held at 0.86.x by a dependabot `ignore` rule; 0.87
   removes a header that `react-native-gesture-handler` 2.x imports. See
   `.github/dependabot.yml` for the detail.
+- **The whole Expo native surface** — about thirty `expo*` / `@expo/*` packages
+  — is pinned to exact versions in root `overrides`, direct and transitive
+  alike. `expo-modules-core` ships a *prebuilt* XCFramework linked against one
+  exact `expo-modules-jsi`, and the jsi pin above caps core at **57.0.11**:
 
-Before changing either, build the app on a simulator — `npx expo run:ios`. CI
-will not tell you.
+  | core | needs jsi |
+  |---|---|
+  | 57.0.9–57.0.11 | ~57.0.4 |
+  | 57.0.12–57.0.13 | ~57.0.5 |
+  | 57.0.14 | ~57.0.6 |
+  | 57.0.15 | ~57.0.7 |
+  | 57.0.16 | ~57.0.8 |
+
+  Everything compiled against core has to stay on the matching side of that
+  line, so these move as one unit or not at all. `77284b7` floated `expo`
+  57.0.10 → 57.0.20 as a side effect of an unrelated lockfile regeneration; the
+  app then died at launch with `Symbol not found: …JavaScriptActor…runIsolated`
+  for three consecutive TestFlight builds. Pinning core alone is not enough —
+  `@expo/ui` and `expo-router` then fail to compile on `ContentOriginRegistry`.
+  The metro/CLI toolchain is deliberately *not* pinned: it is build-time only
+  and the old copies carry advisories. Removing these pins is LIF-266.
+
+Before changing any of them, build the app — CI will not tell you, and
+`npx expo run:ios` needs Xcode, which is not installed on every machine here.
+An EAS production build is the fallback.
+
+`node scripts/native-surface-gate.mjs` (wired into the Mobile & Shared Typecheck
+job) fails the build when an installed *native* package does not satisfy what a
+dependent declared. It is the cheap half of the answer: it catches the skew that
+crashes at launch, in about a second and with no Xcode. It does not catch Swift
+that fails to compile, or a native set that is self-consistent but wrong for the
+SDK — `npx expo install --check` and `npx expo-doctor` cover that.
 
 ## Branch & commit conventions
 
