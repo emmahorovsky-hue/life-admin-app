@@ -59,6 +59,28 @@ export function logoInset(size: number): number {
   return Math.round(size * LOGO_INSET_RATIO);
 }
 
+/**
+ * Plan and tier words people add after a brand ("Netflix Premium", "GitHub
+ * Pro"). They are not part of the brand's domain, so they are dropped before
+ * guessing one: "netflixpremium.com" is someone else's site, and
+ * "githubpro.com" has no logo at all.
+ */
+const PLAN_WORDS = new Set([
+  'premium',
+  'plus',
+  'pro',
+  'family',
+  'ultimate',
+  'storage',
+  'basic',
+  'standard',
+  'student',
+  'duo',
+  'individual',
+  'membership',
+  'subscription',
+]);
+
 export function domainForName(name: string): string | null {
   const normalized = name.trim().toLowerCase();
   if (!normalized) return null;
@@ -66,7 +88,19 @@ export function domainForName(name: string): string | null {
   const alias = DOMAIN_ALIASES[normalized];
   if (alias) return alias;
 
-  const collapsed = normalized.replace(/[^a-z0-9]/g, '');
+  // Strip trailing plan words one at a time, re-checking the aliases after
+  // each so "iCloud Storage" reaches 'icloud' and "Xbox Game Pass Ultimate"
+  // reaches 'xbox game pass'. The exact alias above always wins, so names that
+  // are aliased whole ("disney plus") are untouched, and the last word is never
+  // stripped, so a service actually called "Pro" keeps its name.
+  const words = normalized.split(/\s+/);
+  while (words.length > 1 && PLAN_WORDS.has(words[words.length - 1].replace(/[^a-z0-9]/g, ''))) {
+    words.pop();
+    const stripped = DOMAIN_ALIASES[words.join(' ')];
+    if (stripped) return stripped;
+  }
+
+  const collapsed = words.join('').replace(/[^a-z0-9]/g, '');
   if (!collapsed) return null;
 
   return `${collapsed}.com`;
