@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { IconProductivity, IconCard, IconFitness } from '@/components/icons';
+import { SUBSCRIPTION_SUGGESTIONS } from '@life-admin/shared';
 import { categoryIconFor, domainForName, logoUrlForName } from './subscriptionLogo';
 
 describe('domainForName', () => {
@@ -14,6 +15,41 @@ describe('domainForName', () => {
     expect(domainForName('Netflix')).toBe('netflix.com');
     expect(domainForName('  Spotify  ')).toBe('spotify.com');
     expect(domainForName('My Local Gym')).toBe('mylocalgym.com');
+  });
+
+  it('maps brands whose name does not collapse to their own site', () => {
+    // "chatgptplus.com" belongs to someone else, and logo.dev serves its logo.
+    expect(domainForName('ChatGPT Plus')).toBe('chatgpt.com');
+    expect(domainForName('ChatGPT')).toBe('chatgpt.com');
+    expect(domainForName('chatgpt pro')).toBe('chatgpt.com');
+    expect(domainForName('Gomo')).toBe('gomo.sg');
+  });
+
+  it('resolves every onboarding catalog service to its vetted domain', () => {
+    // A new catalog entry must be added here, so it can't silently fall into
+    // the "<name>.com" guess and pick up some other company's logo.
+    const expected: Record<string, string> = {
+      Netflix: 'netflix.com',
+      'Disney+': 'disneyplus.com',
+      'YouTube Premium': 'youtube.com',
+      Spotify: 'spotify.com',
+      'Apple Music': 'apple.com',
+      'Adobe Creative Cloud': 'adobe.com',
+      Figma: 'figma.com',
+      GitHub: 'github.com',
+      Notion: 'notion.com',
+      'ChatGPT Plus': 'chatgpt.com',
+      Dropbox: 'dropbox.com',
+      'iCloud+': 'apple.com',
+      'Xbox Game Pass': 'xbox.com',
+      'PlayStation Plus': 'playstation.com',
+      Peloton: 'peloton.com',
+      ClassPass: 'classpass.com',
+    };
+    const resolved = Object.fromEntries(
+      SUBSCRIPTION_SUGGESTIONS.map((s) => [s.name, domainForName(s.name)])
+    );
+    expect(resolved).toEqual(expected);
   });
 
   it('returns null for empty / punctuation-only names', () => {
@@ -36,7 +72,7 @@ describe('logoUrlForName', () => {
     const url = logoUrlForName('Netflix');
     expect(url).toContain('https://img.logo.dev/netflix.com?');
     expect(url).toContain('token=pk_test');
-    expect(url).toContain('size=64');
+    expect(url).toContain('size=128');
     expect(url).toContain('format=png');
     expect(url).toContain('fallback=404');
   });

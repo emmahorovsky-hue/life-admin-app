@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { domainForName } from '@life-admin/shared';
+import { domainForName, logoUrl } from '@life-admin/shared';
 import {
   IconStreaming,
   IconFitness,
@@ -19,11 +19,7 @@ export function logoUrlForName(name: string): string | null {
   const domain = domainForName(name);
   if (!domain) return null;
 
-  // `fallback=404` makes logo.dev 404 for unknown domains (instead of a
-  // generated monogram) so the Image onError fires and we fall back to the
-  // category icon. Query string is built by hand — React Native's
-  // URLSearchParams.toString() is not implemented.
-  return `https://img.logo.dev/${domain}?token=${encodeURIComponent(token)}&size=64&format=png&fallback=404`;
+  return logoUrl(domain, token);
 }
 
 // The same eight icons the web client maps (client/src/lib/subscriptionLogo.ts).
