@@ -24,7 +24,7 @@ React + TypeScript + Vite frontend for subscription tracking.
 
 ## Prerequisites
 
-- Node.js 20 or higher
+- Node.js 24 or higher
 - Backend server running on `http://localhost:3001`
 
 ## Setup
