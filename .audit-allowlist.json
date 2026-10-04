@@ -4,12 +4,25 @@
     "",
     "An entry belongs here ONLY when there is no published fix to upgrade or",
     "override to, AND the vulnerable code path is unreachable from this app.",
-    "If a patched version exists, pin it via `overrides` in package.json instead \u2014",
+    "If a patched version exists, pin it via `overrides` in package.json instead —",
     "do not add it here.",
     "",
     "Every entry needs an `expires` date. On that date the gate starts failing",
     "again, forcing a re-evaluation. That is deliberate: this file must not become",
     "a place where advisories go to be forgotten."
   ],
-  "allow": []
+  "allow": [
+    {
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "expires": "2026-12-01",
+      "reason": "Stack-exhaustion DoS via deeply nested brace patterns. No published fix: latest braces (3.0.3) is the vulnerable version. Dev-only path — braces reaches us solely through tailwindcss 3's chokidar/micromatch, where the patterns expanded are our own tailwind.config content globs, never untrusted input."
+    },
+    {
+      "id": "GHSA-86w9-cpqp-85rv",
+      "package": "node-forge",
+      "expires": "2026-12-01",
+      "reason": "RSA PKCS#1 v1.5 verification accepts malformed signatures. No published fix: latest node-forge (1.4.0) is the vulnerable version. Dev/build toolchain only — reaches us via @expo/cli and @expo/code-signing-certificates; nothing in server or client runtime imports node-forge."
+    }
+  ]
 }
