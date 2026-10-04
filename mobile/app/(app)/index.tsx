@@ -31,6 +31,7 @@ import {
   SubscriptionSheetsHandle,
 } from '../../components/SubscriptionSheets';
 import { BiometricOptInSheet } from '../../components/BiometricOptInSheet';
+import { WhatsNewSheet } from '../../components/WhatsNewSheet';
 import {
   shouldShowResumeRow,
   shouldShowSetup,
@@ -179,10 +180,15 @@ export default function DashboardScreen() {
   // It is a screen of its own now (app/setup.tsx), so this hands off entirely:
   // the flow persists its own outcome and this screen re-reads it on focus.
   const setupOffered = useRef(false);
+  // The same fact as the ref, as state, so the "What's new" gate re-renders
+  // when it flips. Setup outranks that sheet for the whole session, including
+  // after the user comes back from it.
+  const [setupShown, setSetupShown] = useState(false);
   useEffect(() => {
     if (loading || !summary || !setup || setupOffered.current) return;
     if (!shouldShowSetup(setup, hasSubscriptions)) return;
     setupOffered.current = true;
+    setSetupShown(true);
     router.push('/setup');
   }, [loading, summary, setup, hasSubscriptions, router]);
 
@@ -190,8 +196,22 @@ export default function DashboardScreen() {
     // Claim the one offer this mount gets, so returning here cannot bounce
     // straight back into the flow the user has just left.
     setupOffered.current = true;
+    setSetupShown(true);
     router.push('/setup');
   }, [router]);
+
+  // Both halves of the setup gate have loaded and setup is not going up: the
+  // earliest any other sheet may take the moment.
+  const setupSettled = !loading && !!summary && !!setup && !shouldShowSetup(setup, hasSubscriptions);
+
+  // Whether the biometric offer took this session (LIF-271). 'pending' until
+  // BiometricOptInSheet decides; "What's new" waits for 'declined', which
+  // here means "not offered", not that the user refused.
+  const [biometric, setBiometric] = useState<'pending' | 'offered' | 'declined'>('pending');
+  const onBiometricResolved = useCallback(
+    (offered: boolean) => setBiometric(offered ? 'offered' : 'declined'),
+    [],
+  );
 
   // Open the detail sheet for a tapped renewal. The full record is usually
   // already in subsById (loaded alongside the summary); fetch by id only as a
@@ -371,7 +391,18 @@ export default function DashboardScreen() {
         setup screen on a fresh account. Deliberately not `!setupOffered.current`:
         that is a ref, so it would not re-render this. */}
     <BiometricOptInSheet
-      canOffer={!loading && !!summary && !!setup && !shouldShowSetup(setup, hasSubscriptions)}
+      canOffer={setupSettled}
+      onResolved={onBiometricResolved}
+    />
+    {/* LIF-271. The order is setup > biometric > what's new, one per session:
+        it waits for setup to be off the table for this mount and for the
+        biometric offer to have decided against going up. It still reads its
+        note as soon as the account is known, because that read is what records
+        a fresh install's baseline. If something earlier takes the session, the
+        note keeps until next launch. */}
+    <WhatsNewSheet
+      hasSubscriptions={summary ? hasSubscriptions : null}
+      canOffer={setupSettled && !setupShown && biometric === 'declined'}
     />
     </>
   );
