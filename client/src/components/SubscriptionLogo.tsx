@@ -1,4 +1,5 @@
 import { createElement, useState } from 'react';
+import { logoInset } from '@life-admin/shared';
 import { cn } from '@/lib/utils';
 import { categoryIconFor, logoUrlForName } from '@/lib/subscriptionLogo';
 
@@ -43,18 +44,25 @@ export function SubscriptionLogo({
     // Brand logos are transparent PNGs, so they sit on a plain white chip with
     // a subtle border (the same in light and dark mode). Using bg-muted here
     // tinted colored logos on the beige surface and hid dark logos in dark mode.
+    // The inset gives every brand the same margin inside the chip; logo.dev's
+    // own padding varies, and edge-to-edge marks touched the border.
+    const inner = size - 2 * logoInset(size);
     return (
-      <img
-        src={url}
-        alt={name}
-        width={size}
-        height={size}
-        loading="lazy"
-        draggable={false}
-        onError={() => setFailed(true)}
-        className={cn(box, 'bg-white object-contain ring-1 ring-border')}
-        style={style}
-      />
+      <span
+        className={cn(box, 'bg-white ring-1 ring-border')}
+        style={{ ...style, padding: logoInset(size) }}
+      >
+        <img
+          src={url}
+          alt={name}
+          width={inner}
+          height={inner}
+          loading="lazy"
+          draggable={false}
+          onError={() => setFailed(true)}
+          className="h-full w-full object-contain"
+        />
+      </span>
     );
   }
 
