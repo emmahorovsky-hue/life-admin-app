@@ -16,7 +16,7 @@ Life Admin App is a full-stack subscription management system. Users track recur
                        │ REST API
 ┌──────────────────────▼──────────────────────────────────────┐
 │                Backend (Express + Node.js)                   │
-│  Runtime: Node.js 20                                         │
+│  Runtime: Node.js 24                                         │
 │  Framework: Express.js + TypeScript                          │
 │  Authentication: JWT with httpOnly cookies                   │
 │  Validation: express-validator                               │
@@ -50,7 +50,7 @@ Life Admin App is a full-stack subscription management system. Users track recur
 
 | Component | Technology | Why |
 |-----------|-----------|-----|
-| **Runtime** | Node.js 20 | Modern, LTS, excellent ecosystem |
+| **Runtime** | Node.js 24 | Modern, LTS, excellent ecosystem |
 | **Framework** | Express.js | Lightweight, proven, flexible |
 | **Language** | TypeScript | Type safety, better DX, fewer bugs |
 | **ORM** | Prisma | Type-safe, auto-generated client, migrations |
