@@ -134,3 +134,6 @@ export function IconUser(props: PayprIconProps) {
 export function IconReceipt(props: PayprIconProps) {
   return <PayprIcon name="receipt" {...props} />;
 }
+export function IconMail(props: PayprIconProps) {
+  return <PayprIcon name="mail" {...props} />;
+}

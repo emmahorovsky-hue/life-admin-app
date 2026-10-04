@@ -15,3 +15,4 @@ export * from './utils/subscription';
 export * from './utils/initials';
 export * from './utils/logo';
 export * from './utils/password';
+export * from './utils/whatsNew';

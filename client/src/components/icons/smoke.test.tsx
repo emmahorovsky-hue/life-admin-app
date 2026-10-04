@@ -13,7 +13,7 @@ const NAME_TO_COMPONENT: Record<IconName, keyof typeof Icons> = {
   delete: 'IconDelete', close: 'IconClose', check: 'IconCheck', bell: 'IconBell',
   warning: 'IconWarning', renewing: 'IconRenewing', cancelled: 'IconCancelled',
   calendar: 'IconCalendar', menu: 'IconMenu', chevron: 'IconChevron', theme: 'IconTheme',
-  user: 'IconUser', receipt: 'IconReceipt',
+  user: 'IconUser', receipt: 'IconReceipt', mail: 'IconMail',
 };
 
 describe('icon smoke', () => {
