@@ -253,6 +253,11 @@ export const ICON_GEOMETRY = {
     { el: 'path', d: 'M7.75 11h8.5' },
     { el: 'path', d: 'M7.75 15h5', stroke: 'accent' },
   ],
+  // Envelope with its flap in accent (LIF-271, "Forward bills by email").
+  mail: [
+    { el: 'rect', x: 3.5, y: 5.5, width: 17, height: 13 },
+    { el: 'polyline', points: '3.5 6.5 12 13 20.5 6.5', stroke: 'accent' },
+  ],
 } satisfies Record<string, readonly IconPart[]>;
 
 export type IconName = keyof typeof ICON_GEOMETRY;

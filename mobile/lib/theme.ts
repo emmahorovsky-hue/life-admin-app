@@ -27,6 +27,11 @@ export const colors = {
   faint: '#C4BFB7', // de-emphasized figures (decimal part) + inactive tab tint
   hairline: '#EAE7E1', // primary hairline divider
   rowDivider: '#F0EDE7', // lighter renewal-row separators
+
+  // mutedForeground darkened for small secondary text that must stay readable
+  // (LIF-271). mutedForeground is 3.7:1 on Snow, below WCAG AA's 4.5:1 for
+  // body-size text; this is 5.5:1 on Snow and 4.7:1 on Sand.
+  mutedForegroundStrong: '#6B665F',
 };
 
 // Typefaces matching the web app (LIF-197), loaded in app/_layout.tsx via

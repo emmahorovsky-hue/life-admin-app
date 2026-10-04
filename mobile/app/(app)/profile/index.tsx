@@ -18,6 +18,7 @@ import {
 } from '../../../components/icons';
 import { colors } from '../../../lib/theme';
 import { SCREEN_PAD } from '../../../lib/quiet';
+import { simulateWhatsNew, type WhatsNewPreview } from '../../../lib/whatsNew';
 
 interface MenuItem {
   href: '/profile/account' | '/profile/notifications' | '/profile/privacy';
@@ -111,9 +112,41 @@ export default function SettingsIndexScreen() {
         <AppText variant="body" weight={600} style={styles.signOutText}>Sign out</AppText>
       </Pressable>
 
+      {/* Development only (LIF-271): fake an upgrade into a sample "What's new"
+          note and reload, so the dashboard shows it through its real gating. */}
+      {__DEV__ && user?.id ? <WhatsNewDevCard userId={user.id} /> : null}
+
       {/* Renders through gorhom's portal, so it costs no layout here. */}
       <SignOutSheet ref={signOutRef} />
     </Animated.ScrollView>
+  );
+}
+
+const WHATS_NEW_PREVIEWS: { mode: WhatsNewPreview; label: string }[] = [
+  { mode: 'single', label: "What's new: single item" },
+  { mode: 'multi', label: "What's new: three items" },
+  { mode: 'long', label: "What's new: five items (collapsed)" },
+];
+
+/** __DEV__ only. Each row rewinds this account's stored version and reloads. */
+function WhatsNewDevCard({ userId }: { userId: string }) {
+  return (
+    <Card padding="none" style={styles.menu} accessibilityLabel="Developer tools">
+      {WHATS_NEW_PREVIEWS.map(({ mode, label }, index) => (
+        <View key={mode}>
+          {index > 0 && <DottedRule />}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${label}, reloads the app`}
+            onPress={() => void simulateWhatsNew(userId, mode)}
+            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+          >
+            <AppText variant="headline" style={styles.rowLabel}>{label}</AppText>
+            <AppText variant="monoLabel" color={colors.softMuted}>DEV</AppText>
+          </Pressable>
+        </View>
+      ))}
+    </Card>
   );
 }
 

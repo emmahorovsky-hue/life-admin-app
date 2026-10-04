@@ -61,6 +61,11 @@ export interface FormSheetProps {
   locked?: boolean;
   /** Fired once the sheet has fully dismissed. Where a sheet clears secrets. */
   onDismiss?: () => void;
+  /**
+   * Fired once the sheet has finished presenting. Where a sheet moves screen
+   * reader focus, which only lands once the content is on screen.
+   */
+  onOpened?: () => void;
   accessibilityLabel?: string;
   /** Replaces the default body padding, for a menu that bleeds rows to the edges. */
   contentStyle?: StyleProp<ViewStyle>;
@@ -99,7 +104,7 @@ export interface FormSheetProps {
  * — see the note in quiet.ts.
  */
 export const FormSheet = forwardRef<FormSheetHandle, FormSheetProps>(function FormSheet(
-  { title, subtitle, children, actions, locked, onDismiss, accessibilityLabel, contentStyle },
+  { title, subtitle, children, actions, locked, onDismiss, onOpened, accessibilityLabel, contentStyle },
   ref,
 ) {
   const sheetRef = useRef<BottomSheetModal>(null);
@@ -125,6 +130,17 @@ export const FormSheet = forwardRef<FormSheetHandle, FormSheetProps>(function Fo
     setPresented(false);
     onDismiss?.();
   }, [onDismiss]);
+
+  // A content-sized sheet has one detent, so index 0 is "fully open". Later
+  // changes (keyboard lifting the sheet) report the same index and are ignored.
+  const lastIndex = useRef(-1);
+  const handleChange = useCallback(
+    (index: number) => {
+      if (index >= 0 && lastIndex.current < 0) onOpened?.();
+      lastIndex.current = index;
+    },
+    [onOpened],
+  );
 
   // A locked sheet still swallows back — dismissing mid-request is the exact
   // thing `locked` exists to prevent.
@@ -154,6 +170,7 @@ export const FormSheet = forwardRef<FormSheetHandle, FormSheetProps>(function Fo
     <BottomSheetModal
       ref={sheetRef}
       onDismiss={handleDismiss}
+      onChange={handleChange}
       enableDynamicSizing
       // Content-sized, but never taller than the screen less the notch: past
       // that the body scrolls inside the sheet instead of the sheet growing.

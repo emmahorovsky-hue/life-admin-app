@@ -7,7 +7,7 @@ import { ICON_GEOMETRY, type IconName, type IconPart } from '@life-admin/shared'
  * Prose does not fail a build, and the set had already drifted from two of its
  * own rules by the time it was first reviewed.
  *
- * These are the rules that hold across all 33 icons and are worth defending.
+ * These are the rules that hold across all 34 icons and are worth defending.
  * Deliberately NOT asserted: the "every coordinate on a 0.25 grid" rule. Eight
  * icons predate it — arc radii and 45° endpoints where the grid is genuinely
  * awkward — so the geometry header documents it as a preference rather than a

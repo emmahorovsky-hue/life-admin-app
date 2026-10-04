@@ -34,7 +34,19 @@ import { AppText, Button, FormSheet, useToast, type FormSheetHandle } from './ui
  *   subscriptions), so it is the only place that can stop this sheet and that
  *   screen fighting for the same moment.
  */
-export function BiometricOptInSheet({ canOffer }: { canOffer: boolean }) {
+export function BiometricOptInSheet({
+  canOffer,
+  onResolved,
+}: {
+  canOffer: boolean;
+  /**
+   * Called once this mount has decided: `true` if the offer is going up,
+   * `false` if it will not be (already seen, unavailable, not iOS). The
+   * dashboard holds the "What's new" sheet until this reports, so the two
+   * never share a session (LIF-271).
+   */
+  onResolved?: (offered: boolean) => void;
+}) {
   const { user } = useAuth();
   const toast = useToast();
   const sheetRef = useRef<FormSheetHandle>(null);
@@ -46,11 +58,27 @@ export function BiometricOptInSheet({ canOffer }: { canOffer: boolean }) {
   const offered = useRef(false);
   const userId = user?.id;
 
+  // Report the decision once per mount. A ref, not state: it only has to stop
+  // a second report, never re-render anything here.
+  const reported = useRef(false);
+  const report = useCallback(
+    (didOffer: boolean) => {
+      if (reported.current) return;
+      reported.current = true;
+      onResolved?.(didOffer);
+    },
+    [onResolved],
+  );
+
   useEffect(() => {
+    if (!userId || offered.current || !canOffer) return;
     // iOS only, matching the rest of the feature: SecureStore's
     // `requireAuthentication` has not been verified on Android here, and
     // offering a switch that silently fails is worse than not offering it.
-    if (Platform.OS !== 'ios' || !userId || offered.current || !canOffer) return;
+    if (Platform.OS !== 'ios') {
+      report(false);
+      return;
+    }
 
     let isMounted = true;
     void (async () => {
@@ -59,12 +87,17 @@ export function BiometricOptInSheet({ canOffer }: { canOffer: boolean }) {
         getLabel(),
         biometricOffer.seen(userId),
       ]);
-      if (!isMounted || !can || seen) return;
+      if (!isMounted) return;
+      if (!can || seen) {
+        report(false);
+        return;
+      }
       // Claimed before the next await, not after: two runs of this effect can
       // both get past the guard above while the first is still awaiting, and the
       // second would present a sheet that is already up. Nothing below re-checks
       // it, so it has to be taken here.
       offered.current = true;
+      report(true);
       // Marked seen on *presentation*, not on the answer. Declining and killing
       // the app mid-prompt are the same intent as far as the next launch is
       // concerned: do not ask again.
@@ -74,7 +107,7 @@ export function BiometricOptInSheet({ canOffer }: { canOffer: boolean }) {
       sheetRef.current?.open();
     })();
     return () => { isMounted = false; };
-  }, [userId, canOffer]);
+  }, [userId, canOffer, report]);
 
   const enable = useCallback(async () => {
     if (!userId) return;
