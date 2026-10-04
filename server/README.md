@@ -4,7 +4,7 @@ Express + TypeScript + Prisma backend for subscription tracking.
 
 ## Tech Stack
 
-- **Runtime:** Node.js 20+
+- **Runtime:** Node.js 24+
 - **Framework:** Express.js
 - **Language:** TypeScript
 - **ORM:** Prisma
@@ -14,7 +14,7 @@ Express + TypeScript + Prisma backend for subscription tracking.
 
 ## Prerequisites
 
-- Node.js 20 or higher
+- Node.js 24 or higher
 - PostgreSQL 15 or higher (or Docker)
 - npm or yarn
 

@@ -57,7 +57,7 @@ See [server/docs/API.md](../server/docs/API.md) for complete reference.
 
 ### Tech Stack
 
-**Backend:** Node.js 20 + Express + TypeScript + Prisma + PostgreSQL
+**Backend:** Node.js 24 + Express + TypeScript + Prisma + PostgreSQL
 **Frontend:** React 18 + TypeScript + Vite + TailwindCSS
 **Hosting:** Railway (backend) + Vercel (frontend)
 

@@ -4,7 +4,7 @@
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24+
 - PostgreSQL 15+ (or Docker)
 - Git
 - Your favorite editor (VS Code recommended)
