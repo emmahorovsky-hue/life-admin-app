@@ -4,7 +4,7 @@
     "",
     "An entry belongs here ONLY when there is no published fix to upgrade or",
     "override to, AND the vulnerable code path is unreachable from this app.",
-    "If a patched version exists, pin it via `overrides` in package.json instead —",
+    "If a patched version exists, pin it via `overrides` in package.json instead \u2014",
     "do not add it here.",
     "",
     "Every entry needs an `expires` date. On that date the gate starts failing",
@@ -15,14 +15,51 @@
     {
       "id": "GHSA-vfj7-8cjw-p6xm",
       "package": "braces",
-      "expires": "2026-12-01",
-      "reason": "Stack-exhaustion DoS via deeply nested brace patterns. No published fix: latest braces (3.0.3) is the vulnerable version. Dev-only path — braces reaches us solely through tailwindcss 3's chokidar/micromatch, where the patterns expanded are our own tailwind.config content globs, never untrusted input."
+      "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns",
+      "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-04",
+      "reason": [
+        "No published fix exists. The vulnerable range is `<= 3.0.3` and 3.0.3 is",
+        "the latest published version; the advisory record has no",
+        "first_patched_version. npm's `fixAvailable` proposes nodemon 1.14.10 and",
+        "tailwindcss 4, neither of which is a fix we can take here.",
+        "",
+        "Reachability: every path to braces is build or developer tooling, reached",
+        "through micromatch/chokidar in: nodemon (server dev reload; production",
+        "runs `node dist/index.js`), tailwindcss and fast-glob (web build), and",
+        "metro / @expo/cli (mobile bundling). braces expands glob patterns from",
+        "this repository's own config files on a developer machine or CI runner.",
+        "It never sees user input and ships in no runtime artifact. A malicious",
+        "pattern would have to be committed to the repo to trigger it.",
+        "",
+        "Review on expiry: check `npm view braces version` for a release above",
+        "3.0.3; if one exists, remove this entry and update within range."
+      ]
     },
     {
       "id": "GHSA-86w9-cpqp-85rv",
       "package": "node-forge",
-      "expires": "2026-12-01",
-      "reason": "RSA PKCS#1 v1.5 verification accepts malformed signatures. No published fix: latest node-forge (1.4.0) is the vulnerable version. Dev/build toolchain only — reaches us via @expo/cli and @expo/code-signing-certificates; nothing in server or client runtime imports node-forge."
+      "title": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
+      "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+      "expires": "2026-11-04",
+      "reason": [
+        "No published fix exists. The vulnerable range is `<= 1.4.0` and 1.4.0 is",
+        "the latest published version; the advisory record has no",
+        "first_patched_version. npm's `fixAvailable` proposes downgrading expo 57",
+        "to 44, which is not a fix.",
+        "",
+        "Reachability: the only path is mobile -> expo -> @expo/cli ->",
+        "@expo/code-signing-certificates -> node-forge. That is the Expo CLI's",
+        "helper for signing EAS Update manifests at build/publish time, and this",
+        "project does not use EAS Update code signing. node-forge is not in the",
+        "server, the web bundle or the app binary. It also sits under the pinned",
+        "Expo native surface (see CLAUDE.md, 'Load-bearing dependency pins'), so",
+        "it must not be moved by upgrading expo or @expo/cli.",
+        "",
+        "Review on expiry: check `npm view node-forge version` for a release",
+        "above 1.4.0. @expo/code-signing-certificates asks for `^1.4.0`, so a",
+        "1.x fix arrives with a targeted `npm update node-forge`, no override."
+      ]
     }
   ]
 }

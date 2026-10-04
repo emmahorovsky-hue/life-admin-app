@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { IconProductivity, IconCard, IconFitness } from '@/components/icons';
 import { SUBSCRIPTION_SUGGESTIONS } from '@life-admin/shared';
-import { categoryIconFor, domainForName, logoUrlForName } from './subscriptionLogo';
+import {
+  categoryIconFor,
+  DOMAIN_ALIASES,
+  domainForName,
+  logoUrlForName,
+} from './subscriptionLogo';
 
 describe('domainForName', () => {
   it('resolves known multi-word / non-.com brands via the alias map', () => {
@@ -23,6 +28,34 @@ describe('domainForName', () => {
     expect(domainForName('ChatGPT')).toBe('chatgpt.com');
     expect(domainForName('chatgpt pro')).toBe('chatgpt.com');
     expect(domainForName('Gomo')).toBe('gomo.sg');
+  });
+
+  it('drops trailing plan words before guessing the domain', () => {
+    expect(domainForName('Netflix Premium')).toBe('netflix.com');
+    expect(domainForName('GitHub Pro')).toBe('github.com');
+    expect(domainForName('Spotify Premium Family')).toBe('spotify.com');
+    expect(domainForName('Canva (Pro)')).toBe('canva.com');
+  });
+
+  it('re-checks the aliases after each plan word it drops', () => {
+    expect(domainForName('iCloud Storage')).toBe('apple.com');
+    expect(domainForName('iCloud+ Storage')).toBe('apple.com');
+    expect(domainForName('Xbox Game Pass Ultimate')).toBe('xbox.com');
+    expect(domainForName('YouTube Premium Family')).toBe('youtube.com');
+    expect(domainForName('Microsoft 365 Family')).toBe('microsoft.com');
+  });
+
+  it('never strips a name down to nothing', () => {
+    expect(domainForName('Pro')).toBe('pro.com');
+    expect(domainForName('Premium Plus')).toBe('premium.com');
+  });
+
+  it('resolves every alias exactly as written', () => {
+    // Aliases are matched before any plan word is dropped, so "disney plus"
+    // keeps its own domain rather than being cut to "disney".
+    for (const [name, domain] of Object.entries(DOMAIN_ALIASES)) {
+      expect(domainForName(name)).toBe(domain);
+    }
   });
 
   it('resolves every onboarding catalog service to its vetted domain', () => {

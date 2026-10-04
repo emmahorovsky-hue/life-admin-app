@@ -8,7 +8,7 @@ A modern subscription tracker application to help users manage and monitor their
 
 ### Run Locally
 
-**Prerequisites:** Node.js 20+, PostgreSQL 15+
+**Prerequisites:** Node.js 24+, PostgreSQL 15+
 
 This is an npm-workspaces monorepo — **install once from the repo root**. The hoisted tree is what
 lets `client/` and `mobile/` resolve `@life-admin/shared`.
@@ -41,7 +41,7 @@ npm run ios            # or: npm run android / npm run web
 
 ## Tech Stack
 
-**Backend:** Node.js 20 + Express + TypeScript + Prisma + PostgreSQL  
+**Backend:** Node.js 24 + Express + TypeScript + Prisma + PostgreSQL  
 **Frontend:** React 18 + TypeScript + Vite + TailwindCSS + shadcn/ui  
 **Mobile:** Expo SDK 57 + React Native + expo-router + TypeScript  
 **Shared:** `@life-admin/shared` — types, constants, and subscription/date utilities used by web and mobile  
