@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Image, StyleSheet, StyleProp, View, ImageStyle, ViewStyle } from 'react-native';
+import { logoInset } from '@life-admin/shared';
 import { categoryIconFor, logoUrlForName } from '../lib/subscriptionLogo';
 import { colors } from '../lib/theme';
 
@@ -29,14 +30,18 @@ export function SubscriptionLogo({ name, category, size = 36, style }: Subscript
 
   if (url && !failed) {
     // Brand logos are transparent PNGs — sit them on a white chip with a
-    // subtle border so colored/dark logos stay readable.
+    // subtle border so colored/dark logos stay readable. The inset gives every
+    // brand the same margin inside the chip (logo.dev's own padding varies);
+    // it lives on a wrapping View because Image ignores padding.
     return (
-      <Image
-        source={{ uri: url }}
-        onError={() => setFailed(true)}
-        resizeMode="contain"
-        style={[box, styles.logo, style]}
-      />
+      <View style={[box, styles.logo, { padding: logoInset(size) }, style]}>
+        <Image
+          source={{ uri: url }}
+          onError={() => setFailed(true)}
+          resizeMode="contain"
+          style={styles.logoImage}
+        />
+      </View>
     );
   }
 
@@ -56,6 +61,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
   fallback: {
     backgroundColor: colors.secondary,
