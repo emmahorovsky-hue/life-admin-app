@@ -1,22 +1,44 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import { currencies, currencyName, DEFAULT_CURRENCY } from '@life-admin/shared';
 import { IconCheck } from '@/components/icons';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
 import { AvatarTile } from '@/components/settings/AvatarTile';
 import { EditNameDialog } from '@/components/settings/EditNameDialog';
 import { ChangeEmailDialog } from '@/components/settings/ChangeEmailDialog';
 import { ChangePasswordDialog } from '@/components/settings/ChangePasswordDialog';
+import { updateProfile } from '@/lib/api';
+import { fullName } from '@/lib/userName';
+import { getApiErrorMessage, cn } from '@/lib/utils';
 
 type AccountModal = null | 'name' | 'email' | 'password';
 
 export default function AccountPanel() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [modal, setModal] = useState<AccountModal>(null);
+  const [savingCurrency, setSavingCurrency] = useState(false);
+
+  // Moved here from Appearance (LIF-277): it decides what money looks like
+  // across the account, which is not a matter of appearance. Mobile already
+  // keeps it under Account.
+  const handleCurrencyChange = async (defaultCurrency: string) => {
+    setSavingCurrency(true);
+    try {
+      const res = await updateProfile({ defaultCurrency });
+      updateUser(res.data.user);
+      toast.success('Default currency updated.');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to update currency. Please try again.'));
+    } finally {
+      setSavingCurrency(false);
+    }
+  };
 
   // The email-change confirmation link redirects here with ?emailChanged=true /
   // ?error=... — surface it once as a toast, then clean the URL. The ref stops
@@ -40,7 +62,7 @@ export default function AccountPanel() {
     setSearchParams({}, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  const displayName = [user?.name, user?.surname].filter(Boolean).join(' ') || user?.email;
+  const name = fullName(user);
   const passwordSubtitle = user?.passwordChangedAt
     ? `Last changed ${formatDistanceToNow(new Date(user.passwordChangedAt), { addSuffix: true })}.`
     : 'Never changed.';
@@ -51,8 +73,9 @@ export default function AccountPanel() {
       <section className="flex items-center gap-5 rounded-[2px] border border-border bg-white p-6 dark:bg-card">
         <AvatarTile size="lg" />
         <div className="min-w-0">
-          <p className="truncate text-xl font-extrabold">{displayName}</p>
-          <p className="truncate font-mono text-[13px] text-muted-foreground">{user?.email}</p>
+          {/* Without a name the email is the identity — shown once, not twice. */}
+          <p className="truncate text-xl font-extrabold">{name ?? user?.email}</p>
+          {name && <p className="truncate font-mono text-[13px] text-muted-foreground">{user?.email}</p>}
         </div>
       </section>
 
@@ -61,10 +84,12 @@ export default function AccountPanel() {
         <div className="border-perf flex items-center justify-between gap-3 py-4">
           <div className="min-w-0">
             <p className="text-[15px] font-semibold">Name</p>
-            <p className="truncate text-sm text-muted-foreground">{displayName}</p>
+            <p className={cn('truncate text-sm text-muted-foreground', !name && 'italic')}>
+              {name ?? 'Add your name'}
+            </p>
           </div>
           <Button variant="outline" size="sm" className="shrink-0" onClick={() => setModal('name')}>
-            Edit
+            {name ? 'Edit' : 'Add'}
           </Button>
         </div>
 
@@ -79,19 +104,53 @@ export default function AccountPanel() {
               </Badge>
             )}
           </div>
-          <Button variant="outline" size="sm" className="shrink-0" onClick={() => setModal('email')}>
-            Change
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            aria-label="Edit email address"
+            onClick={() => setModal('email')}
+          >
+            Edit
           </Button>
         </div>
 
-        <div className="flex items-center justify-between gap-3 py-4">
+        <div className="border-perf flex items-center justify-between gap-3 py-4">
           <div className="min-w-0">
             <p className="text-[15px] font-semibold">Password</p>
             <p className="text-sm text-muted-foreground">{passwordSubtitle}</p>
           </div>
-          <Button variant="outline" size="sm" className="shrink-0" onClick={() => setModal('password')}>
-            Change password
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            aria-label="Edit password"
+            onClick={() => setModal('password')}
+          >
+            Edit
           </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 py-4">
+          <label htmlFor="default-currency" className="min-w-0">
+            <span className="block text-[15px] font-semibold">Default currency</span>
+            <span className="block text-sm text-muted-foreground">Used for new subscriptions.</span>
+          </label>
+          <Select
+            id="default-currency"
+            className="h-10 w-full rounded-[2px] sm:w-[260px]"
+            value={user?.defaultCurrency ?? DEFAULT_CURRENCY}
+            onChange={(e) => handleCurrencyChange(e.target.value)}
+            disabled={savingCurrency}
+          >
+            {/* Named, not just coded: three of these share "kr" and six share
+                "$", so the code alone stopped being enough to choose from. */}
+            {currencies.map((code) => (
+              <option key={code} value={code}>
+                {code} — {currencyName(code)}
+              </option>
+            ))}
+          </Select>
         </div>
       </section>
 
