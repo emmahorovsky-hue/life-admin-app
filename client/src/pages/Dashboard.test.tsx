@@ -175,7 +175,7 @@ describe('Dashboard first-run onboarding', () => {
     );
     renderDashboard();
 
-    await user.click(await screen.findByRole('button', { name: 'File 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Add 1 subscription' }));
 
     await waitFor(() => expect(mockedSubs.create).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('1 subscription filed')).toBeInTheDocument();
@@ -199,7 +199,7 @@ describe('Dashboard first-run onboarding', () => {
     );
     renderDashboard();
 
-    await user.click(await screen.findByRole('button', { name: 'File 2' }));
+    await user.click(await screen.findByRole('button', { name: 'Add 2 subscriptions' }));
     await screen.findByText(/could not be saved/i);
     expect(readOnboardingState(USER_ID).created).toEqual([]);
 
@@ -208,7 +208,7 @@ describe('Dashboard first-run onboarding', () => {
     await waitFor(() => expect(readOnboardingState(USER_ID).created).toEqual(['Netflix']));
 
     await user.click(await screen.findByRole('button', { name: /resume setup/i }));
-    await user.click(await screen.findByRole('button', { name: 'File 2' }));
+    await user.click(await screen.findByRole('button', { name: 'Add 2 subscriptions' }));
 
     await waitFor(() => expect(mockedSubs.create).toHaveBeenCalledTimes(3));
     const names = mockedSubs.create.mock.calls.map((c) => c[0].name);
@@ -230,7 +230,7 @@ describe('Dashboard first-run onboarding', () => {
       .mockRejectedValueOnce(new Error('network down'));
     renderDashboard();
 
-    await user.click(await screen.findByRole('button', { name: 'File 2' }));
+    await user.click(await screen.findByRole('button', { name: 'Add 2 subscriptions' }));
     await screen.findByText(/could not be saved/i);
     await user.click(screen.getByRole('button', { name: /skip setup/i }));
 

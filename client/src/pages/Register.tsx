@@ -111,11 +111,11 @@ export default function Register() {
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? 'Signing up…' : 'Sign up'}
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
-            By creating an account, you agree to our{' '}
+            By signing up, you agree to our{' '}
             <Link to="/terms" className="underline underline-offset-4 hover:text-foreground transition-colors">
               Terms of Service
             </Link>{' '}
@@ -133,7 +133,7 @@ export default function Register() {
             to="/login"
             className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
           >
-            Sign in
+            Log in
           </Link>
         </p>
       </form>

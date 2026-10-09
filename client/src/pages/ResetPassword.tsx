@@ -66,13 +66,13 @@ export default function ResetPassword() {
         <div className="w-full max-w-sm space-y-6 text-center">
           <h1 className="text-2xl font-bold">Password updated</h1>
           <p className="text-sm text-muted-foreground">
-            Your password has been reset. You can now sign in with your new password.
+            Your password has been reset. You can now log in with your new password.
           </p>
           <Link
             to="/login"
             className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
           >
-            Sign in
+            Log in
           </Link>
         </div>
       </AuthLayout>

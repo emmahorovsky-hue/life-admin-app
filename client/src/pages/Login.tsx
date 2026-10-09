@@ -37,7 +37,7 @@ export default function Login() {
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold">Welcome back</h1>
           <p className="text-sm text-muted-foreground">
-            Sign in to your account to continue
+            Log in to your account to continue
           </p>
         </div>
 
@@ -84,7 +84,7 @@ export default function Login() {
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Logging in…' : 'Log in'}
           </Button>
         </div>
 
@@ -94,7 +94,7 @@ export default function Login() {
             to="/register"
             className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
           >
-            Create an account
+            Sign up
           </Link>
         </p>
       </form>

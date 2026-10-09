@@ -202,7 +202,7 @@ export default function SubscriptionModal({
     <Button
       type="submit"
       disabled={loading || saved}
-      className={cn(saved && 'bg-success text-white hover:bg-success')}
+      className={cn('max-sm:w-full', saved && 'bg-success text-white hover:bg-success')}
     >
       {saved ? 'Saved ✓' : loading ? loadingLabel : primaryLabel}
     </Button>
@@ -293,7 +293,9 @@ export default function SubscriptionModal({
 
           {/* Cost + Currency */}
           <div className="flex gap-3">
-            <div className="flex-1">
+            {/* min-w-0: a number input's intrinsic width otherwise sets this field's
+                floor, which pushed the currency select off a phone screen. */}
+            <div className="min-w-0 flex-1">
               <FieldLabel>Cost</FieldLabel>
               <div className="flex h-10 items-center rounded-lg border border-input bg-background px-3">
                 <span className="font-mono text-[15px] text-muted-foreground">
@@ -313,7 +315,9 @@ export default function SubscriptionModal({
               </div>
               {renderHint('cost')}
             </div>
-            <div className="w-[110px]">
+            {/* shrink-0: without it the cost field squeezes this below the select's
+                own padding at phone widths and the code renders blank. */}
+            <div className="w-[110px] shrink-0">
               <FieldLabel>Currency</FieldLabel>
               <Select
                 aria-label="Currency"
@@ -454,8 +458,9 @@ export default function SubscriptionModal({
           </div>
         )}
 
-        {/* Footer */}
-        <div className="mt-4 flex min-h-[69px] items-center gap-2 border-t border-border px-[22px] py-3.5">
+        {/* Footer. Wraps on phones: Cancel + Delete + Save in one row clipped Save
+            off the right edge, so below `sm` Save goes full-width on top. */}
+        <div className="mt-4 flex min-h-[69px] flex-wrap items-center gap-2 border-t border-border px-[22px] py-3.5">
           {confirm === 'cancel' ? (
             <>
               {/* Paypr is a tracker: this only sets `cancelledAt` on our own row, and
@@ -467,7 +472,7 @@ export default function SubscriptionModal({
                   is load-bearing and verified: renewalReminderService filters due
                   candidates on `cancelledAt: null`, so a cancelled row stops generating
                   email and push. Kept in step with the mobile sheet's dialog. */}
-              <span className="text-[13px] text-foreground">
+              <span className="text-[13px] text-foreground max-sm:basis-full">
                 Mark <strong>{values.name || 'this subscription'}</strong> as cancelled? Paypr stops
                 reminding you about it — you'll still need to cancel with the provider yourself.
               </span>
@@ -490,7 +495,7 @@ export default function SubscriptionModal({
             </>
           ) : confirm === 'delete' ? (
             <>
-              <span className="text-[13px] text-foreground">
+              <span className="text-[13px] text-foreground max-sm:basis-full">
                 Delete <strong>{values.name || 'this subscription'}</strong>? This can't be undone.
               </span>
               <div className="ml-auto flex gap-2">
@@ -523,7 +528,7 @@ export default function SubscriptionModal({
                       onClick={() => setConfirm('cancel')}
                       className="border-input text-brand-orange hover:border-brand-orange hover:bg-brand-orange/[0.08] hover:text-brand-orange"
                     >
-                      Cancel subscription
+                      Mark as cancelled
                     </Button>
                   )}
                   {editStatus === 'cancelling' && onResume && (
@@ -551,7 +556,7 @@ export default function SubscriptionModal({
                   )}
                 </div>
               )}
-              <div className="ml-auto">{submitButton}</div>
+              <div className="ml-auto max-sm:order-first max-sm:ml-0 max-sm:w-full">{submitButton}</div>
             </>
           )}
         </div>
