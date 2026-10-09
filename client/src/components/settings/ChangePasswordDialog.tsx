@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/ui/password-input';
+import { PasswordRequirements } from '@/components/ui/password-requirements';
+import { useConfirmPassword } from '@/hooks/useConfirmPassword';
 import { Label } from '@/components/ui/label';
 import { changePassword } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/utils';
@@ -20,19 +22,18 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const confirm = useConfirmPassword(newPassword, confirmPassword);
+  const passwordInvalid = submitted && !isValidPassword(newPassword);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
-      return;
-    }
-    if (!isValidPassword(newPassword)) {
-      setError('Password must be at least 8 characters and include an uppercase letter, number, and symbol');
-      return;
-    }
+    // Both problems show on their own fields; the error line is for the server.
+    setSubmitted(true);
+    confirm.reveal();
+    if (!isValidPassword(newPassword) || confirm.mismatch) return;
 
     setLoading(true);
     try {
@@ -68,6 +69,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
           <Label htmlFor="current-password">Current password</Label>
           <PasswordInput
             id="current-password"
+            autoComplete="current-password"
             placeholder="Enter current password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -79,26 +81,34 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
           <Label htmlFor="new-password">New password</Label>
           <PasswordInput
             id="new-password"
+            autoComplete="new-password"
             placeholder="At least 8 characters"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
             disabled={loading}
+            aria-invalid={passwordInvalid || undefined}
+            aria-describedby="new-password-requirements"
           />
-          <p className="text-xs text-muted-foreground">
-            At least 8 characters, including 1 uppercase letter, 1 number, and 1 symbol.
-          </p>
+          <PasswordRequirements id="new-password-requirements" password={newPassword} showErrors={passwordInvalid} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="confirm-password">Confirm new password</Label>
           <PasswordInput
             id="confirm-password"
+            autoComplete="new-password"
             placeholder="Re-enter new password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             disabled={loading}
+            {...confirm.confirmProps}
           />
+          {confirm.error && (
+            <p id={confirm.errorId} className="text-xs text-destructive">
+              {confirm.error}
+            </p>
+          )}
         </div>
       </div>
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}

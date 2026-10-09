@@ -63,8 +63,9 @@ test.describe('User Registration', () => {
 
     await page.click('button[type="submit"]');
 
-    // Should show error message
-    await expect(page.locator('text=Password must be at least 8 characters')).toBeVisible({ timeout: 2000 });
+    // The password field is flagged and the form stays put
+    await expect(page.locator('#password')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page).toHaveURL('/register');
   });
 
   test('registration fails with duplicate email', async ({ page }) => {

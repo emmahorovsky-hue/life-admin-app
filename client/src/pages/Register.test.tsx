@@ -10,9 +10,6 @@ vi.mock('@/contexts/AuthContext', () => ({ useAuth: vi.fn() }));
 const mockedUseAuth = vi.mocked(useAuth);
 const register = vi.fn();
 
-const PASSWORD_ERROR =
-  'Password must be at least 8 characters and include an uppercase letter, number, and symbol';
-
 function renderRegister() {
   return render(
     <MemoryRouter>
@@ -52,15 +49,17 @@ describe('Register password validation', () => {
     renderRegister();
     await submit(password);
 
-    expect(await screen.findByText(PASSWORD_ERROR)).toBeInTheDocument();
+    // The reason is on the field: it is marked invalid and the unmet rule turns red.
+    expect(screen.getByLabelText('Password')).toHaveAttribute('aria-invalid', 'true');
     expect(register).not.toHaveBeenCalled();
   });
 
-  it('rejects mismatched passwords before checking strength', async () => {
+  it('flags mismatched passwords on the confirm field', async () => {
     renderRegister();
     await submit('Str0ng!pass', 'Str0ng!pas');
 
-    expect(await screen.findByText('Passwords do not match')).toBeInTheDocument();
+    expect(await screen.findByText("Passwords don't match")).toBeInTheDocument();
+    expect(screen.getByLabelText('Confirm Password')).toHaveAttribute('aria-invalid', 'true');
     expect(register).not.toHaveBeenCalled();
   });
 
@@ -69,6 +68,31 @@ describe('Register password validation', () => {
     await submit('Str0ng!pass');
 
     expect(register).toHaveBeenCalledWith('user@example.com', 'Str0ng!pass', undefined);
-    expect(screen.queryByText(PASSWORD_ERROR)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('ticks the requirements as the password is typed', async () => {
+    const user = userEvent.setup();
+    renderRegister();
+    const rule = (name: RegExp) => screen.getByText(name).closest('li')!;
+
+    expect(rule(/One uppercase letter/)).toHaveTextContent('(not yet)');
+    await user.type(screen.getByLabelText('Password'), 'A');
+    expect(rule(/One uppercase letter/)).toHaveTextContent('(done)');
+    expect(rule(/At least 8 characters/)).toHaveTextContent('(not yet)');
+  });
+
+  it('waits until the confirm field is left before calling a mismatch', async () => {
+    const user = userEvent.setup();
+    renderRegister();
+    await user.type(screen.getByLabelText('Password'), 'Str0ng!pass');
+    await user.type(screen.getByLabelText('Confirm Password'), 'Str');
+    expect(screen.queryByText("Passwords don't match")).not.toBeInTheDocument();
+
+    await user.tab();
+    expect(screen.getByText("Passwords don't match")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Confirm Password'), '0ng!pass');
+    expect(screen.queryByText("Passwords don't match")).not.toBeInTheDocument();
   });
 });
