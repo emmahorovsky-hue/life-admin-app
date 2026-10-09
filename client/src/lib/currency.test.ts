@@ -4,6 +4,7 @@ import {
   DEFAULT_CURRENCY,
   currencyName,
   currencyForLocale,
+  currencyForTimeZone,
   dominantCurrency,
   formatCurrency,
   formatCurrencyTotals,
@@ -164,6 +165,33 @@ describe('formatCurrencyTotals', () => {
 // prefills its currency control from it — so the misses matter as much as the
 // hits: a wrong guess would be filed against every subscription the user starts
 // with, and the dashboard reads its display currency back off that data.
+describe('currencyForTimeZone', () => {
+  it('maps zones in the regions this app has a currency for', () => {
+    expect(currencyForTimeZone('Asia/Singapore')).toBe('SGD');
+    expect(currencyForTimeZone('Europe/London')).toBe('GBP');
+    expect(currencyForTimeZone('Europe/Berlin')).toBe('EUR');
+    expect(currencyForTimeZone('America/Los_Angeles')).toBe('USD');
+    expect(currencyForTimeZone('America/Indiana/Indianapolis')).toBe('USD');
+    expect(currencyForTimeZone('America/Toronto')).toBe('CAD');
+    expect(currencyForTimeZone('America/Atikokan')).toBe('CAD');
+    expect(currencyForTimeZone('Antarctica/Macquarie')).toBe('AUD');
+    expect(currencyForTimeZone('Asia/Calcutta')).toBe('INR');
+  });
+
+  it('returns null for UTC, unknown zones and missing input', () => {
+    expect(currencyForTimeZone('UTC')).toBeNull();
+    expect(currencyForTimeZone('Africa/Johannesburg')).toBeNull();
+    expect(currencyForTimeZone('Not/A_Zone')).toBeNull();
+    expect(currencyForTimeZone('')).toBeNull();
+    expect(currencyForTimeZone(null)).toBeNull();
+    expect(currencyForTimeZone(undefined)).toBeNull();
+  });
+
+  it('leaves out Busingen, which is German but pays in CHF', () => {
+    expect(currencyForTimeZone('Europe/Busingen')).toBeNull();
+  });
+});
+
 describe('currencyForLocale', () => {
   it('maps the regions this app has a currency for', () => {
     expect(currencyForLocale('en-US')).toBe('USD');
