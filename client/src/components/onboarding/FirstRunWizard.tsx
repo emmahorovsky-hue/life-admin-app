@@ -293,7 +293,7 @@ export function FirstRunWizard({
     step === 1
       ? 'Next — check amounts'
       : step === 2
-        ? `File ${selected.length}`
+        ? `Add ${selected.length} ${selected.length === 1 ? 'subscription' : 'subscriptions'}`
         : 'Go to dashboard';
 
   const primaryDisabled =

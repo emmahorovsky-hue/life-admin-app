@@ -26,7 +26,7 @@ async function submit(password: string, confirmPassword = password) {
   await user.type(screen.getByLabelText('Email'), 'user@example.com');
   await user.type(screen.getByLabelText('Password'), password);
   await user.type(screen.getByLabelText('Confirm Password'), confirmPassword);
-  await user.click(screen.getByRole('button', { name: 'Create Account' }));
+  await user.click(screen.getByRole('button', { name: 'Sign up' }));
 }
 
 describe('Register password validation', () => {
