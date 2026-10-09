@@ -142,17 +142,22 @@ export default function Subscriptions() {
             Subscriptions<span className="text-brand-orange">.</span>
           </h2>
         </div>
-        <div className="flex gap-2.5 items-center">
+        {/* Wraps below `sm`: the three controls need ~400px in one row, which put
+            "+ Add" past the right edge of a phone — and after onboarding it is the
+            only way to add a subscription. Search takes its own row; filter + Add
+            share the next. */}
+        <div className="flex w-full flex-wrap gap-2.5 items-center sm:w-auto">
           <Input
             placeholder="Search…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-44"
+            className="w-full sm:w-44"
           />
           <Select
+            aria-label="Filter by category"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="w-36"
+            className="min-w-0 flex-1 sm:w-36 sm:flex-none"
           >
             <option value={ALL_CATEGORIES}>All Categories</option>
             {categories.map((cat) => (
@@ -161,7 +166,9 @@ export default function Subscriptions() {
               </option>
             ))}
           </Select>
-          <Button onClick={() => setUploadDialogOpen(true)}>+ Add</Button>
+          <Button className="shrink-0" onClick={() => setUploadDialogOpen(true)}>
+            + Add
+          </Button>
         </div>
       </div>
 
