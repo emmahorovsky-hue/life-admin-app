@@ -4,6 +4,8 @@ import { isValidPassword } from '@life-admin/shared';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { PasswordRequirements } from '@/components/ui/password-requirements';
+import { useConfirmPassword } from '@/hooks/useConfirmPassword';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import AuthLayout from '@/components/AuthLayout';
@@ -17,21 +19,18 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const confirm = useConfirmPassword(password, confirmPassword);
+  const passwordInvalid = submitted && !isValidPassword(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validation
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (!isValidPassword(password)) {
-      setError('Password must be at least 8 characters and include an uppercase letter, number, and symbol');
-      return;
-    }
+    // Both problems show on their own fields; the banner is for the server.
+    setSubmitted(true);
+    confirm.reveal();
+    if (!isValidPassword(password) || confirm.mismatch) return;
 
     setLoading(true);
 
@@ -61,6 +60,7 @@ export default function Register() {
             <Input
               id="email"
               type="email"
+              autoComplete="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -73,27 +73,35 @@ export default function Register() {
             <Label htmlFor="password">Password</Label>
             <PasswordInput
               id="password"
+              autoComplete="new-password"
               placeholder="At least 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={loading}
+              aria-invalid={passwordInvalid || undefined}
+              aria-describedby="password-requirements"
             />
-            <p className="text-xs text-muted-foreground">
-              Must contain at least 8 characters, including 1 uppercase letter, 1 number, and 1 symbol.
-            </p>
+            <PasswordRequirements id="password-requirements" password={password} showErrors={passwordInvalid} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <PasswordInput
               id="confirmPassword"
+              autoComplete="new-password"
               placeholder="Re-enter your password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               disabled={loading}
+              {...confirm.confirmProps}
             />
+            {confirm.error && (
+              <p id={confirm.errorId} role="alert" className="text-xs text-destructive">
+                {confirm.error}
+              </p>
+            )}
           </div>
 
           {error && (
