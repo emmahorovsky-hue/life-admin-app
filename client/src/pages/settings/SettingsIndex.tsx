@@ -8,6 +8,7 @@ import {
   type PayprIconComponent,
 } from '@/components/icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { fullName } from '@/lib/userName';
 import { AvatarTile } from '@/components/settings/AvatarTile';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +29,7 @@ const menuItems: MenuItem[] = [
 /** Mobile-only settings index: identity block + drill-down menu list. */
 export default function SettingsIndex() {
   const { user } = useAuth();
-  const displayName = [user?.name, user?.surname].filter(Boolean).join(' ') || user?.email;
+  const name = fullName(user);
 
   return (
     <div>
@@ -40,8 +41,8 @@ export default function SettingsIndex() {
       <div className="mt-5 flex items-center gap-4">
         <AvatarTile size="md" />
         <div className="min-w-0">
-          <p className="truncate text-[17px] font-extrabold">{displayName}</p>
-          <p className="truncate font-mono text-[12px] text-muted-foreground">{user?.email}</p>
+          <p className="truncate text-[17px] font-extrabold">{name ?? user?.email}</p>
+          {name && <p className="truncate font-mono text-[12px] text-muted-foreground">{user?.email}</p>}
         </div>
       </div>
 
