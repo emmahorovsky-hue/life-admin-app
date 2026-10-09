@@ -89,7 +89,7 @@ describe('SubscriptionModal edit-mode cancel confirm', () => {
     const onCancelRenewal = vi.fn();
     render(<Harness mode="edit" onCancelRenewal={onCancelRenewal} />);
 
-    await user.click(screen.getByRole('button', { name: /cancel subscription/i }));
+    await user.click(screen.getByRole('button', { name: /mark as cancelled/i }));
     expect(onCancelRenewal).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: /mark cancelled/i }));

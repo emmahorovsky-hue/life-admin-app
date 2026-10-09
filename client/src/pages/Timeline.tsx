@@ -96,7 +96,7 @@ export default function Timeline() {
       {/* Header — consistent with the other pages */}
       <div>
         <h2 className="text-3xl font-bold">
-          What's due next<span className="text-brand-orange">.</span>
+          Timeline<span className="text-brand-orange">.</span>
         </h2>
       </div>
 
