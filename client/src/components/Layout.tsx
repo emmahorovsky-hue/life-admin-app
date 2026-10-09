@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { avatarUrl } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { fullName } from '@/lib/userName';
 import { getInitials } from '@life-admin/shared';
 import { UnverifiedEmailBanner } from './UnverifiedEmailBanner';
 import { Logo } from './Logo';
@@ -116,7 +117,7 @@ function AccountAvatar({ user, className }: { user: User | null; className: stri
 
 function SidebarContent({ currentPath, user, size, onNav, onLogout, onClose }: SidebarContentProps) {
   const s = sizing[size];
-  const displayName = [user?.name, user?.surname].filter(Boolean).join(' ') || user?.email;
+  const name = fullName(user);
   return (
     <>
       {/* Wordmark row */}
@@ -179,8 +180,8 @@ function SidebarContent({ currentPath, user, size, onNav, onLogout, onClose }: S
         <div className="border-t-[3px] border-double border-border pt-3.5 flex items-center gap-3">
           <AccountAvatar user={user} className={s.tile} />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold leading-tight truncate">{displayName ?? 'Account'}</p>
-            <p className="font-mono text-[11px] text-muted-foreground truncate">{user?.email}</p>
+            <p className="text-sm font-semibold leading-tight truncate">{name ?? user?.email ?? 'Account'}</p>
+            {name && <p className="font-mono text-[11px] text-muted-foreground truncate">{user?.email}</p>}
           </div>
           <Button
             variant="outline"

@@ -163,7 +163,7 @@ describe('AccountPanel', () => {
     } as Awaited<ReturnType<typeof updateProfile>>);
     renderSettings('/settings/account');
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit name' }));
     const firstName = await screen.findByLabelText('First name');
     await user.clear(firstName);
     await user.type(firstName, 'Ada');
@@ -181,7 +181,7 @@ describe('AccountPanel', () => {
     mockedUpdateProfile.mockRejectedValue(new Error('network'));
     renderSettings('/settings/account');
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit name' }));
     await user.click(await screen.findByRole('button', { name: 'Save' }));
 
     expect(
