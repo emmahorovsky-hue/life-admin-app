@@ -21,6 +21,11 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:4173',
     headless: true,
     viewport: { width: 1280, height: 720 },
+    // Pinned because onboarding prefills its currency from the browser's clock
+    // and language (LIF-275): left to the host, a run on a laptop in Singapore
+    // prices everything in SGD while CI (UTC) prices it in USD.
+    timezoneId: 'UTC',
+    locale: 'en-US',
     actionTimeout: 10_000,
     ignoreHTTPSErrors: true,
   },

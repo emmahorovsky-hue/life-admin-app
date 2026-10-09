@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FirstRunWizard } from './FirstRunWizard';
@@ -42,9 +42,23 @@ function renderWizard(overrides: Partial<React.ComponentProps<typeof FirstRunWiz
 
 const pick = (name: string) => screen.getByRole('button', { name: new RegExp(name, 'i') });
 
+// The timezone is the wizard's first currency guess (LIF-275), so pin it for
+// every test: otherwise anything that shows a price reads the machine's clock,
+// and passes in UTC CI but not on a laptop in Singapore.
+const realResolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+function stubTimeZone(timeZone: string) {
+  vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(function (
+    this: Intl.DateTimeFormat,
+  ) {
+    return { ...realResolvedOptions.call(this), timeZone };
+  });
+}
+
 describe('FirstRunWizard', () => {
+  afterEach(() => vi.restoreAllMocks());
   beforeEach(() => {
     vi.clearAllMocks();
+    stubTimeZone('UTC');
     mockUser = { id: 'u1', defaultCurrency: 'SGD' };
     mockedUpdateProfile.mockResolvedValue({
       data: { user: { id: 'u1', defaultCurrency: 'GBP' } },
@@ -345,11 +359,24 @@ describe('FirstRunWizard', () => {
   describe('currency', () => {
     const currencyPicker = () => screen.getByLabelText('Currency for these prices');
 
-    it('prefills from the browser locale when the account is still on the default', () => {
+
+    it('prefills from the browser locale when the timezone names no currency', () => {
       renderWizard();
       // jsdom reports en-US.
       expect(currencyPicker()).toHaveValue('USD');
       expect(within(pick('Netflix')).getByText('$15.99/mo')).toBeInTheDocument();
+    });
+
+    it('prefers the browser timezone over an en-US locale', () => {
+      stubTimeZone('Europe/London');
+      renderWizard();
+      expect(currencyPicker()).toHaveValue('GBP');
+    });
+
+    it('opens a Singapore account in SGD despite an en-US browser', () => {
+      stubTimeZone('Asia/Singapore');
+      renderWizard();
+      expect(currencyPicker()).toHaveValue('SGD');
     });
 
     it('prefers a default currency the user has deliberately set', () => {

@@ -1,4 +1,5 @@
 import { CURRENCIES, currencies, currencyDefinition } from '../constants/currencies';
+import { TIME_ZONE_REGIONS } from '../constants/timeZoneRegions';
 
 export const DEFAULT_CURRENCY = 'SGD';
 
@@ -39,6 +40,22 @@ export function currencyForLocale(locale?: string | null): string | null {
     .find((part) => /^[A-Za-z]{2}$/.test(part));
   if (!region) return null;
   return CURRENCY_BY_REGION[region.toUpperCase()] ?? null;
+}
+
+/**
+ * Best supported currency for an IANA timezone: "Asia/Singapore" → SGD,
+ * "Europe/Berlin" → EUR. Null for a zone outside the table (and for "UTC").
+ *
+ * The location signal on the web. A browser's locale is its *language*
+ * preference, and "en-US" is the default far outside the US, so
+ * `currencyForLocale(navigator.language)` opened Singapore accounts in USD
+ * (LIF-275). The clock follows where someone actually is. Same contract as
+ * `currencyForLocale`: a prefill for a visible control, never a silent pick.
+ */
+export function currencyForTimeZone(timeZone?: string | null): string | null {
+  if (typeof timeZone !== 'string') return null;
+  const region = TIME_ZONE_REGIONS[timeZone];
+  return region ? (CURRENCY_BY_REGION[region] ?? null) : null;
 }
 
 // An amount that carries its currency, so it can never be added to another one
