@@ -81,6 +81,9 @@ export default function UploadReceiptDialog({
         onOpenChange={handleClose}
         title="Upload receipt"
         onSubmit={handleExtract}
+        // Link + Cancel + Extract don't fit one row on a phone; the link wraps
+        // to its own row above the buttons.
+        footerClassName="flex-wrap"
         footer={
           <>
             <Button
@@ -88,7 +91,7 @@ export default function UploadReceiptDialog({
               variant="link"
               onClick={handleManual}
               disabled={loading}
-              className="px-0 mr-auto"
+              className="px-0 mr-auto max-sm:basis-full max-sm:justify-start"
             >
               Enter manually instead
             </Button>
