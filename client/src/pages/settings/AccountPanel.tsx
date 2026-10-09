@@ -88,7 +88,13 @@ export default function AccountPanel() {
               {name ?? 'Add your name'}
             </p>
           </div>
-          <Button variant="outline" size="sm" className="shrink-0" onClick={() => setModal('name')}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            aria-label={name ? 'Edit name' : 'Add your name'}
+            onClick={() => setModal('name')}
+          >
             {name ? 'Edit' : 'Add'}
           </Button>
         </div>

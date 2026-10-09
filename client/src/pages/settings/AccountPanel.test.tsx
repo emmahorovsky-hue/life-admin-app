@@ -49,7 +49,7 @@ describe('AccountPanel', () => {
     // Profile card + Email row only — the Name row no longer falls back to it.
     expect(screen.getAllByText('me@example.com')).toHaveLength(2);
     expect(screen.getByText('Add your name')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
+    expect(within(screen.getByRole('button', { name: 'Add your name' })).getByText('Add')).toBeInTheDocument();
   });
 
   it('shows the name with the email beneath it once one is set', () => {
@@ -57,13 +57,13 @@ describe('AccountPanel', () => {
 
     expect(screen.getAllByText('Ada Lovelace')).toHaveLength(2);
     expect(screen.queryByText('Add your name')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit name' })).toBeInTheDocument();
   });
 
   it('labels every row action "Edit"', () => {
     renderPanel({ name: 'Ada' });
 
-    for (const name of ['Edit', 'Edit email address', 'Edit password']) {
+    for (const name of ['Edit name', 'Edit email address', 'Edit password']) {
       expect(within(screen.getByRole('button', { name })).getByText('Edit')).toBeInTheDocument();
     }
     expect(screen.queryByRole('button', { name: /Change/ })).not.toBeInTheDocument();
