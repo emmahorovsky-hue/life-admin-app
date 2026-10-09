@@ -105,7 +105,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
             {...confirm.confirmProps}
           />
           {confirm.error && (
-            <p id={confirm.errorId} className="text-xs text-destructive">
+            <p id={confirm.errorId} role="alert" className="text-xs text-destructive">
               {confirm.error}
             </p>
           )}

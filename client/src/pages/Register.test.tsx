@@ -43,6 +43,7 @@ describe('Register password validation', () => {
   it.each([
     ['too short', 'Ab1!def'],
     ['no uppercase', 'abcdef1!'],
+    ['no lowercase', 'ABCDEF1!'],
     ['no number', 'Abcdefg!'],
     ['no symbol', 'Abcdefg1'],
   ])('rejects a password with %s and does not call register', async (_label, password) => {
