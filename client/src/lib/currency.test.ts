@@ -173,6 +173,8 @@ describe('currencyForTimeZone', () => {
     expect(currencyForTimeZone('America/Los_Angeles')).toBe('USD');
     expect(currencyForTimeZone('America/Indiana/Indianapolis')).toBe('USD');
     expect(currencyForTimeZone('America/Toronto')).toBe('CAD');
+    expect(currencyForTimeZone('America/Atikokan')).toBe('CAD');
+    expect(currencyForTimeZone('Antarctica/Macquarie')).toBe('AUD');
     expect(currencyForTimeZone('Asia/Calcutta')).toBe('INR');
   });
 

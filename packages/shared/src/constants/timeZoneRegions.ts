@@ -24,6 +24,7 @@ export const TIME_ZONE_REGIONS: Record<string, string> = {
   'Australia/Lord_Howe': 'AU',
   'Australia/Broken_Hill': 'AU',
   'Australia/Eucla': 'AU',
+  'Antarctica/Macquarie': 'AU',
   // BRL
   'America/Sao_Paulo': 'BR',
   'America/Manaus': 'BR',
@@ -62,6 +63,9 @@ export const TIME_ZONE_REGIONS: Record<string, string> = {
   'America/Iqaluit': 'CA',
   'America/Rankin_Inlet': 'CA',
   'America/Resolute': 'CA',
+  'America/Atikokan': 'CA',
+  'America/Blanc-Sablon': 'CA',
+  'America/Creston': 'CA',
   'America/Montreal': 'CA',
   // CHF
   'Europe/Zurich': 'CH',

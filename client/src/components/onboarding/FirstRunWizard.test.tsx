@@ -359,7 +359,6 @@ describe('FirstRunWizard', () => {
   describe('currency', () => {
     const currencyPicker = () => screen.getByLabelText('Currency for these prices');
 
-
     it('prefills from the browser locale when the timezone names no currency', () => {
       renderWizard();
       // jsdom reports en-US.
