@@ -81,7 +81,7 @@ for (const viewport of PHONE_WIDTHS) {
       // and the secondary actions.
       await page.getByRole('button', { name: 'Edit Netflix' }).click();
       await expectWithinViewport(page, page.getByRole('button', { name: 'Save changes' }));
-      await expectWithinViewport(page, page.getByRole('button', { name: 'Cancel subscription' }));
+      await expectWithinViewport(page, page.getByRole('button', { name: 'Mark as cancelled' }));
       await expectWithinViewport(page, page.getByRole('button', { name: 'Delete', exact: true }));
 
       const currency = page.getByLabel('Currency');

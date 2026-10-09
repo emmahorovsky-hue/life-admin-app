@@ -130,7 +130,7 @@ export default function TimelineScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       // Screen title follows the Settings convention — ScreenTitle's pageTitle
       // role + brand-orange period — rather than the Dashboard's quiet header.
-      ListHeaderComponent={<ScreenTitle style={styles.title}>What's due next</ScreenTitle>}
+      ListHeaderComponent={<ScreenTitle style={styles.title}>Timeline</ScreenTitle>}
       ListEmptyComponent={
         <EmptyState
           icon={IconCalendar}

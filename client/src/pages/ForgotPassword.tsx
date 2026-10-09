@@ -39,7 +39,7 @@ export default function ForgotPassword() {
               to="/login"
               className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
             >
-              Back to sign in
+              Back to log in
             </Link>
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function ForgotPassword() {
             to="/login"
             className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
           >
-            Back to sign in
+            Back to log in
           </Link>
         </p>
       </form>

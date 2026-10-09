@@ -45,7 +45,7 @@ test.describe('First-run onboarding', () => {
     await expect(page.getByText('Check the amounts')).toBeVisible();
     await expect(page.getByLabel('Netflix monthly cost')).toHaveValue('15.99');
 
-    await page.getByRole('button', { name: 'File 2' }).click();
+    await page.getByRole('button', { name: 'Add 2 subscriptions' }).click();
 
     // Step 3 confirms, then hands back to a dashboard with real data behind it.
     await expect(page.getByText('2 subscriptions filed')).toBeVisible();
@@ -73,7 +73,7 @@ test.describe('First-run onboarding', () => {
     await expect(wizard(page)).not.toBeVisible();
     await expect(page.getByText('Finish setting up your file')).toBeVisible();
     // Nothing is blocked by having skipped.
-    await expect(page.getByText(/Welcome back/)).toBeVisible();
+    await expect(page.getByText(/^Welcome/)).toBeVisible();
 
     await page.reload();
     await expect(page.getByText('Finish setting up your file')).toBeVisible();

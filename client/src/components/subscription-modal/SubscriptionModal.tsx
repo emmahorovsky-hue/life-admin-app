@@ -528,7 +528,7 @@ export default function SubscriptionModal({
                       onClick={() => setConfirm('cancel')}
                       className="border-input text-brand-orange hover:border-brand-orange hover:bg-brand-orange/[0.08] hover:text-brand-orange"
                     >
-                      Cancel subscription
+                      Mark as cancelled
                     </Button>
                   )}
                   {editStatus === 'cancelling' && onResume && (

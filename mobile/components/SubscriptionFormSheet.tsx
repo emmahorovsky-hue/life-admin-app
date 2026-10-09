@@ -591,7 +591,7 @@ export const SubscriptionFormSheet = forwardRef<SubscriptionFormSheetHandle, Pro
               {editStatus === 'active' && (
                 <Pressable disabled={loading} onPress={confirmCancelRenewal} style={styles.editAction}>
                   <IconCancelled size={18} color={colors.brandOrange} ink="inherit" />
-                  <AppText variant="footnote" weight={600} style={styles.cancelActionText}>Cancel subscription</AppText>
+                  <AppText variant="footnote" weight={600} style={styles.cancelActionText}>Mark as cancelled</AppText>
                 </Pressable>
               )}
               {editStatus === 'cancelling' && (

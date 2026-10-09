@@ -71,9 +71,9 @@ describe('EditSubscriptionDialog cancel / resume', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows "Cancel subscription" for an active sub and calls onCancelRenewal after confirming', async () => {
+  it('shows "Mark as cancelled" for an active sub and calls onCancelRenewal after confirming', async () => {
     const { onCancelRenewal, onResume } = renderDialog(activeSub);
-    const button = screen.getByRole('button', { name: /cancel subscription/i });
+    const button = screen.getByRole('button', { name: /mark as cancelled/i });
     expect(screen.queryByRole('button', { name: /resume subscription/i })).toBeNull();
 
     // Clicking opens the inline confirm — no action fires yet.
@@ -90,7 +90,7 @@ describe('EditSubscriptionDialog cancel / resume', () => {
     const { onResume, onCancelRenewal } = renderDialog(cancellingSub);
 
     const button = screen.getByRole('button', { name: /resume subscription/i });
-    expect(screen.queryByRole('button', { name: /cancel subscription/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /mark as cancelled/i })).toBeNull();
 
     await userEvent.click(button);
     expect(onResume).toHaveBeenCalledWith('s1');
