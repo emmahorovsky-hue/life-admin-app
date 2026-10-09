@@ -15,6 +15,7 @@ import { updateProfile } from '@/lib/api';
 import {
   formatCurrency,
   currencyForLocale,
+  currencyForTimeZone,
   currencyName,
   currencySymbol,
   supportedCurrency,
@@ -58,19 +59,37 @@ interface RowEdit {
  * What currency to open in.
  *
  * A stored preference that isn't the schema default was set deliberately —
- * Settings › Appearance is the only thing that writes one — so it outranks the
- * browser's locale. Otherwise the locale prefills, and DEFAULT_CURRENCY is the
- * floor for a locale naming no region this app has a currency for.
+ * Settings › Appearance is the only thing that writes one — so it outranks any
+ * guess. Then the browser's timezone, then its locale, and DEFAULT_CURRENCY is
+ * the floor when neither names a region this app has a currency for.
+ *
+ * Timezone before locale on the web (LIF-275): `navigator.language` is a
+ * *language* preference, and "en-US" is the default far outside the US, so a
+ * Singapore account opened in USD. The clock follows where someone is. Mobile
+ * keeps locale-only — there Hermes' locale comes from the device's Region
+ * setting ("en-SG"), which already says where the user lives.
  *
  * Only ever a prefill: the control below is visible and changeable before a row
  * is filed, because this flow decides the currency of every subscription the
  * account starts with and the dashboard reads its display currency back off
- * that data. Mirrors mobile's setup screen (mobile/app/setup.tsx).
+ * that data.
  */
-function initialCurrency(preferred: string | undefined): string {
+function initialCurrency(
+  preferred: string | undefined,
+  timeZone: string | undefined = browserTimeZone(),
+  locale: string | undefined = navigator.language,
+): string {
   const stored = supportedCurrency(preferred);
   if (stored && stored !== DEFAULT_CURRENCY) return stored;
-  return currencyForLocale(navigator.language) ?? DEFAULT_CURRENCY;
+  return currencyForTimeZone(timeZone) ?? currencyForLocale(locale) ?? DEFAULT_CURRENCY;
+}
+
+function browserTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return undefined;
+  }
 }
 
 const STEP_META = [
@@ -128,7 +147,7 @@ export function FirstRunWizard({
   const [savingReminders, setSavingReminders] = useState(false);
   // Computed once per mount, like `defaultRenewal` below: the wizard is short
   // and re-deriving it under the user mid-flow would move prices they are
-  // reading. See `initialCurrency` for why the browser's locale only prefills.
+  // reading. See `initialCurrency` for why the browser's timezone and locale only prefill.
   const [currency, setCurrency] = useState(() => initialCurrency(user?.defaultCurrency));
 
   // Names already created server-side. A partial failure leaves the user on

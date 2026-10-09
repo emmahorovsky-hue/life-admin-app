@@ -5,6 +5,7 @@ export {
   sumByCurrency,
   dominantCurrency,
   currencyForLocale,
+  currencyForTimeZone,
   currencySymbol,
   currencyName,
   supportedCurrency,
