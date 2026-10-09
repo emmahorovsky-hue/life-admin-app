@@ -112,6 +112,15 @@ test.describe('First-run onboarding', () => {
     await expect(page.getByText('Finish setting up your file')).toBeVisible();
   });
 
+  test.describe('in Singapore with an en-US browser', () => {
+    test.use({ timezoneId: 'Asia/Singapore', locale: 'en-US' });
+
+    test('opens in SGD, not USD', async ({ page }) => {
+      await registerFreshUser(page);
+      await expect(page.getByLabel('Currency for these prices')).toHaveValue('SGD');
+    });
+  });
+
   test('goes full-screen on a phone viewport', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await registerFreshUser(page);
