@@ -94,7 +94,7 @@ describe('FirstRunWizard', () => {
     // Suggestion defaults: Netflix 15.99 + Spotify 11.99.
     expect(screen.getByLabelText('Netflix monthly cost')).toHaveValue(15.99);
     expect(screen.getByLabelText('Spotify monthly cost')).toHaveValue(11.99);
-    expect(screen.getByRole('button', { name: 'File 2' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Add 2 subscriptions' })).toBeEnabled();
   });
 
   it('disables filing when nothing was picked', async () => {
@@ -104,7 +104,7 @@ describe('FirstRunWizard', () => {
     await user.click(screen.getByRole('button', { name: /next — check amounts/i }));
 
     expect(screen.getByText(/nothing picked yet/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'File 0' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add 0 subscriptions' })).toBeDisabled();
   });
 
   it('creates each picked subscription and lands on the filed step', async () => {
@@ -114,7 +114,7 @@ describe('FirstRunWizard', () => {
 
     await user.clear(screen.getByLabelText('Netflix monthly cost'));
     await user.type(screen.getByLabelText('Netflix monthly cost'), '18.50');
-    await user.click(screen.getByRole('button', { name: 'File 1' }));
+    await user.click(screen.getByRole('button', { name: 'Add 1 subscription' }));
 
     await waitFor(() => expect(mockedApi.create).toHaveBeenCalledTimes(1));
     expect(mockedApi.create).toHaveBeenCalledWith(
@@ -132,7 +132,7 @@ describe('FirstRunWizard', () => {
 
     await user.clear(screen.getByLabelText('Netflix monthly cost'));
     await user.type(screen.getByLabelText('Netflix monthly cost'), '18.50');
-    await user.click(screen.getByRole('button', { name: 'File 1' }));
+    await user.click(screen.getByRole('button', { name: 'Add 1 subscription' }));
 
     expect(await screen.findByText(/could not be saved/i)).toBeInTheDocument();
     // Still on step 2, with the correction intact.
@@ -149,11 +149,11 @@ describe('FirstRunWizard', () => {
       .mockResolvedValueOnce({ id: 's2' } as never);
     renderWizard({ initialStep: 2, initialPicks: ['Netflix', 'Spotify'] });
 
-    await user.click(screen.getByRole('button', { name: 'File 2' }));
+    await user.click(screen.getByRole('button', { name: 'Add 2 subscriptions' }));
     expect(await screen.findByText(/could not be saved/i)).toBeInTheDocument();
     expect(mockedApi.create).toHaveBeenCalledTimes(2);
 
-    await user.click(screen.getByRole('button', { name: 'File 2' }));
+    await user.click(screen.getByRole('button', { name: 'Add 2 subscriptions' }));
     await waitFor(() => expect(mockedApi.create).toHaveBeenCalledTimes(3));
     // The third call is the retry of Spotify alone — Netflix is not re-sent.
     expect(mockedApi.create).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Spotify' }));
@@ -214,7 +214,7 @@ describe('FirstRunWizard', () => {
 
     await user.clear(screen.getByLabelText('Netflix renewal date'));
 
-    expect(screen.getByRole('button', { name: 'File 1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add 1 subscription' })).toBeDisabled();
     expect(screen.getByText(/needs an amount and a renewal date/i)).toBeInTheDocument();
     expect(mockedApi.create).not.toHaveBeenCalled();
   });
@@ -225,7 +225,7 @@ describe('FirstRunWizard', () => {
 
     await user.clear(screen.getByLabelText('Netflix monthly cost'));
 
-    expect(screen.getByRole('button', { name: 'File 1' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add 1 subscription' })).toBeDisabled();
   });
 
   // The amount must stay type=number. As free text a comma-decimal locale can
@@ -249,7 +249,7 @@ describe('FirstRunWizard', () => {
       .mockRejectedValueOnce(new Error('network down'));
     const props = renderWizard({ initialStep: 2, initialPicks: ['Netflix', 'Spotify'] });
 
-    await user.click(screen.getByRole('button', { name: 'File 2' }));
+    await user.click(screen.getByRole('button', { name: 'Add 2 subscriptions' }));
     await screen.findByText(/could not be saved/i);
     await user.click(screen.getByRole('button', { name: /skip setup/i }));
 
@@ -265,7 +265,7 @@ describe('FirstRunWizard', () => {
       initialCreated: ['Netflix'],
     });
 
-    await user.click(screen.getByRole('button', { name: 'File 2' }));
+    await user.click(screen.getByRole('button', { name: 'Add 2 subscriptions' }));
 
     await waitFor(() => expect(mockedApi.create).toHaveBeenCalledTimes(1));
     expect(mockedApi.create).toHaveBeenCalledWith(expect.objectContaining({ name: 'Spotify' }));
@@ -283,7 +283,7 @@ describe('FirstRunWizard', () => {
     );
     renderWizard({ initialStep: 2, initialPicks: ['Netflix'] });
 
-    await user.click(screen.getByRole('button', { name: 'File 1' }));
+    await user.click(screen.getByRole('button', { name: 'Add 1 subscription' }));
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(/your edits are kept/i);
@@ -297,7 +297,7 @@ describe('FirstRunWizard', () => {
 
     const fileOne = async (user: ReturnType<typeof userEvent.setup>) => {
       mockedApi.create.mockResolvedValue({ id: 's1' } as never);
-      await user.click(screen.getByRole('button', { name: 'File 1' }));
+      await user.click(screen.getByRole('button', { name: 'Add 1 subscription' }));
       expect(await screen.findByText('1 subscription filed')).toBeInTheDocument();
     };
 
@@ -420,7 +420,7 @@ describe('FirstRunWizard', () => {
       await user.selectOptions(currencyPicker(), 'GBP');
       await user.click(pick('Netflix'));
       await user.click(screen.getByRole('button', { name: /next — check amounts/i }));
-      await user.click(screen.getByRole('button', { name: 'File 1' }));
+      await user.click(screen.getByRole('button', { name: 'Add 1 subscription' }));
 
       await waitFor(() => expect(mockedApi.create).toHaveBeenCalledTimes(1));
       expect(mockedApi.create).toHaveBeenCalledWith(
@@ -440,7 +440,7 @@ describe('FirstRunWizard', () => {
       mockedApi.create.mockResolvedValue({ id: 's1' } as never);
       renderWizard({ initialStep: 2, initialPicks: ['Netflix'] });
 
-      await user.click(screen.getByRole('button', { name: 'File 1' }));
+      await user.click(screen.getByRole('button', { name: 'Add 1 subscription' }));
 
       await waitFor(() => expect(mockedApi.create).toHaveBeenCalledTimes(1));
       expect(mockedUpdateProfile).not.toHaveBeenCalled();
@@ -454,7 +454,7 @@ describe('FirstRunWizard', () => {
       mockedUpdateProfile.mockRejectedValue(new Error('network down'));
       const props = renderWizard({ initialStep: 2, initialPicks: ['Netflix'] });
 
-      await user.click(screen.getByRole('button', { name: 'File 1' }));
+      await user.click(screen.getByRole('button', { name: 'Add 1 subscription' }));
 
       expect(await screen.findByText('1 subscription filed')).toBeInTheDocument();
       expect(props.onFiled).toHaveBeenCalledWith(1);

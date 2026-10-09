@@ -9,6 +9,7 @@ import type { DashboardSummary } from '@/lib/dashboard';
 import { subscriptionApi } from '@/lib/subscriptions';
 import { formatCurrency, formatCurrencyTotals, dominantCurrency, DEFAULT_CURRENCY } from '@/lib/currency';
 import type { CurrencyAmount, CategorySpendGroup } from '@life-admin/shared';
+import { greeting } from '@/lib/greeting';
 import {
   categorySpendByCurrency,
   currencyOptions,
@@ -337,7 +338,7 @@ export default function Dashboard() {
 
       <div>
         <h2 className="text-3xl font-bold">
-          Welcome back, {user?.name || user?.email?.split('@')[0]}<span className="text-brand-orange">.</span>
+          {greeting(user)}<span className="text-brand-orange">.</span>
         </h2>
       </div>
 
@@ -352,7 +353,7 @@ export default function Dashboard() {
         <Card style={{ backgroundColor: 'hsl(var(--brand-orange))', borderColor: 'hsl(var(--brand-orange))' }} className="text-white">
           <CardContent className="p-6">
             <p className="text-sm font-medium opacity-75 mb-4 uppercase tracking-wide">
-              Charged this month
+              Monthly spend
             </p>
             <TotalLines
               totals={pickCurrency(spend.monthly, currency)}
