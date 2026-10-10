@@ -66,7 +66,7 @@ export default function ExtractionSection() {
               <p className="font-mono text-[13px] font-bold tracking-wider text-neutral-900">
                 NORDIC GYM CO.
               </p>
-              <p className="font-mono text-[9px] text-neutral-500 mt-1">
+              <p className="font-mono text-[10px] text-neutral-500 mt-1">
                 Membership · monthly
               </p>
 
@@ -136,16 +136,16 @@ export default function ExtractionSection() {
                   >
                     <IconCheck className="w-3 h-3 text-white" strokeWidth={3.2} />
                   </motion.span>
-                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground w-[130px] flex-shrink-0">
+                  <span className="text-xs text-muted-foreground w-[130px] flex-shrink-0">
                     {f.label}
                   </span>
-                  <span className="text-[17px] text-foreground" style={marketingType.label}>{f.value}</span>
+                  <span className="text-[15px] text-foreground" style={marketingType.label}>{f.value}</span>
                 </motion.div>
               ))}
             </div>
 
             <p className="text-sm text-muted-foreground mt-7 max-w-md leading-relaxed">
-              Upload any receipt, invoice or renewal notice — PDF or photo — and
+              Upload any receipt, invoice or renewal notice - PDF or photo - and
               {' '}{APP_NAME} fills in every field for you. You just glance and confirm.
             </p>
           </div>

@@ -36,7 +36,7 @@ export default function IosSection() {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brand-orange">
+            <p className="text-sm text-brand-orange">
               Now on the App Store
             </p>
             <h2 className="mt-4" style={marketingType.sectionCompact}>
@@ -45,7 +45,7 @@ export default function IosSection() {
               now in your pocket
             </h2>
             <p className="mt-4 max-w-md text-muted-foreground">
-              {APP_NAME} for iPhone is out now — purpose-designed for the quick jobs that keep your
+              {APP_NAME} for iPhone is out now - purpose-designed for the quick jobs that keep your
               paper trail current, and a powerful sidekick to the web app you already use.
             </p>
 

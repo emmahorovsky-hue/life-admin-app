@@ -44,15 +44,17 @@ type Role =
   | 'section'
   | 'sectionCompact'
   | 'cardTitle'
+  | 'cardCompact'
   | 'subtitle'
   | 'label'
   | 'stat'
-  | 'body';
+  | 'body'
+  | 'lede';
 
 export const marketingType: Record<Role, CSSProperties> = {
-  /** The page's one `<h1>`. 38 → 72px. */
+  /** The page's one `<h1>`. 44 → 68px. */
   display: {
-    fontSize: 'clamp(2.375rem, 6.2vw, 4.5rem)',
+    fontSize: 'clamp(2.75rem, 5.8vw, 4.25rem)',
     fontWeight: 650,
     letterSpacing: '-0.04em',
     lineHeight: 1.06,
@@ -96,6 +98,14 @@ export const marketingType: Record<Role, CSSProperties> = {
     lineHeight: 1.2,
   },
 
+  /** Compact marketing cards on both landing pages. */
+  cardCompact: {
+    fontSize: '1.375rem',
+    fontWeight: 600,
+    letterSpacing: '-0.015em',
+    lineHeight: 1.2,
+  },
+
   /** Small headings and ledes. 17 → 20px. */
   subtitle: {
     fontSize: 'clamp(1.0625rem, 1.6vw, 1.25rem)',
@@ -125,10 +135,18 @@ export const marketingType: Record<Role, CSSProperties> = {
     lineHeight: 1,
   },
 
+  /** Hero supporting copy: a quieter size with more breathing room. 16 → 18px. */
+  lede: {
+    fontSize: 'clamp(1rem, 1.65vw, 1.125rem)',
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 1.75,
+  },
+
   /** Running copy. Stated so a page never has to fall back to a bare default. */
   body: {
     fontWeight: 400,
     letterSpacing: 0,
-    lineHeight: 1.55,
+    lineHeight: 1.65,
   },
 };
