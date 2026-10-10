@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from './contexts/AuthContext';
@@ -9,16 +9,17 @@ import Layout from './components/Layout';
 // the first round trip instead of waterfalling through the Suspense fallback.
 import Landing from './pages/Landing';
 import { LoadingScreen } from './components/LoadingScreen';
+import { lazyPage } from './lib/lazyPage';
 
-const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Subscriptions = lazy(() => import('./pages/Subscriptions'));
-const Timeline = lazy(() => import('./pages/Timeline'));
-const VerifyEmailSuccess = lazy(() => import('./pages/VerifyEmailSuccess'));
-const VerifyEmailError = lazy(() => import('./pages/VerifyEmailError'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Login = lazyPage(() => import('./pages/Login'));
+const Register = lazyPage(() => import('./pages/Register'));
+const Dashboard = lazyPage(() => import('./pages/Dashboard'));
+const Subscriptions = lazyPage(() => import('./pages/Subscriptions'));
+const Timeline = lazyPage(() => import('./pages/Timeline'));
+const VerifyEmailSuccess = lazyPage(() => import('./pages/VerifyEmailSuccess'));
+const VerifyEmailError = lazyPage(() => import('./pages/VerifyEmailError'));
+const ForgotPassword = lazyPage(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazyPage(() => import('./pages/ResetPassword'));
 // /profile was replaced by /settings (LIF-181). Keep redirecting forever —
 // bookmarks and email-change confirmations target it — and preserve the query
 // string, which carries the confirmation outcome AccountPanel reads.
@@ -27,17 +28,17 @@ export function ProfileRedirect() {
   return <Navigate to={{ pathname: '/settings/account', search: location.search }} replace />;
 }
 
-const SettingsShell = lazy(() => import('./pages/settings/SettingsShell'));
-const SettingsIndexOrRedirect = lazy(() => import('./pages/settings/SettingsIndexOrRedirect'));
-const AccountPanel = lazy(() => import('./pages/settings/AccountPanel'));
-const NotificationsPanel = lazy(() => import('./pages/settings/NotificationsPanel'));
-const AppearancePanel = lazy(() => import('./pages/settings/AppearancePanel'));
-const PrivacyPanel = lazy(() => import('./pages/settings/PrivacyPanel'));
-const DesignSystem = lazy(() => import('./pages/DesignSystem'));
-const TermsOfService = lazy(() => import('./pages/TermsOfService'));
-const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
-const Support = lazy(() => import('./pages/Support'));
-const IosLanding = lazy(() => import('./pages/IosLanding'));
+const SettingsShell = lazyPage(() => import('./pages/settings/SettingsShell'));
+const SettingsIndexOrRedirect = lazyPage(() => import('./pages/settings/SettingsIndexOrRedirect'));
+const AccountPanel = lazyPage(() => import('./pages/settings/AccountPanel'));
+const NotificationsPanel = lazyPage(() => import('./pages/settings/NotificationsPanel'));
+const AppearancePanel = lazyPage(() => import('./pages/settings/AppearancePanel'));
+const PrivacyPanel = lazyPage(() => import('./pages/settings/PrivacyPanel'));
+const DesignSystem = lazyPage(() => import('./pages/DesignSystem'));
+const TermsOfService = lazyPage(() => import('./pages/TermsOfService'));
+const PrivacyPolicy = lazyPage(() => import('./pages/PrivacyPolicy'));
+const Support = lazyPage(() => import('./pages/Support'));
+const IosLanding = lazyPage(() => import('./pages/IosLanding'));
 
 function App() {
   return (
