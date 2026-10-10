@@ -1,0 +1,76 @@
+/* Typography only: scoped to the marketing landing pages, not the product UI. */
+.marketing-typography {
+  /* Separate text tokens: shared theme tokens also control surfaces and borders. */
+  --marketing-text-ink: 30 9% 13%;
+  --marketing-text-muted: 30 6% 42%;
+  --marketing-text-accent: 16 88% 42%;
+  color: hsl(var(--marketing-text-ink));
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.marketing-typography :is(h1, h2, h3) {
+  font-kerning: normal;
+  text-wrap: balance;
+}
+
+.marketing-typography p {
+  text-wrap: pretty;
+}
+
+/* Match the prototype's readable hero text measure without moving its columns. */
+.marketing-typography .marketing-lede {
+  max-width: 37ch;
+}
+
+@media (max-width: 1023px) {
+  .marketing-typography .marketing-lede {
+    max-width: 44ch;
+  }
+}
+
+/* These overrides change ink only; the page's existing surface palette stays intact. */
+.marketing-typography .text-foreground,
+.marketing-typography .hover\:text-foreground:hover {
+  color: hsl(var(--marketing-text-ink));
+}
+
+.marketing-typography .text-muted-foreground {
+  color: hsl(var(--marketing-text-muted));
+}
+
+.marketing-typography .text-brand-orange,
+.marketing-typography .hover\:text-brand-orange:hover {
+  color: hsl(var(--marketing-text-accent));
+}
+
+.marketing-typography [class~="text-foreground/90"] {
+  color: hsl(var(--marketing-text-ink) / 0.9);
+}
+
+.marketing-typography [class~="text-foreground/80"] {
+  color: hsl(var(--marketing-text-ink) / 0.8);
+}
+
+.marketing-typography [class~="text-foreground/65"] {
+  color: hsl(var(--marketing-text-ink) / 0.65);
+}
+
+/* The prototype strengthened the fine print on the paper cards. */
+.marketing-typography [class~="text-foreground/40"] {
+  color: hsl(var(--marketing-text-ink) / 0.55);
+}
+
+/* Peach carries small accent text more clearly on the existing dark sections. */
+.marketing-typography .marketing-inverse {
+  --marketing-text-accent: 20 95% 63%;
+}
+
+/* The same text hierarchy on the iPhone page's existing dark surfaces. */
+.marketing-typography.marketing-dark {
+  --marketing-text-ink: 42 33% 94%;
+  --marketing-text-strong: 36 17% 83%;
+  --marketing-text-muted: 32 9% 67%;
+  --marketing-text-faint: 30 7% 57%;
+  --marketing-text-accent: 20 95% 63%;
+}

@@ -17,7 +17,7 @@
  *    sit inside 700–900, which is no contrast at all: hierarchy came from size
  *    alone and every element shouted. Worse, Archivo's counters close up at 800,
  *    so an 18px heading at that weight read as a solid block. The ramp below is
- *    700 → 600 → 500 → 400, with a real step between neighbours.
+ *    650 → 600 → 500 → 400, with a real step between neighbours.
  * 2. **Tracking is size-specific, never one value.** Large text needs negative
  *    tracking (letters read too far apart as they grow); small text wants ~0.
  *    `/` had it backwards in places — `-0.025em` on 14px labels.
@@ -44,18 +44,20 @@ type Role =
   | 'section'
   | 'sectionCompact'
   | 'cardTitle'
+  | 'cardCompact'
   | 'subtitle'
   | 'label'
   | 'stat'
-  | 'body';
+  | 'body'
+  | 'lede';
 
 export const marketingType: Record<Role, CSSProperties> = {
-  /** The page's one `<h1>`. 38 → 72px. */
+  /** The page's one `<h1>`. 44 → 68px. */
   display: {
-    fontSize: 'clamp(2.375rem, 6.2vw, 4.5rem)',
-    fontWeight: 700,
-    letterSpacing: '-0.035em',
-    lineHeight: 0.98,
+    fontSize: 'clamp(2.75rem, 5.8vw, 4.25rem)',
+    fontWeight: 650,
+    letterSpacing: '-0.04em',
+    lineHeight: 1.06,
   },
 
   /** Big secondary display — closing CTAs, the pull-quote statement. 34 → 60px. */
@@ -63,7 +65,7 @@ export const marketingType: Record<Role, CSSProperties> = {
     fontSize: 'clamp(2.125rem, 5.2vw, 3.75rem)',
     fontWeight: 700,
     letterSpacing: '-0.03em',
-    lineHeight: 1,
+    lineHeight: 1.06,
   },
 
   /** Section `<h2>`. 30 → 44px. */
@@ -71,7 +73,7 @@ export const marketingType: Record<Role, CSSProperties> = {
     fontSize: 'clamp(1.875rem, 4.2vw, 2.75rem)',
     fontWeight: 600,
     letterSpacing: '-0.025em',
-    lineHeight: 1.05,
+    lineHeight: 1.14,
   },
 
   /**
@@ -85,12 +87,20 @@ export const marketingType: Record<Role, CSSProperties> = {
     fontSize: 'clamp(1.875rem, 4.2vw, 2.25rem)',
     fontWeight: 600,
     letterSpacing: '-0.025em',
-    lineHeight: 1.05,
+    lineHeight: 1.14,
   },
 
   /** Card and feature headings. 22 → 26px. */
   cardTitle: {
     fontSize: 'clamp(1.375rem, 2.2vw, 1.625rem)',
+    fontWeight: 600,
+    letterSpacing: '-0.015em',
+    lineHeight: 1.2,
+  },
+
+  /** Compact marketing cards on both landing pages. */
+  cardCompact: {
+    fontSize: '1.375rem',
     fontWeight: 600,
     letterSpacing: '-0.015em',
     lineHeight: 1.2,
@@ -125,10 +135,18 @@ export const marketingType: Record<Role, CSSProperties> = {
     lineHeight: 1,
   },
 
+  /** Hero supporting copy: a quieter size with more breathing room. 16 → 18px. */
+  lede: {
+    fontSize: 'clamp(1rem, 1.65vw, 1.125rem)',
+    fontWeight: 400,
+    letterSpacing: 0,
+    lineHeight: 1.75,
+  },
+
   /** Running copy. Stated so a page never has to fall back to a bare default. */
   body: {
     fontWeight: 400,
     letterSpacing: 0,
-    lineHeight: 1.55,
+    lineHeight: 1.65,
   },
 };

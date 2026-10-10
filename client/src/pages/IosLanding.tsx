@@ -6,6 +6,7 @@ import { Logo } from '@/components/Logo';
 import { Rule } from '@/components/FrameMarks';
 import { FRAME_HAIRLINE_COLOR } from '@/lib/frameTone';
 import { marketingType } from '@/lib/marketingType';
+import './marketing-typography.css';
 import {
   type PhoneFamily,
   PADDED,
@@ -27,11 +28,9 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta';
  * Unlike the rest of the app this page does NOT follow the semantic colour
  * tokens: `--background`/`--card`/`--foreground` describe the light "paper"
  * palette the product is built on, and this page is a deliberate dark counter-
- * surface. The palette below is therefore literal. `--brand-orange` is the one
- * exception — it is the same accent on both surfaces, so it stays a token
- * (`text-brand-orange`) and tracks the brand if it ever moves. `/mobile` is listed
- * in `lib/themeRoutes.ts`, so the token always resolves to its light value
- * (#E53D00) here regardless of the visitor's theme preference.
+ * surface. Surface colours below stay literal; text uses the shared marketing
+ * typography palette with its dark-surface variant. This keeps text consistent
+ * with `/` without changing the panels, glows, focus rings, or App Store badge.
  *
  * Structure follows Landing.tsx rather than the handoff prototype: the content
  * sits in a railed 1200px frame with `<Rule>` hairlines and registration marks
@@ -44,7 +43,7 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta';
 
 const INK = '#0C0B0A'; // warm near-black page bg
 const PANEL = '#161311'; // card surface on ink
-const SNOW = '#FAFAF8'; // light text / light surfaces
+const SNOW = '#FAFAF8'; // light surfaces
 
 /**
  * The card/panel border. Deliberately a step below the frame rails in
@@ -60,9 +59,9 @@ const PANEL_BORDER = 'rgba(250,250,248,0.08)';
  * alphas between 0.5 and 0.85, three of them ad-hoc inline, and the gaps
  * between neighbours (0.55 vs 0.6, 0.58 vs 0.6) are below what anyone can see.
  */
-const TEXT_STRONG = 'rgba(250,250,248,0.85)';
-const TEXT_MUTED = 'rgba(250,250,248,0.6)';
-const TEXT_FAINT = 'rgba(250,250,248,0.5)';
+const TEXT_STRONG = 'hsl(var(--marketing-text-strong))';
+const TEXT_MUTED = 'hsl(var(--marketing-text-muted))';
+const TEXT_FAINT = 'hsl(var(--marketing-text-faint))';
 
 /**
  * The muted step as a Tailwind class, for anything with a hover or focus state.
@@ -74,7 +73,7 @@ const TEXT_FAINT = 'rgba(250,250,248,0.5)';
  * are for static copy only. (Only the muted step is needed as a class today —
  * add the others here if an interactive element ever wants one.)
  */
-const TEXT_MUTED_CLASS = 'text-[rgba(250,250,248,0.6)]';
+const TEXT_MUTED_CLASS = 'text-muted-foreground';
 
 /**
  * Focus ring for this surface. The `ring-ring` token Landing uses is the light
@@ -311,7 +310,7 @@ function ScanRow() {
               />
             </div>
             <p
-              className="m-0 text-left font-mono text-[11px] leading-[1.4]"
+              className="m-0 text-left text-xs leading-[1.4]"
               style={{ color: TEXT_FAINT }}
             >
               Scan to
@@ -337,18 +336,16 @@ function ScanRow() {
   );
 }
 
-/** Dark panel card. `eyebrow` is the small orange mono label on the intro pair. */
+/** Dark panel card. Intro labels use the same sentence-case style as `/`. */
 function FeatureCard({
   eyebrow,
   title,
   body,
-  titleClass,
   children,
 }: {
   eyebrow?: string;
   title: string;
   body: string;
-  titleClass: string;
   children: ReactNode;
 }) {
   return (
@@ -360,18 +357,16 @@ function FeatureCard({
       style={{ backgroundColor: PANEL, border: `1px solid ${PANEL_BORDER}`, borderRadius: RADIUS }}
     >
       {eyebrow && (
-        <p className="m-0 mb-2.5 font-mono text-[11px] uppercase tracking-[0.18em] text-brand-orange">
+        <p className="m-0 mb-2.5 text-sm text-brand-orange">
           {eyebrow}
         </p>
       )}
-      {/* Size stays with `titleClass` — an inline `fontSize` would outrank it
-          and flatten the two card sizes into one. */}
       <h3
-        className={`m-0 mb-2.5 ${titleClass}`}
-        style={{ ...marketingType.cardTitle, fontSize: undefined }}
+        className="m-0 mb-2.5"
+        style={marketingType.cardCompact}
       >{title}</h3>
       <p
-        className="m-0 mb-2 max-w-[34ch] text-[15px] leading-[1.55]"
+        className="m-0 mb-2 max-w-[34ch] text-sm leading-[1.65]"
         style={{ color: TEXT_MUTED }}
       >
         {body}
@@ -401,7 +396,7 @@ export default function IosLanding() {
   // Deliberately no redirect for signed-in visitors (unlike `/`): existing web
   // users are the most likely audience for a "there's an app now" page.
   return (
-    <div className="min-h-screen overflow-x-clip font-sans" style={{ backgroundColor: INK, color: SNOW }}>
+    <div className="marketing-typography marketing-dark min-h-screen overflow-x-clip font-sans" style={{ backgroundColor: INK }}>
       {/* ── Nav ───────────────────────────────────────────────────────────── */}
       {/* Sticky and full-bleed, structured exactly like Landing's header: the
           rails live on the inner element rather than the <header>, because a
@@ -419,7 +414,7 @@ export default function IosLanding() {
               <Logo variant="wordmark-inverse" height={24} />
             </Link>
             <nav className="flex items-center gap-4 text-sm sm:gap-[26px]">
-              {/* No inline colour on any nav link: the page root sets SNOW and
+              {/* No inline colour on any nav link: the page root sets the light text colour and
                   these inherit it, which leaves `hover:text-brand-orange` free
                   to win. */}
               <Link
@@ -479,7 +474,7 @@ export default function IosLanding() {
           />
           <div className="relative z-[2]">
             <motion.p
-              className="m-0 mb-6 font-mono text-[12px] uppercase tracking-[0.24em]"
+              className="m-0 mb-6 text-sm"
               style={{ color: TEXT_FAINT }}
               initial={reduced ? {} : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -489,7 +484,7 @@ export default function IosLanding() {
             </motion.p>
             <motion.h1
               className="mx-auto max-w-[16ch]"
-              style={{ ...marketingType.display, fontSize: 'clamp(2.375rem, 6.2vw, 4.125rem)' }}
+              style={marketingType.display}
               initial={reduced ? {} : { opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08, duration: 0.6, ease: REVEAL_EASE }}
@@ -497,8 +492,8 @@ export default function IosLanding() {
               The pocket companion to your paper trail
             </motion.h1>
             <motion.p
-              className="mx-auto mt-6 max-w-[40ch] text-[19px] leading-[1.5]"
-              style={{ color: TEXT_MUTED }}
+              className="mx-auto mt-6 max-w-[40ch]"
+              style={{ ...marketingType.lede, color: TEXT_MUTED }}
               initial={reduced ? {} : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.22, duration: 0.5, ease: 'easeOut' }}
@@ -547,8 +542,8 @@ export default function IosLanding() {
         <section className="px-5 py-[72px] sm:px-10 lg:px-14">
           <Reveal>
             <p
-              className="mx-auto max-w-[52ch] text-center text-[20px] sm:text-[24px]"
-              style={{ ...marketingType.subtitle, fontSize: undefined, lineHeight: 1.45, color: TEXT_STRONG }}
+              className="mx-auto max-w-[52ch] text-center"
+              style={{ ...marketingType.subtitle, lineHeight: 1.65, color: TEXT_STRONG }}
             >
               Paper turns up when you are nowhere near a desk — a receipt at the till, a renewal
               notice on the train. {APP_NAME} for iPhone is for filing those where you stand, so
@@ -561,7 +556,6 @@ export default function IosLanding() {
                 eyebrow="On the spot"
                 title="Snap any receipt"
                 body={`Photograph a receipt or invoice and ${APP_NAME} reads off the merchant, amount, cycle and renewal date. You glance at it and confirm.`}
-                titleClass="text-[22px] sm:text-[26px]"
               >
                 <PhoneShot
                   src="/ios/uploading.webp"
@@ -577,7 +571,6 @@ export default function IosLanding() {
                 eyebrow="Right on time"
                 title="A nudge before it charges"
                 body="A push before the money leaves, timed to the cycle: a day before a weekly, a fortnight before an annual."
-                titleClass="text-[22px] sm:text-[26px]"
               >
                 <PhoneShot
                   src="/ios/push.webp"
@@ -608,7 +601,7 @@ export default function IosLanding() {
                 Stay on top of every renewal
               </h2>
               <p
-                className="m-0 mx-auto max-w-[38ch] text-[17px] leading-[1.55]"
+                className="m-0 mx-auto max-w-[38ch] text-base leading-[1.65]"
                 style={{ color: TEXT_MUTED }}
               >
                 What&rsquo;s due next sits at the top, everything behind it in date order. Tap any
@@ -630,7 +623,6 @@ export default function IosLanding() {
               <FeatureCard
                 title="Tap into any charge"
                 body="Open a subscription to see cost, cycle, next renewal and your own notes at a glance."
-                titleClass="text-[20px] sm:text-[22px]"
               >
                 <PhoneShot
                   src="/ios/details-sub.webp"
@@ -645,7 +637,6 @@ export default function IosLanding() {
               <FeatureCard
                 title="Tune every reminder"
                 body="Email, push, or both — and mute any subscription you would rather not hear about."
-                titleClass="text-[20px] sm:text-[22px]"
               >
                 {/* Same DEVICE_SUBCARD as its neighbour — a tight-family asset,
                     so it resolves to a narrower image box around the same phone. */}
@@ -676,7 +667,7 @@ export default function IosLanding() {
                 Waiting on the web.
               </h2>
               <p
-                className="m-0 mx-auto max-w-[40ch] text-[17px] leading-[1.55]"
+                className="m-0 mx-auto max-w-[40ch] text-base leading-[1.65]"
                 style={{ color: TEXT_MUTED }}
               >
                 One account, one paper trail. File something at the checkout and it is on your
@@ -720,7 +711,7 @@ export default function IosLanding() {
                   <div>
                     <p className="m-0 mb-1 text-[16px]" style={marketingType.label}>Timed to the cycle</p>
                     <p
-                      className="m-0 max-w-[42ch] text-[14.5px] leading-[1.55]"
+                      className="m-0 max-w-[42ch] text-sm leading-[1.65]"
                       style={{ color: TEXT_MUTED }}
                     >
                       A day before a weekly renewal, three before a monthly, a fortnight before an
@@ -730,7 +721,7 @@ export default function IosLanding() {
                   <div>
                     <p className="m-0 mb-1 text-[16px]" style={marketingType.label}>In your own timezone</p>
                     <p
-                      className="m-0 max-w-[42ch] text-[14.5px] leading-[1.55]"
+                      className="m-0 max-w-[42ch] text-sm leading-[1.65]"
                       style={{ color: TEXT_MUTED }}
                     >
                       Reminders go out during your waking hours, wherever you happen to be — never

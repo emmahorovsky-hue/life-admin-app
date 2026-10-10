@@ -19,6 +19,7 @@ import { useRef, useEffect, useState, useSyncExternalStore } from 'react';
 import ExtractionSection from './ExtractionSection';
 import IosSection from './IosSection';
 import { marketingType } from '@/lib/marketingType';
+import './marketing-typography.css';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -102,7 +103,7 @@ function DashboardMockup({ reduced }: { reduced: boolean }) {
     >
       <div className="px-5 py-4 border-b flex items-center justify-between">
         <span className="text-sm" style={marketingType.label}>Upcoming renewals</span>
-        <span className="text-xs text-muted-foreground font-mono">next 30 days</span>
+        <span className="text-[10px] text-muted-foreground font-mono">next 30 days</span>
       </div>
       <div className="divide-y">
         {RENEWAL_ITEMS.map((item, i) => (
@@ -119,7 +120,7 @@ function DashboardMockup({ reduced }: { reduced: boolean }) {
               style={
                 i === 0
                   ? { backgroundColor: 'hsl(var(--brand-orange))', color: 'white' }
-                  : { backgroundColor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }
+                  : { backgroundColor: 'hsl(var(--muted))', color: 'hsl(var(--marketing-text-muted))' }
               }
             >
               {item.amount}
@@ -138,7 +139,7 @@ function CostStat({ target, reduced }: { target: number; reduced: boolean }) {
   const count = useCountUp(target, inView, reduced);
 
   return (
-    <span ref={ref} className="tabular-nums" style={{ color: 'hsl(var(--brand-orange))' }}>
+    <span ref={ref} className="tabular-nums" style={{ color: 'hsl(var(--marketing-text-accent))' }}>
       ${count}+
     </span>
   );
@@ -243,12 +244,12 @@ function RenewalRadar() {
   const playheadPct = (day / 90) * 100;
 
   return (
-    <div className="md:col-span-3 bg-foreground p-6 md:p-8 border-b md:border-b-0 md:border-r border-background/15">
+    <div className="marketing-inverse md:col-span-3 bg-foreground p-6 md:p-8 border-b md:border-b-0 md:border-r border-background/15">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-background/50">Renewal radar</p>
-          <h3 className="font-sans text-background mt-1" style={{ ...marketingType.cardTitle, fontSize: '1.375rem' }}>
+          <h3 className="font-sans text-background mt-1" style={marketingType.cardCompact}>
             Scrub the next 90 days
           </h3>
         </div>
@@ -435,14 +436,12 @@ export default function Landing() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const headline = ['Your', 'entire', 'paper', 'trail.'];
-
   // Root uses overflow-x-clip (not -hidden): it clips the full-bleed rails/orbs
   // horizontally WITHOUT making this wrapper a scroll container. `overflow-x: hidden`
   // forces overflow-y to compute to `auto`, which turned the page into a second
   // scroller that swallowed the first scroll gesture (the "double scroll" on the hero).
   return (
-    <div className="min-h-screen bg-background font-sans overflow-x-clip">
+    <div className="marketing-typography min-h-screen bg-background font-sans overflow-x-clip">
       {/* Navbar */}
       {/* Fades in, deliberately without a vertical slide. The header is `sticky
           top-0`, so a negative-Y entry offset renders it *above* the viewport and
@@ -554,7 +553,7 @@ export default function Landing() {
                 to="/mobile"
                 onClick={() => window.scrollTo(0, 0)}
                 className="group inline-flex items-center gap-2.5 rounded-full border bg-card/80 py-1.5 pl-1.5 pr-4
-                  text-sm shadow-sm backdrop-blur transition-[border-color,transform] duration-150 ease-out
+                  text-xs shadow-sm backdrop-blur transition-[border-color,transform] duration-150 ease-out
                   hover:border-brand-orange/50 active:scale-[0.98]
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
@@ -572,26 +571,32 @@ export default function Landing() {
             </motion.div>
 
             <h1 className="mb-7" style={marketingType.display}>
-              {headline.map((word, i) => (
-                <motion.span
-                  key={word + i}
-                  className={`inline-block mr-[0.22em] last:mr-0 ${word === 'trail.' ? 'text-brand-orange' : ''}`}
-                  initial={reduced ? {} : { opacity: 0, y: 32 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.08 + i * 0.09, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  {word}
-                </motion.span>
-              ))}
+              <motion.span
+                className="block"
+                initial={reduced ? {} : { opacity: 0, y: 32 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              >
+                Your entire
+              </motion.span>
+              <motion.span
+                className="block"
+                initial={reduced ? {} : { opacity: 0, y: 32 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.17, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              >
+                paper <span className="text-brand-orange">trail.</span>
+              </motion.span>
             </h1>
 
             <motion.p
-              className="text-lg md:text-xl text-muted-foreground mb-10 max-w-lg leading-relaxed"
+              className="marketing-lede text-muted-foreground mb-10"
+              style={marketingType.lede}
               initial={reduced ? {} : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.52, duration: 0.55, ease: 'easeOut' }}
             >
-              Every subscription, contract, invoice and renewal - organised into one living timeline.
+              Every subscription, contract, invoice and renewal — organised into one living timeline.
             </motion.p>
 
             <motion.div
@@ -605,7 +610,7 @@ export default function Landing() {
                 whileTap={reduced ? {} : { scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               >
-                <Link to="/register" className={buttonVariants({ size: 'lg' })}>
+                <Link to="/register" className={buttonVariants({ size: 'lg', className: 'tracking-[-0.01em]' })}>
                   Get Started Free
                 </Link>
               </motion.div>
@@ -666,7 +671,7 @@ export default function Landing() {
               Everything with a deadline, in one place
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              If it renews, expires, or auto-charges - {APP_NAME} tracks it.
+              If it renews, expires, or auto-charges — {APP_NAME} tracks it.
             </p>
           </motion.div>
         </div>
@@ -735,10 +740,10 @@ export default function Landing() {
                   <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/40">
                     {APP_NAME} · Tracked
                   </p>
-                  <h3 className="font-sans text-foreground/90 mt-10 mb-3" style={{ ...marketingType.cardTitle, fontSize: '1.7rem' }}>
+                  <h3 className="font-sans text-foreground/90 mt-10 mb-3" style={marketingType.cardCompact}>
                     {label}
                   </h3>
-                  <p className="font-sans text-[0.95rem] leading-relaxed text-foreground/65">
+                  <p className="font-sans text-sm leading-[1.65] text-foreground/65">
                     {description}
                   </p>
 
@@ -840,10 +845,10 @@ export default function Landing() {
       {/* NOTE: the "$200+/year" figure is illustrative marketing copy, hedged
           with "can quietly add up to". Swap in a sourced statistic (and cite
           it) before launch if you want a hard, defensible number. */}
-      <section className="py-20 px-4" style={{ backgroundColor: 'hsl(var(--foreground))' }}>
+      <section className="marketing-inverse py-20 px-4" style={{ backgroundColor: 'hsl(var(--foreground))' }}>
         <div className="container mx-auto max-w-3xl text-center">
           <motion.p
-            className="text-xs font-mono uppercase tracking-widest mb-6"
+            className="text-sm mb-6"
             style={{ color: 'hsl(var(--background) / 0.5)' }}
             initial={reduced ? {} : { opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -872,7 +877,7 @@ export default function Landing() {
             transition={{ delay: 0.16, duration: 0.5, ease: 'easeOut' }}
           >
             is what forgotten subscriptions and auto-renewals can quietly add up to.
-            {APP_NAME} keeps every renewal, contract, and warranty on one timeline - so
+            {APP_NAME} keeps every renewal, contract, and warranty on one timeline — so
             nothing slips through.
           </motion.p>
         </div>
@@ -913,7 +918,7 @@ export default function Landing() {
             whileTap={reduced ? {} : { scale: 0.97 }}
             style={{ display: 'inline-block' }}
           >
-            <Link to="/register" className={buttonVariants({ size: 'lg' })}>
+            <Link to="/register" className={buttonVariants({ size: 'lg', className: 'tracking-[-0.01em]' })}>
               Get Started Free
             </Link>
           </motion.div>
