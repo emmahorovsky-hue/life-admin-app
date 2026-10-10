@@ -17,7 +17,7 @@
  *    sit inside 700–900, which is no contrast at all: hierarchy came from size
  *    alone and every element shouted. Worse, Archivo's counters close up at 800,
  *    so an 18px heading at that weight read as a solid block. The ramp below is
- *    700 → 600 → 500 → 400, with a real step between neighbours.
+ *    650 → 600 → 500 → 400, with a real step between neighbours.
  * 2. **Tracking is size-specific, never one value.** Large text needs negative
  *    tracking (letters read too far apart as they grow); small text wants ~0.
  *    `/` had it backwards in places — `-0.025em` on 14px labels.
@@ -53,9 +53,9 @@ export const marketingType: Record<Role, CSSProperties> = {
   /** The page's one `<h1>`. 38 → 72px. */
   display: {
     fontSize: 'clamp(2.375rem, 6.2vw, 4.5rem)',
-    fontWeight: 700,
-    letterSpacing: '-0.035em',
-    lineHeight: 0.98,
+    fontWeight: 650,
+    letterSpacing: '-0.04em',
+    lineHeight: 1.06,
   },
 
   /** Big secondary display — closing CTAs, the pull-quote statement. 34 → 60px. */
@@ -63,7 +63,7 @@ export const marketingType: Record<Role, CSSProperties> = {
     fontSize: 'clamp(2.125rem, 5.2vw, 3.75rem)',
     fontWeight: 700,
     letterSpacing: '-0.03em',
-    lineHeight: 1,
+    lineHeight: 1.06,
   },
 
   /** Section `<h2>`. 30 → 44px. */
@@ -71,7 +71,7 @@ export const marketingType: Record<Role, CSSProperties> = {
     fontSize: 'clamp(1.875rem, 4.2vw, 2.75rem)',
     fontWeight: 600,
     letterSpacing: '-0.025em',
-    lineHeight: 1.05,
+    lineHeight: 1.14,
   },
 
   /**
@@ -85,7 +85,7 @@ export const marketingType: Record<Role, CSSProperties> = {
     fontSize: 'clamp(1.875rem, 4.2vw, 2.25rem)',
     fontWeight: 600,
     letterSpacing: '-0.025em',
-    lineHeight: 1.05,
+    lineHeight: 1.14,
   },
 
   /** Card and feature headings. 22 → 26px. */
