@@ -221,6 +221,20 @@
     border-radius: 1px;
     box-shadow: 0 0 0 1px hsl(var(--brand-orange));
   }
+
+  /* Select chevron — the native arrow ignores padding-right and hugs the
+     border, so ui/select.tsx hides it (appearance-none) and draws this one
+     12px in, matching the text's pl-3. Two diagonal strokes make the V, in
+     currentColor so it follows the theme and the disabled opacity. */
+  .select-chevron {
+    --chevron-stroke: 0.75px;
+    background-image:
+      linear-gradient(45deg, transparent calc(50% - var(--chevron-stroke)), currentColor calc(50% - var(--chevron-stroke)), currentColor calc(50% + var(--chevron-stroke)), transparent calc(50% + var(--chevron-stroke))),
+      linear-gradient(-45deg, transparent calc(50% - var(--chevron-stroke)), currentColor calc(50% - var(--chevron-stroke)), currentColor calc(50% + var(--chevron-stroke)), transparent calc(50% + var(--chevron-stroke)));
+    background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
