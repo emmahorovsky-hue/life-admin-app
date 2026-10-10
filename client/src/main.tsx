@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
+import { AppErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
 if (import.meta.env.VITE_SENTRY_DSN) {
@@ -18,6 +19,8 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
   </React.StrictMode>,
 );

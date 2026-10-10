@@ -9,6 +9,7 @@ import { fullName } from '@/lib/userName';
 import { getInitials } from '@life-admin/shared';
 import { UnverifiedEmailBanner } from './UnverifiedEmailBanner';
 import { Logo } from './Logo';
+import { PageErrorBoundary } from './ErrorBoundary';
 import {
   IconMenu,
   IconClose,
@@ -282,7 +283,8 @@ export default function Layout({ children }: LayoutProps) {
 
           {/* Main content */}
           <main className="flex-1 p-6 md:p-8">
-            {children}
+            {/* Keyed by path so navigating away clears a crashed page (LIF-280). */}
+            <PageErrorBoundary key={location.pathname}>{children}</PageErrorBoundary>
           </main>
         </div>
       </div>
