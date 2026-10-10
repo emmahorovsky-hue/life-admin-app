@@ -145,7 +145,7 @@ export default function ExtractionSection() {
             </div>
 
             <p className="text-sm text-muted-foreground mt-7 max-w-md leading-relaxed">
-              Upload any receipt, invoice or renewal notice - PDF or photo - and
+              Upload any receipt, invoice or renewal notice — PDF or photo — and
               {' '}{APP_NAME} fills in every field for you. You just glance and confirm.
             </p>
           </div>

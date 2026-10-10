@@ -389,7 +389,7 @@ export default function IosLanding() {
   // so it is the one route in the app that most needs its own share card.
   useDocumentMeta({
     title: `${APP_NAME} for iPhone`,
-    description: `Catch a receipt the moment it lands. ${APP_NAME} for iPhone files what you photograph and reminds you before a subscription renews - always in sync with the web.`,
+    description: `Catch a receipt the moment it lands. ${APP_NAME} for iPhone files what you photograph and reminds you before a subscription renews — always in sync with the web.`,
     url: 'https://paypr.live/mobile',
   });
 
@@ -545,7 +545,7 @@ export default function IosLanding() {
               className="mx-auto max-w-[52ch] text-center"
               style={{ ...marketingType.subtitle, lineHeight: 1.65, color: TEXT_STRONG }}
             >
-              Paper turns up when you are nowhere near a desk - a receipt at the till, a renewal
+              Paper turns up when you are nowhere near a desk — a receipt at the till, a renewal
               notice on the train. {APP_NAME} for iPhone is for filing those where you stand, so
               nothing waits until you get home and nothing gets forgotten on the way.
             </p>
@@ -636,7 +636,7 @@ export default function IosLanding() {
             <Reveal delay={0.08} className="h-full">
               <FeatureCard
                 title="Tune every reminder"
-                body="Email, push, or both - and mute any subscription you would rather not hear about."
+                body="Email, push, or both — and mute any subscription you would rather not hear about."
               >
                 {/* Same DEVICE_SUBCARD as its neighbour — a tight-family asset,
                     so it resolves to a narrower image box around the same phone. */}
@@ -715,7 +715,7 @@ export default function IosLanding() {
                       style={{ color: TEXT_MUTED }}
                     >
                       A day before a weekly renewal, three before a monthly, a fortnight before an
-                      annual one - enough warning to cancel if you would rather not pay it again.
+                      annual one — enough warning to cancel if you would rather not pay it again.
                     </p>
                   </div>
                   <div>
@@ -724,7 +724,7 @@ export default function IosLanding() {
                       className="m-0 max-w-[42ch] text-sm leading-[1.65]"
                       style={{ color: TEXT_MUTED }}
                     >
-                      Reminders go out during your waking hours, wherever you happen to be - never
+                      Reminders go out during your waking hours, wherever you happen to be — never
                       in the middle of your night because a server somewhere hit 9am.
                     </p>
                   </div>

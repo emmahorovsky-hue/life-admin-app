@@ -436,8 +436,6 @@ export default function Landing() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const headline = ['Your entire', 'paper trail.'];
-
   // Root uses overflow-x-clip (not -hidden): it clips the full-bleed rails/orbs
   // horizontally WITHOUT making this wrapper a scroll container. `overflow-x: hidden`
   // forces overflow-y to compute to `auto`, which turned the page into a second
@@ -573,27 +571,32 @@ export default function Landing() {
             </motion.div>
 
             <h1 className="mb-7" style={marketingType.display}>
-              {headline.map((word, i) => (
-                <motion.span
-                  key={word + i}
-                  className="block"
-                  initial={reduced ? {} : { opacity: 0, y: 32 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.08 + i * 0.09, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  {i === 0 ? `${word} ` : <>paper <span className="text-brand-orange">trail.</span></>}
-                </motion.span>
-              ))}
+              <motion.span
+                className="block"
+                initial={reduced ? {} : { opacity: 0, y: 32 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              >
+                Your entire
+              </motion.span>
+              <motion.span
+                className="block"
+                initial={reduced ? {} : { opacity: 0, y: 32 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.17, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              >
+                paper <span className="text-brand-orange">trail.</span>
+              </motion.span>
             </h1>
 
             <motion.p
-              className="marketing-lede text-muted-foreground mb-10 max-w-lg"
+              className="marketing-lede text-muted-foreground mb-10"
               style={marketingType.lede}
               initial={reduced ? {} : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.52, duration: 0.55, ease: 'easeOut' }}
             >
-              Every subscription, contract, invoice and renewal - organised into one living timeline.
+              Every subscription, contract, invoice and renewal — organised into one living timeline.
             </motion.p>
 
             <motion.div
@@ -668,7 +671,7 @@ export default function Landing() {
               Everything with a deadline, in one place
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              If it renews, expires, or auto-charges - {APP_NAME} tracks it.
+              If it renews, expires, or auto-charges — {APP_NAME} tracks it.
             </p>
           </motion.div>
         </div>
@@ -785,7 +788,7 @@ export default function Landing() {
               </span>
             </h2>
             <p className="mt-4 max-w-md text-muted-foreground">
-              Every renewal, contract and warranty on one timeline - surfaced before it costs you.
+              Every renewal, contract and warranty on one timeline — surfaced before it costs you.
             </p>
           </motion.div>
 
@@ -815,7 +818,7 @@ export default function Landing() {
               <div className="flex-1">
                 <h3 className="text-foreground" style={{ ...marketingType.subtitle, fontSize: '1.125rem' }}>One organised view</h3>
                 <p className="mt-1 max-w-[52ch] text-[13px] text-muted-foreground">
-                  All your commitments - subscriptions, contracts, warranties, leases -
+                  All your commitments — subscriptions, contracts, warranties, leases —
                   filtered by category and sorted by date.
                 </p>
               </div>
@@ -874,7 +877,7 @@ export default function Landing() {
             transition={{ delay: 0.16, duration: 0.5, ease: 'easeOut' }}
           >
             is what forgotten subscriptions and auto-renewals can quietly add up to.
-            {APP_NAME} keeps every renewal, contract, and warranty on one timeline - so
+            {APP_NAME} keeps every renewal, contract, and warranty on one timeline — so
             nothing slips through.
           </motion.p>
         </div>
