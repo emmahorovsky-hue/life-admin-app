@@ -11,7 +11,7 @@
 
     /* Light mode colors — Scandinavian palette */
     --background: 60 17% 98%;   /* Snow #FAFAF8 */
-    --foreground: 0 0% 9%;      /* Black #161616 */
+    --foreground: 0 0% 9%;      /* Black #171717 */
 
     --card: 60 17% 98%;         /* Snow */
     --card-foreground: 0 0% 9%;
@@ -224,16 +224,46 @@
 
   /* Select chevron — the native arrow ignores padding-right and hugs the
      border, so ui/select.tsx hides it (appearance-none) and draws this one
-     12px in, matching the text's pl-3. Two diagonal strokes make the V, in
-     currentColor so it follows the theme and the disabled opacity. */
+     12px in, matching the text's pl-3.
+
+     An SVG, not gradient strokes: gradients clip at their tile edges, which
+     cut the V's ends and flattened its tip. The image comes from
+     --select-chevron, set per theme scope below, so the cascade picks the
+     right ink wherever the select sits. ui/select.tsx pins the text to text-foreground, so the
+     text and the V share that ink. The viewBox is cropped to the stroke's
+     outer edge, so the visible V spans exactly 12–22px from the right border.
+     Disabled opacity still applies, since it fades the whole element. */
+  /* --select-chevron mirrors --foreground per scope: light ink on :root and
+     .paper-light (which keeps light ink inside dark mode), Snow under .dark.
+     A data URI can't read currentColor or var(), so each stroke is that
+     token's computed hex (#171717 / #fbfbf9) — change them together. Kept out
+     of the :root token block, which tokens.test.ts mirrors to mobile. .dark
+     comes second so it wins on <html>, where it shares the element with
+     :root. */
+  :root,
+  .paper-light {
+    --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='none' stroke='%23171717' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M.75.75 5 5l4.25-4.25'/%3E%3C/svg%3E");
+  }
+  .dark {
+    --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='none' stroke='%23fbfbf9' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M.75.75 5 5l4.25-4.25'/%3E%3C/svg%3E");
+  }
+
   .select-chevron {
-    --chevron-stroke: 0.75px;
-    background-image:
-      linear-gradient(45deg, transparent calc(50% - var(--chevron-stroke)), currentColor calc(50% - var(--chevron-stroke)), currentColor calc(50% + var(--chevron-stroke)), transparent calc(50% + var(--chevron-stroke))),
-      linear-gradient(-45deg, transparent calc(50% - var(--chevron-stroke)), currentColor calc(50% - var(--chevron-stroke)), currentColor calc(50% + var(--chevron-stroke)), transparent calc(50% + var(--chevron-stroke)));
-    background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
-    background-size: 5px 5px;
+    background-image: var(--select-chevron);
+    background-position: right 12px center;
+    background-size: 10px 6px;
     background-repeat: no-repeat;
+  }
+
+  /* Forced colors (Windows High Contrast) repaint text and borders but not
+     background images, so the fixed-ink V can vanish on a dark Canvas. Fall
+     back to the native arrow, which the system colours. !important because
+     appearance-none is a utility on the same element. */
+  @media (forced-colors: active) {
+    .select-chevron {
+      appearance: auto !important;
+      background-image: none;
+    }
   }
 }
 
