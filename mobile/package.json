@@ -11,7 +11,7 @@
     "@react-native-community/datetimepicker": "9.1.0",
     "@sentry/react-native": "8.21.0",
     "@shopify/react-native-skia": "2.10.2",
-    "axios": "^1.19.0",
+    "axios": "^1.21.0",
     "date-fns": "^4.4.0",
     "expo": "57.0.10",
     "expo-blur": "57.0.2",
